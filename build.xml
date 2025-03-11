@@ -1,0 +1,175 @@
+<project name="Build" default="all" basedir="." xmlns:if="ant:if" xmlns:unless="ant:unless">
+
+    <!-- #################################################################################################### -->
+    <!-- Global parameters -->
+    <!-- #################################################################################################### -->
+    
+    <!-- merge external libraries in deploy jar (true/false) -->
+    <property name="mergeLibraries" value="false"/>
+
+    <!-- #################################################################################################### -->
+    <!-- various path specificators -->
+    <!-- #################################################################################################### -->
+    
+    <property name="providerName" value="CustomIdentityAsserter" />
+    
+    <property name="libDir" value="lib"/>
+    <property name="toolsDir" value="tools"/>
+    <property name="buildDir" value="build"/>
+    <property name="deployDir" value="deploy"/>
+    <property name="sourceDir" value="src"/>
+    <property name="packageDir" value="${buildDir}/temp/org/falpi/osb/security/providers"/>
+    
+    <property name="javaHomeDir" value="C:/Programmi/Java/jdk1.7"/>
+    <property name="weblogicDir" value="C:/Oracle/Middleware/12.1.3"/>   
+
+    <path id="myclasspath">
+        <pathelement location="${javaHomeDir}/lib/tools.jar"/>
+        <pathelement location="${javaHomeDir}/jre/lib/rt.jar"/>
+        <pathelement location="${libDir}/tools.jar"/>
+        <pathelement location="${libDir}/json-20230618.jar"/>
+        <pathelement location="${libDir}/httpcore-4.4.13.jar"/>
+        <pathelement location="${libDir}/httpclient-4.5.13.jar"/>
+        <pathelement location="${libDir}/commons-codec-1.11.jar"/>
+        <pathelement location="${libDir}/nimbus-jose-jwt-9.48.jar"/>
+        <pathelement location="${weblogicDir}/osb/lib/servicebus.jar"/>
+        <pathelement location="${weblogicDir}/wlserver/server/lib/weblogic.jar"/>
+        <pathelement location="${weblogicDir}/wlserver/server/lib/mbeantypes/cssWlSecurityProviders.jar"/>
+    </path>
+    
+    <!-- #################################################################################################### -->
+    <!-- Main tasks -->
+    <!-- #################################################################################################### -->
+    
+    <target name="all" depends="build,deploy"/>
+    <target name="build" depends="clean,build.tools,build.mdf,build.mjf"/>
+    
+    <target name="clean">
+        <delete dir="${buildDir}" failonerror="false" />
+        <delete dir="${deployDir}" failonerror="false" />
+        <echo message="Clean finish"></echo>
+    </target>
+    
+    <!-- ==================================================================================================== -->
+    <!-- Build tool package to replace default code generation templates of MBeanMaker -->
+    <!-- ==================================================================================================== -->
+    <target name="build.tools">
+        <mkdir dir="${buildDir}" />
+        <delete dir="${buildDir}/weblogic" failonerror="false"/>
+        <delete file="${buildDir}/weblogic.jar" failonerror="false"/>
+        <javac srcdir="${toolsDir}" destdir="${buildDir}" includes="**/*.java">
+            <classpath>
+                <pathelement location="${weblogicDir}/wlserver/server/lib/weblogic.jar"/>
+            </classpath>
+        </javac>
+        <copy todir="${buildDir}/weblogic">
+          <fileset dir="${toolsDir}/weblogic"/>
+        </copy>
+        <jar destfile="${libDir}/tools.jar" basedir="${buildDir}" includes="weblogic/**"/>
+        <delete dir="${buildDir}/weblogic" />
+    </target>
+    
+    <!-- ==================================================================================================== -->
+    <!-- Build the Provider MBean definition file -->
+    <!-- ==================================================================================================== -->
+    <target name="build.mdf">
+        <mkdir dir="${buildDir}"/>
+        <delete dir="${buildDir}/temp" failonerror="false"/>        
+        <copy todir="${buildDir}/temp">
+            <fileset dir="${sourceDir}">
+                <include name="**/*.*"/>
+            </fileset>
+        </copy>        
+        <java classname="weblogic.management.commo.WebLogicMBeanMaker">
+            <arg line="-MDF ${packageDir}/${providerName}.xml"/>
+            <arg value="-createStubs"/>
+            <arg line="-files ${buildDir}/temp"/>
+            <classpath refid="myclasspath"/>
+        </java>
+        <move file="${buildDir}/temp/${providerName}Impl.java" todir="${packageDir}"/>
+        <echo message="Created Supporting Classes"></echo>
+    </target>
+    
+    <!-- ==================================================================================================== -->
+    <!-- Build the Provider MBean -->
+    <!-- ==================================================================================================== -->
+    <target name="build.mjf">
+        <delete dir="${deployDir}" failonerror="false"/>
+        <mkdir dir="${deployDir}"/>
+        <java dir="${buildDir}" fork="true" classname="weblogic.management.commo.WebLogicMBeanMaker">
+            <arg line="-MJF ${providerName}.jar"/>
+            <arg line="-includeSource"/>
+            <arg line="-files temp"/>
+            <classpath refid="myclasspath"/>
+        </java>
+        <echo message="Created Mbean Jar"></echo>
+    </target>
+
+    <!-- ==================================================================================================== -->
+    <!-- Allow to manually modify sources produced by MBeanMaker then rebuild and deploy modified version  -->
+    <!-- ==================================================================================================== -->
+    <target name="rebuild">
+        <javac srcdir="${buildDir}/temp" destdir="${buildDir}/temp" includes="**/*.java">
+            <classpath>
+               <path refid="myclasspath" />
+               <pathelement path="${buildDir}/temp"/>
+            </classpath>
+       </javac>       
+        <jar destfile="${buildDir}/${providerName}.jar" basedir="${buildDir}/temp"/>
+        <echo message="Rebuilt Mbean Jar"></echo>
+    </target> 
+    
+    <!-- ==================================================================================================== -->
+    <!-- Deploy task  -->
+    <!-- ==================================================================================================== -->
+    <target name="deploy">
+    
+       <echo message="merging libraries=${mergeLibraries}"/>
+       <!-- :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::- -->
+       <!-- Build merged jar file                                                                                -->
+       <!-- currently it doesn't work because the weblogic oamcfgtool.jar file contains an incompatible version  -->
+       <!-- of the apache commons-codec package which would be loaded instead of the one present in the archive  -->
+       <!-- :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::- -->
+       <jar if:true="${mergeLibraries}" destfile="${deployDir}/${providerName}.jar">
+          <zipfileset src="${buildDir}/${providerName}.jar"/>
+          <restrict>
+             <name name="**/*.class"/>
+             <archives>
+                 <zips>
+                     <fileset dir="${libDir}" includes="*.jar"/>
+                 </zips>
+             </archives>
+          </restrict>
+       </jar>       
+       <!-- :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::- -->
+       <!-- Build separated jar files for MBean and the libraries                                                -->
+       <!-- :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::- -->
+       <jar unless:true="${mergeLibraries}" destfile="${deployDir}/${providerName}.jar">
+           <zipfileset src="${buildDir}/${providerName}.jar"/>
+           <manifest>
+              <attribute name="Class-Path" value="${providerName}-lib.jar"/>
+           </manifest>
+       </jar>
+       <jar unless:true="${mergeLibraries}" destfile="${deployDir}/${providerName}-lib.jar">
+          <restrict>
+             <name name="**/*.class"/>
+             <archives>
+                 <zips>
+                     <fileset dir="${libDir}" includes="*.jar"/>
+                 </zips>
+             </archives>
+          </restrict>
+       </jar>
+       <!-- :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::- -->
+       <!-- remove deployed files and redeploy the new ones -->
+       <!-- :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::- -->
+       <delete>
+           <fileset dir="${weblogicDir}/wlserver/server/lib/mbeantypes" includes="${providerName}*.jar"/>
+       </delete>
+       <copy todir="${weblogicDir}/wlserver/server/lib/mbeantypes" >
+           <fileset dir="${deployDir}" includes="${providerName}*.jar"/>
+       </copy>
+       <echo message="Deployes Mbean Jar"></echo>
+    </target>       
+    
+</project>

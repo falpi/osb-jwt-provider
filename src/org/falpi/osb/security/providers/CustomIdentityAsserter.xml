@@ -1,0 +1,262 @@
+<?xml version="1.0" ?>
+<!DOCTYPE MBeanType SYSTEM "commo.dtd">
+
+<MBeanType
+ Name          = "CustomIdentityAsserter"
+ DisplayName   = "CustomIdentityAsserter"
+ Package       = "org.falpi.osb.security.providers"
+ Extends       = "weblogic.management.security.authentication.IdentityAsserter"
+ PersistPolicy = "OnUpdate"
+>
+
+   <MBeanAttribute
+  Name          = "ProviderClassName"
+  Type          = "java.lang.String"
+  Writeable     = "false"
+  Preprocessor = "weblogic.management.configuration.LegalHelper.checkClassName(value)"
+  Default       = "&quot;org.falpi.osb.security.providers.CustomIdentityAsserterProviderImpl&quot;"
+ />
+
+   <MBeanAttribute
+  Name          = "Description"
+  Type          = "java.lang.String"
+  Writeable     = "false"
+  Default       = "&quot;WebLogic Custom Identity Asserter Provider&quot;"
+ />
+
+   <MBeanAttribute
+  Name          = "Version"
+  Type          = "java.lang.String"
+  Writeable     = "false"
+  Default       = "&quot;1.0&quot;"
+   
+ />
+
+   <MBeanAttribute  
+  Name 		= "SupportedTypes"
+  Type 		= "java.lang.String[]"
+  Writeable 	= "false"
+  Default 	= "new String[] { &quot;CIA.JWT&quot;,&quot;CIA.BASIC&quot;,&quot;CIA.JWT+BASIC&quot; }"
+ />
+
+   <MBeanAttribute  
+  Name 		= "ActiveTypes"
+  Type 		= "java.lang.String[]"
+  Default 	= "new String[] { }"
+ />
+
+   <MBeanAttribute  
+  Name 		= "Base64DecodingRequired"
+  Type 		= "boolean"
+  Writeable 	= "true"
+  Default 	= "false"
+ />
+
+    <MBeanAttribute  
+  Name 		= "LOGGING_LEVEL"
+  Type 		= "java.lang.String"
+  LegalValues   = "TRACE,DEBUG,INFO,WARN,ERROR" 
+  Writeable 	= "true"
+  Default 	= "&quot;INFO&quot;"
+  Description   = "Enable/Disable debug logging"
+  Dynamic       = "true"
+ />
+
+    <MBeanAttribute  
+  Name 		= "BASIC_AUTH_STATUS"
+  Type 		= "java.lang.String"
+  LegalValues   = "ENABLE,DISABLE" 
+  Writeable 	= "true"
+  Default 	= "&quot;DISABLE&quot;"
+  Description   = "Allows to control basic authentication if it is among those allowed"
+  Dynamic       = "true"
+ />  
+ 
+    <MBeanAttribute  
+  Name 		= "JWT_AUTH_STATUS"
+  Type 		= "java.lang.String"
+  LegalValues   = "ENABLE,DISABLE" 
+  Writeable 	= "true"
+  Default 	= "&quot;DISABLE&quot;"
+  Description   = "Allows to control JWT authentication if it is among those allowed"
+  Dynamic       = "true"
+ />  
+ 
+    <MBeanAttribute  
+  Name 		= "JWT_KEYS_URL"
+  Type 		= "java.lang.String"
+  Writeable 	= "true"
+  Default 	= "&quot;https://login.microsoftonline.com/common/discovery/keys&quot;"
+  Description   = "Download URL for public keys used for JWT signature validation"
+  LegalNull     = "false"
+  Dynamic       = "true"
+ />
+
+    <MBeanAttribute  
+  Name 		= "JWT_KEYS_FORMAT"
+  Type 		= "java.lang.String"
+  LegalValues   = "JSON,XML" 
+  Writeable 	= "true"
+  Default 	= "&quot;JSON&quot;"
+  Description   = "Payload format for public keys"
+  Dynamic       = "true"
+ />
+  
+    <MBeanAttribute  
+  Name 		= "JWT_KEYS_MODULUS_XPATH"
+  Type 		= "java.lang.String"
+  Writeable 	= "true"
+  Default 	= "&quot;//keys[kid='${token.header.kid}']/n&quot;"
+  Description   = "XPath expression for public key modulus"
+  LegalNull     = "false"
+  Dynamic       = "true"
+ />
+
+    <MBeanAttribute  
+  Name 		= "JWT_KEYS_EXPONENT_XPATH"
+  Type 		= "java.lang.String"
+  Writeable 	= "true"
+  Default 	= "&quot;//keys[kid='${token.header.kid}']/e&quot;"
+  Description   = "XPath expression for public key exponent"
+  LegalNull     = "false"
+  Dynamic       = "true"
+ />
+
+    <MBeanAttribute  
+  Name 		= "JWT_KEYS_CACHE_TTL"
+  Type 		= "java.lang.Integer"
+  Writeable 	= "true"
+  Default 	= "3600"
+  Description   = "Public keys caching duration (Seconds)"
+  LegalNull     = "false"
+  Dynamic       = "true"
+ />
+
+    <MBeanAttribute  
+  Name 		= "JWT_KEYS_CONN_TIMEOUT"
+  Type 		= "java.lang.Integer"
+  Writeable 	= "true"
+  Default 	= "5"
+  Description   = "Public keys server connection timeout (Seconds)"
+  LegalNull     = "false"
+  Dynamic       = "true"
+ />
+
+    <MBeanAttribute  
+  Name 		= "JWT_KEYS_READ_TIMEOUT"
+  Type 		= "java.lang.Integer"
+  Writeable 	= "true"
+  Default 	= "5"
+  Description   = "Public keys server response timeout (Seconds)"
+  Dynamic       = "true"
+ />
+ 
+    <MBeanAttribute  
+  Name 		= "JWT_KEYS_SSL_VERIFY"
+  Type 		= "java.lang.String"
+  LegalValues   = "ENABLE,DISABLE" 
+  Writeable 	= "true"
+  Default 	= "&quot;ENABLE&quot;"
+  Description   = "Public keys request SSL enforcement"
+  Dynamic       = "true"
+ />
+
+    <MBeanAttribute  
+  Name 		= "JWT_KEYS_HOST_AUTH_MODE"
+  Type 		= "java.lang.String"
+  LegalValues   = "ANONYMOUS,BASIC,NTLM,KERBEROS" 
+  Writeable 	= "true"
+  Default 	= "&quot;ANONYMOUS&quot;"
+  Description   = "Public keys server require authentication"
+  Dynamic       = "true"
+ />
+ 
+    <MBeanAttribute  
+  Name 		= "JWT_KEYS_HOST_ACCOUNT_PATH"
+  Type 		= "java.lang.String"
+  Writeable 	= "true"
+  Description   = "OSB path of the service account used for public keys credentials"
+  Dynamic       = "true"
+ /> 
+  
+    <MBeanAttribute  
+  Name 		= "JWT_KEYS_PROXY_SERVER_MODE"
+  Type 		= "java.lang.String"
+  LegalValues   = "DIRECT,ANONYMOUS,BASIC,NTLM,KERBEROS" 
+  Writeable 	= "true"
+  Default 	= "&quot;DIRECT&quot;"
+  Description   = "Public keys server access require proxy mediation"
+  Dynamic       = "true"
+ />
+ 
+    <MBeanAttribute  
+  Name 		= "JWT_KEYS_PROXY_SERVER_PATH"   
+  Type 		= "java.lang.String"
+  Writeable 	= "true"
+  Default 	= "&quot;System/Proxy Servers/PROXY_Default&quot;"
+  Description   = "OSB path for the proxy server used to extract proxy host and credentials"
+  Dynamic       = "true"
+ />
+  
+    <MBeanAttribute  
+  Name 		= "JWT_IDENTITY_MAPPING_MODE"
+  Type 		= "java.lang.String"
+  LegalValues   = "DISABLE,ACCOUNT" 
+  Writeable 	= "true"
+  Default 	= "&quot;DISABLE&quot;"
+  Description   = "Identities are mapped to realm username by using a OSB service account"
+  Dynamic       = "true"
+ />
+ 
+    <MBeanAttribute  
+  Name 		= "JWT_IDENTITY_MAPPING_PATH"
+  Type 		= "java.lang.String"
+  Writeable 	= "true"
+  Default 	= "&quot;AZURE/Security/SA_AZURE_ClientID_1.0&quot;"
+  Description   = "OSB path of the service account used for mapping user identity to realm username"
+  Dynamic       = "true"
+ /> 
+ 
+    <MBeanAttribute  
+  Name 		= "JWT_IDENTITY_ASSERTION"
+  Type 		= "java.lang.String[]"
+  Writeable 	= "true"
+  LegalNull     = "false"
+  Default 	= "new String[] { &quot;'${token.payload.appid}'&quot; }"
+  Description   = "Identity assertion script (javascript returning string)"
+  Dynamic       = "true"
+ />
+
+    <MBeanAttribute  
+  Name 		= "VALIDATION_ASSERTION"
+  Type 		= "java.lang.String[]"
+  Writeable 	= "true"
+  Description   = "Validation assertion script (javascript returning boolean)"
+  Dynamic       = "true"
+ />
+ 
+    <MBeanAttribute  
+  Name 		= "DEBUGGING_ASSERTION"
+  Type 		= "java.lang.String[]"
+  Writeable 	= "true"
+  Description   = "Debug/Trace logging filter assertion (javascript returning boolean)"
+  Dynamic       = "true"
+ /> 
+ 
+    <MBeanAttribute  
+  Name 		= "DEBUGGING_PROPERTIES"
+  Type 		= "java.lang.String[]"
+  Writeable 	= "true"
+  Description   = "Debug/Trace logging properties/espressions"
+  Dynamic       = "true"
+ />
+  
+    <MBeanAttribute  
+  Name 		= "KERBEROS_CONFIGURATION"
+  Type 		= "java.lang.String[]"
+  Writeable 	= "true"
+  Description   = "Configuration for kerberos authentication"
+  Dynamic       = "true"
+ />
+
+</MBeanType>
