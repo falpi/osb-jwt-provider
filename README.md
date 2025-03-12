@@ -56,7 +56,7 @@ For more information on OSB resources follow this [link](https://docs.oracle.com
 Below is a screenshot of the available parameters populated with sample values.<br/>
 <p align="center"><img src="https://github.com/user-attachments/assets/fb5b2ba8-d923-49af-916b-0126d80ad10a" /></p>
 
-## Substitution Variables
+## Template Variables
 <p align="justify">All string configuration parameters support the use of substitution variables to create configurations that can dynamically adapt to the runtime state. The following is a list of supported variables.</p>
 
 Variable                      | Replaced by                                                    
