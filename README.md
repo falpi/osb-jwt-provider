@@ -30,13 +30,13 @@ The provider is highly configurable and can be adapted to be used with different
 
 Parameter                     | Description                                                     
 ----------------------------- | --------------------------------------------------------------- 
-`LOGGING_LEVEL`               | Minimum level of log messages that end up in the logging file.  
-`BASIC_AUTH_STATUS`           |                                                                                                                               
-`JWT_AUTH_STATUS`             |                                                                                                                                
-`JWT_KEYS_URL`                |                                                                                                                              
-`JWT_KEYS_FORMAT`             |                                                                                                                               
-`JWT_KEYS_MODULUS_XPATH`      |                                                                                                                                
-`JWT_KEYS_EXPONENT_XPATH`     |                                                                                                                                
+`LOGGING_LEVEL`               | Minimum level of log messages that end up in the logging file
+`BASIC_AUTH_STATUS`           | Allows to control Basic authentication if it is among those actives
+`JWT_AUTH_STATUS`             | Allows to control JWT authentication if it is among those actives
+`JWT_KEYS_URL`                | Download URL for public keys used for JWT signature validation
+`JWT_KEYS_FORMAT`             | Payload format for public keys. Could be JSON or XML
+`JWT_KEYS_MODULUS_XPATH`      | XPath expression for public key modulus. If payload is in JSON format it's translated to XML before. The default value is suitable for standard JWKS (JSON Web Key Set)
+`JWT_KEYS_EXPONENT_XPATH`     | XPath expression for public key exponent. If payload is in JSON format it's translated to XML before. The default value is suitable for standard JWKS (JSON Web Key Set)                  
 `JWT_KEYS_CACHE_TTL`          |                                                                                                                                
 `JWT_KEYS_CONN_TIMEOUT`       |                                                                                                                               
 `JWT_KEYS_READ_TIMEOUT`       |                                                                                                                               
