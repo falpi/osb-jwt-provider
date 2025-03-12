@@ -9,10 +9,57 @@ Fortunately, since the old versions of WebLogic there is the possibility to exte
 In addition to the JWT-based authentication scheme, the provider also offers support for the legacy Basic Auth to simplify the progressive adoption of JWT authentication by different consumers on the same Proxy Service, without the need to create different Proxies for each authentication scheme.
 </p>
 
-# Runtime Options
-The provider is highly configurable and can be adapted to be used with different types of identity providers. It has currently been tested on an Oracle Service Bus 12.1.3 and with Azure Entra ID as the IDP. Below is a screenshot of the available parameters populated with sample values and a description of each.<br/><br/>
+# Configuration Parameters
+The provider is highly configurable and can be adapted to be used with different types of identity providers. It has currently been tested on an Oracle Service Bus 12.1.3 and with Azure Entra ID as the IDP. Below is a screenshot of the available parameters populated with sample values. A detailed description of each parameter is provided below.<br/><br/>
 ![immagine](https://github.com/user-attachments/assets/fb5b2ba8-d923-49af-916b-0126d80ad10a)
 
+Parameter                       | Description                                                     
+------------------------------- | --------------------------------------------------------------- 
+**LOGGING_LEVEL**               | Minimum level of log messages that end up in the logging file.  
+**BASIC_AUTH_STATUS**           |                                                                                                                               
+**JWT_AUTH_STATUS**             |                                                                                                                                
+**JWT_KEYS_URL**                |                                                                                                                              
+**JWT_KEYS_FORMAT**             |                                                                                                                               
+**JWT_KEYS_MODULUS_XPATH**      |                                                                                                                                
+**JWT_KEYS_EXPONENT_XPATH**     |                                                                                                                                
+**JWT_KEYS_CACHE_TTL**          |                                                                                                                                
+**JWT_KEYS_CONN_TIMEOUT**       |                                                                                                                               
+**JWT_KEYS_READ_TIMEOUT**       |                                                                                                                               
+**JWT_KEYS_SSL_VERIFY**         |                                                                                                                              
+**JWT_KEYS_HOST_AUTH_MODE**     |                                                                                                                               
+**JWT_KEYS_HOST_ACCOUNT_PATH**  |                                                                                                                               
+**JWT_KEYS_PROXY_SERVER_MODE**  |                                                                                                                               
+**JWT_KEYS_PROXY_SERVER_PATH**  |                                                                                                                              
+**JWT_IDENTITY_MAPPING_MODE**   |                                                                                                                               
+**JWT_IDENTITY_MAPPING_PATH**   |                                                                                                                                
+**JWT_IDENTITY_ASSERTION**      |                                                                                                                             
+**VALIDATION_ASSERTION**        |                                                                                                                             
+**DEBUGGING_ASSERTION**         |                                                                                                                              
+**KERBEROS_CONFIGURATION**      |                                                                                                                              
+
+# Substitution Variables
+All string configuration parameters support the use of substitution variables to create configurations that can dynamically adapt to the runtime state. The following is a list of supported variables.<br/><br/>
+
+Variable                        | Replaced by                                                    
+------------------------------- | ------------------------------------------------------------------------------------
+**${osb.server}**               | The name of the WebLogic Managed Server that took charge of the request 
+**${osb.project}**              | The name of the Osb Project that the endpoint that received the request is part of
+**${osb.service}**              | The name of the Osb Proxy Service that took charge of the request
+**${http.client.host}**         | The remote/client hostname of the http request
+**${http.client.addr}**         | The remote/client address of the http request
+**${http.server.host}**         | The local/server hostname of the machine that took charge of the request
+**${http.server.addr}**         | The local/server address of the machine that took charge of the request
+**${http.server.name}**         | The hostname declared in the http request by the client
+**${http.content.type}**        | The content mime/type declared in http request by the client
+**${http.content.body}**        | The body sent in http request by the client
+**${http.content.length}**      | The content length of body 
+**${http.request.url}**         | The original url of http request
+**${http.request.proto}**       | The protocol version of http request
+**${http.request.scheme}**      | The scheme of http request
+**${http.header.\<name\>}**       | The value of the http header \<name\> in the http request
+**${http.header.*}**            | A string with the key/value list of all http headers of the request
+**${token.header.\<attr\>}**    | The value of the header \<attr\> element in the JWT token
+**${token.payload.\<attr\>}**   | The value of the payload \<attr\> element in the JWT token
 
 # Build instructions
 <p align="justify">
