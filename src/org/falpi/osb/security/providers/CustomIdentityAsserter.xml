@@ -67,7 +67,7 @@
   LegalValues   = "TRACE,DEBUG,INFO,WARN,ERROR" 
   Writeable 	= "true"
   Default 	= "&quot;INFO&quot;"
-  Description   = "Enable/Disable debug logging"
+  Description   = "Minimum level of log messages that end up in the logging file"
   Dynamic       = "true"
  />
 
@@ -77,7 +77,7 @@
   LegalValues   = "ENABLE,DISABLE" 
   Writeable 	= "true"
   Default 	= "&quot;DISABLE&quot;"
-  Description   = "Allows to control basic authentication if it is among those allowed"
+  Description   = "Allows to control Basic authentication if it is among those actives"
   Dynamic       = "true"
  />  
  
@@ -87,7 +87,7 @@
   LegalValues   = "ENABLE,DISABLE" 
   Writeable 	= "true"
   Default 	= "&quot;DISABLE&quot;"
-  Description   = "Allows to control JWT authentication if it is among those allowed"
+  Description   = "Allows to control JWT authentication if it is among those actives"
   Dynamic       = "true"
  />  
  
@@ -193,7 +193,7 @@
   LegalValues   = "DIRECT,ANONYMOUS,BASIC,NTLM,KERBEROS" 
   Writeable 	= "true"
   Default 	= "&quot;DIRECT&quot;"
-  Description   = "Public keys server access require proxy mediation"
+  Description   = "Public keys server require proxy mediation"
   Dynamic       = "true"
  />
  
