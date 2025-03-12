@@ -13,7 +13,8 @@ In addition to the JWT-based authentication scheme, the provider also offers sup
 <p align="justify">
 The provider is highly configurable and can be adapted to be used with different types of identity providers. It has currently been tested on an Oracle Service Bus 12.1.3 and with Azure Entra ID as the IDP. Below is a screenshot of the available parameters and a description of each.
 </p>
-![immagine](https://github.com/user-attachments/assets/b36939cb-3bb6-448b-9987-399a97b7fe16)
+![immagine](https://github.com/user-attachments/assets/fb5b2ba8-d923-49af-916b-0126d80ad10a)
+
 
 # Build instructions
 <p align="justify">
