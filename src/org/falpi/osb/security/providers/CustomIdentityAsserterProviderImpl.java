@@ -532,7 +532,7 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
          // Verifica se la chiave è già in cache         
          HashMap ObjKey = (HashMap) ObjJwtKeysCache.get(StrJwtKeyID);
          
-         // Se la chiave è in cache e il suo timestamp è valido esegue altrimenti procede
+         // Se la chiave è in cache e il suo timestamp non è scaduto esegue altrimenti procede
          if ((ObjKey!=null)&&
              ((IntSystemTimeStamp.longValue()-((Number)ObjKey.get("timestamp")).longValue())<(IntJwtKeysCacheTTL*1000))) {
             
@@ -654,8 +654,8 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
          // Se l'asserzione di identità non è definita esegue, altrimenti procede
          if (!StrJwtIdentityAssertion.equals("")) {
             
-            // Estrapola l'identità dallo script di asserzione
             try {
+               // Estrapola l'identità dallo script di asserzione
                StrIdentity = (String) evaluateScript(StrJwtIdentityAssertion,"String");     
                            
                if (StrIdentity.equals("")) {
