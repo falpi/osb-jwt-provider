@@ -10,13 +10,15 @@ In addition to the JWT-based authentication scheme, the provider also offers sup
 
 ## Token Types
 In WebLogic Identity Asserter terminology, Token Types are a way to declare which authentication schemes a given provider supports and which are active at a given time, i.e. which can be selected for authentication of a Proxy Service. The provider proposed in this project supports the JWT and BASIC schemes and allows to select them individually or in a combined way through the "JWT+BASIC" type.<br/><br/>
-The "JWT+BASIC" typology is useful because on a given Proxy Service it is possible to select only one type of token at a time and the combined token allows to keep both authentication schemes active at the same time on a single Proxy Service. This allows to implement a progressive migration of consumers from the BASIC scheme to the JWT scheme in a progressive way, without having to create different Proxy Services for each scheme.<br/>
-
-![immagine](https://github.com/user-attachments/assets/a94a2dd0-2c46-45eb-aab2-d28b82ed1493)<br/>
-
+The "JWT+BASIC" typology is useful because on a given Proxy Service it is possible to select only one type of token at a time and the combined token allows to keep both authentication schemes active at the same time on a single Proxy Service. This allows to implement a progressive migration of consumers from the BASIC scheme to the JWT scheme in a progressive way, without having to create different Proxy Services for each scheme.<br/><br/>
+![immagine](https://github.com/user-attachments/assets/a94a2dd0-2c46-45eb-aab2-d28b82ed1493)<br/><br/>
 As you can see from the image the provider offers similar types but with a different suffix (#1 and #2). This makes it possible to create multiple instances of the same provider and differentiate their configuration to support different IDPs.<br/><br/>
 
-## Configuration Parameters
+## How to configure Proxy Services
+To enable custom authentication, you need to act on the configuration of the transport details of a proxy service, as highlighted in the following screenshot. The selected token must be one of those selected as active for the provider (with the prefix "CIA." which stands for "Custom Identity Asserter"). <br/><br/>
+![immagine](https://github.com/user-attachments/assets/29391a49-5547-48e4-a05d-3ff937863811)
+
+## Provider Parameters
 The provider is highly configurable and can be adapted to be used with different types of identity providers. It has currently been tested on an Oracle Service Bus 12.1.3 and with Azure Entra ID as the IDP. Below is a screenshot of the available parameters populated with sample values, and a detailed description of each parameter is provided further down.<br/><br/>
 ![immagine](https://github.com/user-attachments/assets/fb5b2ba8-d923-49af-916b-0126d80ad10a)
 
