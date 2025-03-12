@@ -2,7 +2,7 @@
   <img src="https://github.com/user-attachments/assets/854b25e1-af6e-4bb6-ba3a-e9bba5a43774" />
 </p>
 
-# Oracle Service Bus Identity Assertion Provider for OAUTH2/JWT authentication
+<h1 align="center">WebLogic Identity Assertion Provider<br/>for OAUTH2/JWT authentication on<br/>Oracle Service Bus</h1>
 An highly configurable WebLogic Custom Identity Assertion Provider with support for inbound OAUTH2/JWT authentication for Oracle Service Bus Proxy Services.<br/>
 
 ## Overview
