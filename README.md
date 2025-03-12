@@ -22,7 +22,7 @@ To enable custom authentication, you need to act on the configuration of the tra
 
 ## Provider Parameters
 The provider is highly configurable and can be adapted to be used with different types of identity providers. It has currently been tested on an Oracle Service Bus 12.1.3 and with Azure Entra ID as the IDP. Below is a screenshot of the available parameters populated with sample values, and a detailed description of each parameter is provided further down.<br/><br/>
-<p align="center"><img src="https://github.com/user-attachments/assets/fb5b2ba8-d923-49af-916b-0126d80ad10a" /></p>
+<p align="center"><img src="https://github.com/user-attachments/assets/fb5b2ba8-d923-49af-916b-0126d80ad10a" /></p><br/>
 
 Parameter                       | Description                                                     
 ------------------------------- | --------------------------------------------------------------- 
@@ -50,7 +50,7 @@ Parameter                       | Description
 <br/>
 
 ## Substitution Variables
-All string configuration parameters support the use of substitution variables to create configurations that can dynamically adapt to the runtime state. The following is a list of supported variables.<br/><br/>
+All string configuration parameters support the use of substitution variables to create configurations that can dynamically adapt to the runtime state. The following is a list of supported variables.<br/>
 
 Variable                        | Replaced by                                                    
 ------------------------------- | ------------------------------------------------------------------------------------
@@ -73,16 +73,14 @@ Variable                        | Replaced by
 **${token.header.\<attr\>}**    | The value of the header \<attr\> element in the JWT token
 **${token.payload.\<attr\>}**   | The value of the payload \<attr\> element in the JWT token
 **${identity}**                 | The jwt token identity constructed from the assertion
-**${username}**                 | The name of the user that must be present in the WebLogic realm. In the case of Basic Auth it coincides with the authenticated user while in the case of JWT Auth, if mapping is not required it coincides with the token identity otherwise it is the user mapped by the OSB mapping service account.
-<br/>
+**${username}**                 | The name of the user that must be present in the WebLogic realm. In the case of Basic Auth it coincides with the authenticated user while in the case of JWT Auth, if mapping is not required it coincides with the token identity otherwise it is the user mapped by the OSB mapping service account.<br/>
 
 ## Build instructions
 <p align="justify">
 The sources can be compiled with any Java IDE with Ant support but you need to prepare the necessary dependencies for WebLogic and Oracle Service Bus libraries. The repository contains a project already prepared for a JDeveloper 12.1.3 installed as part of the Oracle SOA Suite Quick Start for Developers (see references).<br/>
 
 Ant compilation can be triggered from JDeveloper by right-clicking on the "Build.xml" file and selecting the "all" target or from the command line by running the "Build.cmd" batch.
-In both cases, at the end of the compilation, two jar archives are produced and automatically copied to the ```<WEBLOGIC_HOME>/wlserver/server/lib/mbeantypes``` folder from which WebLogic loads the security providers at startup. At the end of the compilation, you can directly launch the WebLogic environment integrated into JDeveloper to test the provider's operation.</p>
-<br/>
+In both cases, at the end of the compilation, two jar archives are produced and automatically copied to the ```<WEBLOGIC_HOME>/wlserver/server/lib/mbeantypes``` folder from which WebLogic loads the security providers at startup. At the end of the compilation, you can directly launch the WebLogic environment integrated into JDeveloper to test the provider's operation.</p><br/>
 
 ## Credits
 - **JSON-java** (https://github.com/stleary/JSON-java)<br/>
