@@ -36,7 +36,7 @@ Parameter                     | Description
 `JWT_KEYS_EXPONENT_XPATH`     | XPath expression for public key exponent. If payload is in JSON format it's translated to XML before. The default value is suitable for standard JWKS (JSON Web Key Set).
 `JWT_KEYS_CACHE_TTL`          | Public keys caching duration (Seconds).
 `JWT_KEYS_CONN_TIMEOUT`       | Public keys server connection timeout (Seconds).
-`JWT_KEYS_READ_TIMEOUT`       | Public keys server response timeout (Seconds)-
+`JWT_KEYS_READ_TIMEOUT`       | Public keys server response timeout (Seconds).
 `JWT_KEYS_SSL_VERIFY`         | Public keys request SSL enforcement. Use only in non-production environement to test endpoints.
 `JWT_KEYS_HOST_AUTH_MODE`     | Public keys server require authentication. The following choices are supported : ANONYMOUS, BASIC, NTLM, KERBEROS (NEGOTIATE).
 `JWT_KEYS_HOST_ACCOUNT_PATH`  | OSB resource path (\*) of the "Service Account" used to get public keys credentials.
@@ -61,25 +61,25 @@ Below is a screenshot of the available parameters populated with sample values.<
 
 Variable                      | Replaced by                                                    
 ----------------------------- | ------------------------------------------------------------------------------------
-`${osb.server}`               | The name of the WebLogic Managed Server that took charge of the request 
-`${osb.project}`              | The name of the Osb Project that the endpoint that received the request is part of
-`${osb.service}`              | The name of the Osb Proxy Service that took charge of the request
-`${http.client.host}`         | The remote/client hostname of the http request
-`${http.client.addr}`         | The remote/client address of the http request
-`${http.server.host}`         | The local/server hostname of the machine that took charge of the request
-`${http.server.addr}`         | The local/server address of the machine that took charge of the request
-`${http.server.name}`         | The hostname declared in the http request by the client
-`${http.content.type}`        | The content mime/type declared in http request by the client
-`${http.content.body}`        | The body sent in http request by the client
-`${http.content.length}`      | The content length of body 
-`${http.request.url}`         | The original url of http request
-`${http.request.proto}`       | The protocol version of http request
-`${http.request.scheme}`      | The scheme of http request
-`${http.header.<name>}`       | The value of the http header \<name\> in the http request
-`${http.header.*}`            | A string with the key/value list of all http headers of the request
-`${token.header.<attr>}`      | The value of the header \<attr\> element in the JWT token
-`${token.payload.<attr>}`     | The value of the payload \<attr\> element in the JWT token
-`${identity}`                 | The jwt token identity constructed from the assertion
+`${osb.server}`               | The name of the WebLogic Managed Server that took charge of the request. 
+`${osb.project}`              | The name of the Osb Project that the endpoint that received the request is part of.
+`${osb.service}`              | The name of the Osb Proxy Service that took charge of the request.
+`${http.client.host}`         | The remote/client hostname of the http request.
+`${http.client.addr}`         | The remote/client address of the http request.
+`${http.server.host}`         | The local/server hostname of the machine that took charge of the request.
+`${http.server.addr}`         | The local/server address of the machine that took charge of the request.
+`${http.server.name}`         | The hostname declared in the http request by the client.
+`${http.content.type}`        | The content mime/type declared in http request by the client.
+`${http.content.body}`        | The body sent in http request by the client.
+`${http.content.length}`      | The content length of body.
+`${http.request.url}`         | The original url of http request.
+`${http.request.proto}`       | The protocol version of http request.
+`${http.request.scheme}`      | The scheme of http request.
+`${http.header.<name>}`       | The value of the http header \<name\> in the http request.
+`${http.header.*}`            | A string with the key/value list of all http headers of the request.
+`${token.header.<attr>}`      | The value of the header \<attr\> element in the JWT token.
+`${token.payload.<attr>}`     | The value of the payload \<attr\> element in the JWT token.
+`${identity}`                 | The jwt token identity constructed from the assertion.
 `${username}`                 | The name of the user that must be present in the WebLogic realm. In the case of Basic Auth it coincides with the authenticated user while in the case of JWT Auth, if mapping is not required it coincides with the token identity otherwise it is the user mapped by the OSB mapping service account.<br/>
 
 ## Build instructions
