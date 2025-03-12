@@ -82,10 +82,28 @@ Variable                      | Replaced by
 `${identity}`                 | The jwt token identity constructed from the assertion.
 `${username}`                 | The name of the user that must be present in the WebLogic realm. In the case of Basic Auth it coincides with the authenticated user while in the case of JWT Auth, if mapping is not required it coincides with the token identity otherwise it is the user mapped by the OSB mapping service account.<br/>
 
-## Build instructions
-<p align="justify">
-The sources can be compiled with any Java IDE with Ant support but you need to prepare the necessary dependencies for WebLogic and Oracle Service Bus libraries. The repository contains a project already prepared for a JDeveloper 12.1.3 installed as part of the Oracle SOA Suite Quick Start for Developers (see references).<br/>
+## Identities and credential mapping strategies
+<p align="justify">It is possible to implement different strategies to establish the identities of the JWT token and eventually map this identity to the users of the weblogic realm. Let's see some possible scenarios below.</p>
 
+#### 1. Direct identity
+<p align="justify">The simplest scenario is to use one of the attributes of the JWT token that uniquely defines its identity (typically a "client_id"), ensuring that in the weblogic realm there is a user with the same username as the identity. This scenario does not require any identity mapping and does not necessarily require the use of special JWT claims. The problem is that in the WebLogic realm we observe the proliferation of esoteric users that are not immediately attributable to consumers. Furthermore, if a consumer already authenticates with a Basic Auth on an existing weblogic user, it cannot be reused and the profiling of users must be reproduced from scratch.</p>
+
+#### 2. Claim identity
+<p align="justify">If you can fully trust the identity provisioning process on the IDP and it is possible to request the configuration of the claims on the JWT token it is possible to implement a form of identity mapping by delegating it to the IDP. For example, you could use the standard claim "sub" (Subject) making sure that it is populated with one of the users of the weblogic realm that at this point can be created according to the format that you like, possibly reusing existing users for the Basic Auth and therefore without the need to re-profile them.</p>
+
+In this case the `JWT_IDENTITY_ASSERTION` parameter would be valued with the expression: `'${token.payload.sub}'`.<br/>
+
+#### 3. Mapped identity
+<p align="justify">If you prefer not to delegate the identity mapping to the IDP, you can use any of the JWT token attributes to extrapolate its identity and then map it to a realm username using a OSB "Service Account" resource. For example, if you use the Azure Entra ID as IDP, you can typically use the "appid" attribute as the token identity, which typically contains the "client_id".</p>
+
+In this case the `JTW_IDENTITY_ASSERTION` parameter would be valued with the expression: `'${token.payload.appid}'`.<br/>
+
+<p align="justify">The OSB resource used for translating the JWT token identity into the weblogic realm username must be a "Service Account" of type "mapping" and must be handled as highlighted in the following screenshot. Please note that it is not necessary to fill in the "Remote Password" field, which can be filled with arbitrary text.</p>
+
+![immagine](https://github.com/user-attachments/assets/45f6af65-3cb5-4cc3-8062-a3f8a13d7b0a)<br/>
+
+## Build instructions
+<p align="justify">The sources can be compiled with any Java IDE with Ant support but you need to prepare the necessary dependencies for WebLogic and Oracle Service Bus libraries. The repository contains a project already prepared for a JDeveloper 12.1.3 installed as part of the Oracle SOA Suite Quick Start for Developers (see references).<br/>
 Ant compilation can be triggered from JDeveloper by right-clicking on the "Build.xml" file and selecting the "all" target or from the command line by running the "Build.cmd" batch.
 In both cases, at the end of the compilation, two jar archives are produced and automatically copied to the ```<WEBLOGIC_HOME>/wlserver/server/lib/mbeantypes``` folder from which WebLogic loads the security providers at startup. At the end of the compilation, you can directly launch the WebLogic environment integrated into JDeveloper to test the provider's operation.</p>
 
