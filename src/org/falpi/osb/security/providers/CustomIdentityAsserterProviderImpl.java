@@ -104,8 +104,12 @@ import com.nimbusds.jose.proc.SecurityContext;
 import com.nimbusds.jose.util.Base64URL;
 import com.nimbusds.jose.JWSObject.State;
 
+import java.util.List;
+
 import org.json.XML;
 import org.json.JSONObject;
+
+import weblogic.wsee.security.wst.binding.TokenType;
 
 public final class CustomIdentityAsserterProviderImpl implements AuthenticationProviderV2, IdentityAsserterV2 {
 
@@ -156,9 +160,21 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
       public final static String BASIC_AUTH_ID = "BASIC";
 
       public final static String TOKEN_PREFIX = "CIA.";
+      
       public final static String JWT_TYPE = TOKEN_PREFIX+JWT_AUTH_ID;
       public final static String BASIC_TYPE = TOKEN_PREFIX+BASIC_AUTH_ID;
       public final static String ALL_TYPE = TOKEN_PREFIX+JWT_AUTH_ID+"+"+BASIC_AUTH_ID;
+      
+      public final static String JWT_TYPE1 = TOKEN_PREFIX+JWT_AUTH_ID+"#1";
+      public final static String ALL_TYPE1 = TOKEN_PREFIX+JWT_AUTH_ID+"+"+BASIC_AUTH_ID+"#1";
+
+      public final static String JWT_TYPE2 = TOKEN_PREFIX+JWT_AUTH_ID+"#2";
+      public final static String ALL_TYPE2 = TOKEN_PREFIX+JWT_AUTH_ID+"+"+BASIC_AUTH_ID+"#2";
+      
+      public final static List<String> ALL_TYPES = Arrays.asList(TokenTypes.BASIC_TYPE,
+                                                                 TokenTypes.JWT_TYPE,  TokenTypes.ALL_TYPE,
+                                                                 TokenTypes.JWT_TYPE1, TokenTypes.ALL_TYPE1,
+                                                                 TokenTypes.JWT_TYPE2, TokenTypes.ALL_TYPE2);
    } 
    
    // ##################################################################################################################################
@@ -408,7 +424,7 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
       }
 
       // Verifica la correttezza del tipo di token
-      if (!Arrays.asList(TokenTypes.JWT_TYPE, TokenTypes.BASIC_TYPE, TokenTypes.ALL_TYPE).contains(StrTokenType)) {        
+      if (!TokenTypes.ALL_TYPES.contains(StrTokenType)) {        
          String StrError = "Unknown token type";
          LogMessage(LogLevel.ERROR,StrError,StrTokenType);
          throw new IdentityAssertionException(StrError);

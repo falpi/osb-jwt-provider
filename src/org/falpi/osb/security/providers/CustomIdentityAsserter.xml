@@ -36,7 +36,16 @@
   Name 		= "SupportedTypes"
   Type 		= "java.lang.String[]"
   Writeable 	= "false"
-  Default 	= "new String[] { &quot;CIA.JWT&quot;,&quot;CIA.BASIC&quot;,&quot;CIA.JWT+BASIC&quot; }"
+  Default 	= "new String[] {
+     &quot;CIA.BASIC&quot;,
+     &quot;CIA.JWT&quot;,
+     &quot;CIA.JWT#1&quot;,
+     &quot;CIA.JWT#2&quot;,
+     &quot;CIA.JWT+BASIC&quot;,
+     &quot;CIA.JWT+BASIC#1&quot;,
+     &quot;CIA.JWT+BASIC#2&quot; 
+  }"
+                   
  />
 
    <MBeanAttribute  
