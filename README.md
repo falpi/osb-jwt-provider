@@ -82,7 +82,7 @@ Variable                      | Replaced by
 `${identity}`                 | The jwt token identity constructed from the assertion.
 `${username}`                 | The name of the user that must be present in the WebLogic realm. In the case of Basic Auth it coincides with the authenticated user while in the case of JWT Auth, if mapping is not required it coincides with the token identity otherwise it is the user mapped by the OSB mapping service account.<br/>
 
-## Identities and credential mapping strategies
+## Identity mapping strategies
 <p align="justify">It is possible to implement different strategies to establish the identities of the JWT token and eventually map this identity to the users of the weblogic realm. Let's see some possible scenarios below.</p>
 
 #### 1. Direct identity
@@ -91,13 +91,19 @@ Variable                      | Replaced by
 #### 2. Claim identity
 <p align="justify">If you can fully trust the identity provisioning process on the IDP and it is possible to request the configuration of the claims on the JWT token it is possible to implement a form of identity mapping by delegating it to the IDP. For example, you could use the standard claim "sub" (Subject) making sure that it is populated with one of the users of the weblogic realm that at this point can be created according to the format that you like, possibly reusing existing users for the Basic Auth and therefore without the need to re-profile them.</p>
 
-In this case the `JWT_IDENTITY_ASSERTION` parameter would be valued with the expression: `'${token.payload.sub}'`.<br/>
+In this case the `JWT_IDENTITY_ASSERTION` parameter would be valued with: `'${token.payload.sub}'`.<br/>
 
 #### 3. Mapped identity
 <p align="justify">If you prefer not to delegate the identity mapping to the IDP, you can use any of the JWT token attributes to extrapolate its identity and then map it to a realm username using a OSB "Service Account" resource. For example, if you use the Azure Entra ID as IDP, you can typically use the "appid" attribute as the token identity, which typically contains the "client_id".</p>
 
-In this case the `JTW_IDENTITY_ASSERTION` parameter would be valued with the expression: `'${token.payload.appid}'`.<br/>
+In this case the `JWT_IDENTITY_ASSERTION` parameter would be valued with: `'${token.payload.appid}'`.<br/>
 
+#### 4. Combined identity
+<p align="justify">It is possible to combine scenarios 2 and 3 to strengthen security, maintaining the management of the mapping on the OSB and at the same time forcing the use of a claim by verifying that it corresponds to the mapped user. In this way, you also get the benefit of forcing OAUTH2 app-registrations dedicated to use with the OSB, avoiding that identities already used in other contexts are recycled. This scenario can be implemented by leveraging the "VALIDATION ASSERTION" parameter to force this verification.</p>
+
+For example, you can configure the `VALIDATION_ASSERTION` parameter with a simple script like this:  `'${token.payload.sub}'='${username}'`.<br/>
+
+## How to configure Mapping Service Account
 <p align="justify">The OSB resource used for translating the JWT token identity into the weblogic realm username must be a "Service Account" of type "mapping" and must be handled as highlighted in the following screenshot. Please note that it is not necessary to fill in the "Remote Password" field, which can be filled with arbitrary text.</p>
 
 ![immagine](https://github.com/user-attachments/assets/45f6af65-3cb5-4cc3-8062-a3f8a13d7b0a)<br/>
