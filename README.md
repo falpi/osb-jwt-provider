@@ -56,10 +56,12 @@ Variable                        | Replaced by
 **${http.request.url}**         | The original url of http request
 **${http.request.proto}**       | The protocol version of http request
 **${http.request.scheme}**      | The scheme of http request
-**${http.header.\<name\>}**       | The value of the http header \<name\> in the http request
+**${http.header.\<name\>}**     | The value of the http header \<name\> in the http request
 **${http.header.*}**            | A string with the key/value list of all http headers of the request
 **${token.header.\<attr\>}**    | The value of the header \<attr\> element in the JWT token
 **${token.payload.\<attr\>}**   | The value of the payload \<attr\> element in the JWT token
+**${identity}**                 | The jwt token identity constructed from the assertion
+**${username}**                 | The name of the user that must be present in the WebLogic realm. In the case of Basic Auth it coincides with the authenticated user while in the case of JWT Auth, if mapping is not required it coincides with the token identity otherwise it is the user mapped by the OSB mapping service account.
 
 # Build instructions
 <p align="justify">
