@@ -95,7 +95,6 @@
   Name 		= "JWT_KEYS_URL"
   Type 		= "java.lang.String"
   Writeable 	= "true"
-  Default 	= "&quot;https://login.microsoftonline.com/common/discovery/keys&quot;"
   Description   = "Download URL for public keys used for JWT signature validation"
   LegalNull     = "false"
   Dynamic       = "true"
@@ -221,7 +220,6 @@
   Name 		= "JWT_IDENTITY_MAPPING_PATH"
   Type 		= "java.lang.String"
   Writeable 	= "true"
-  Default 	= "&quot;AZURE/Security/SA_AZURE_ClientID_1.0&quot;"
   Description   = "OSB path of the service account used for mapping user identity to realm username"
   Dynamic       = "true"
  /> 
@@ -231,7 +229,6 @@
   Type 		= "java.lang.String[]"
   Writeable 	= "true"
   LegalNull     = "false"
-  Default 	= "new String[] { &quot;'${token.payload.appid}'&quot; }"
   Description   = "Identity assertion script (javascript returning string)"
   Dynamic       = "true"
  />
