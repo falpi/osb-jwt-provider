@@ -21,7 +21,7 @@ To enable custom authentication, you need to act on the configuration of the tra
 <p align="center"><img src="https://github.com/user-attachments/assets/29391a49-5547-48e4-a05d-3ff937863811" /></p>
 
 ## Provider Parameters
-The provider is highly configurable and can be adapted to be used with different types of identity providers. It has currently been tested on an Oracle Service Bus 12.1.3 and with Azure Entra ID as the IDP. Below is a screenshot of the available parameters populated with sample values, and a detailed description of each parameter is provided further down.<br/><br/>
+The provider is highly configurable and can be adapted to be used with different types of identity providers. It has currently been tested on an Oracle Service Bus 12.1.3 and with Azure Entra ID as the IDP. Below is a screenshot of the available parameters populated with sample values, and a detailed description of each parameter is provided further down.<br/>
 <p align="center"><img src="https://github.com/user-attachments/assets/fb5b2ba8-d923-49af-916b-0126d80ad10a" /></p><br/>
 
 Parameter                       | Description                                                     
@@ -74,6 +74,7 @@ Variable                        | Replaced by
 **${token.payload.\<attr\>}**   | The value of the payload \<attr\> element in the JWT token
 **${identity}**                 | The jwt token identity constructed from the assertion
 **${username}**                 | The name of the user that must be present in the WebLogic realm. In the case of Basic Auth it coincides with the authenticated user while in the case of JWT Auth, if mapping is not required it coincides with the token identity otherwise it is the user mapped by the OSB mapping service account.<br/>
+<br/>
 
 ## Build instructions
 <p align="justify">
