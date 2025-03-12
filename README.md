@@ -1,5 +1,5 @@
 # Oracle Service Bus Identity Assertion Provider for OAUTH2/JWT authentication
-An highly configurable WebLogic Custom Identity Assertion Provider with support for inbound OAUTH2/JWT authentication for Oracle Service Bus Proxy Services
+An highly configurable WebLogic Custom Identity Assertion Provider with support for inbound OAUTH2/JWT authentication for Oracle Service Bus Proxy Services.<br/>
 
 # Overview
 <p align="justify">
@@ -8,6 +8,12 @@ Furthermore, the use of OWSM policies may not be a familiar solution for those w
 Fortunately, since the old versions of WebLogic there is the possibility to extend the product to support custom authentication schemes. The proposed library is based in particular on a Custom Identity Assertion Provider that supports OAUTH2 authentication based on signed JWT tokens and offer also an optional identity mappings mechanism to translate client_ids to weblogic realm users.<br/><br/>
 In addition to the JWT-based authentication scheme, the provider also offers support for the legacy Basic Auth to simplify the progressive adoption of JWT authentication by different consumers on the same Proxy Service, without the need to create different Proxies for each authentication scheme.
 </p>
+
+# Runtime Options
+<p align="justify">
+The provider is highly configurable and can be adapted to be used with different types of identity providers. It has currently been tested on an Oracle Service Bus 12.1.3 and with Azure Entra ID as the IDP. Below is a screenshot of the available parameters and a description of each.
+</p>
+![immagine](https://github.com/user-attachments/assets/b36939cb-3bb6-448b-9987-399a97b7fe16)
 
 # Build instructions
 <p align="justify">
