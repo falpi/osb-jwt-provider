@@ -101,7 +101,7 @@ In this case the `JWT_IDENTITY_ASSERTION` parameter would be valued with: `'${to
 #### 4. Combined identity
 <p align="justify">It is possible to combine scenarios 2 and 3 to strengthen security, maintaining the management of the mapping on the OSB and at the same time forcing the use of a claim by verifying that it corresponds to the mapped user. In this way, you also get the benefit of forcing OAUTH2 app-registrations dedicated to use with the OSB, avoiding that identities already used in other contexts are recycled. This scenario can be implemented by leveraging the "VALIDATION ASSERTION" parameter to force this verification.</p>
 
-For example, you can configure the `VALIDATION_ASSERTION` parameter with a simple script like this:  `'${token.payload.sub}'='${username}'`.<br/>
+For example, you can configure the `VALIDATION_ASSERTION` parameter with a simple script like this:  `'${token.payload.sub}'=='${username}'`.<br/>
 
 ## How to configure Mapping Service Account
 <p align="justify">The OSB resource used for translating the JWT token identity into the weblogic realm username must be a "Service Account" of type "mapping" and must be handled as highlighted in the following screenshot. Please note that it is not necessary to fill in the "Remote Password" field, which can be filled with arbitrary text.</p>
