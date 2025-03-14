@@ -27,7 +27,8 @@ As you can see from the image the provider offers similar types but with a diffe
 
 Parameter                     | Description                                                     
 ----------------------------- | --------------------------------------------------------------- 
-`LOGGING_LEVEL`               | Minimum level of log messages that end up in the logging file.
+`LOGGING_LEVEL`               | Minimum level of log messages printed.
+`LOGGING_LINES`               | Maximum number of stacktrace lines logged.
 `BASIC_AUTH_STATUS`           | Allows to control Basic authentication if it is among those actives.
 `JWT_AUTH_STATUS`             | Allows to control JWT authentication if it is among those actives.
 `JWT_KEYS_URL`                | Download URL for public keys used for JWT signature validation.
@@ -47,6 +48,7 @@ Parameter                     | Description
 `JWT_IDENTITY_ASSERTION`      | Must contain a javascript text that returns the identity of the jwt token according to the specifications of the IDP used. It must return a String object.
 `VALIDATION_ASSERTION`        | May contain a javascript text that must validate or reject the authentication request according to arbitrary criteria defined by the user. If present, it must return a Boolean object.
 `DEBUGGING_ASSERTION`         | May contain a javascript text that is used to filter log messages with TRACE or DEBUG level according to arbitrary criteria defined by the user. This can be useful to reduce log messages and analyze specific requests. If present, it must return a Boolean object.
+`DEBUGGING_PROPERTIES`        | Allows you to send one or more string expressions to the log file. They are printed as log messages with TRACE level. Any template variables are resolved allowing you to analyze the runtime context. 
 `KERBEROS_CONFIGURATION`      | May contain text that defines the configuration for outgoing Kerberos calls. Must follow the standard "krb5.conf" file format (https://web.mit.edu/kerberos/krb5-1.12/doc/admin/conf_files/krb5_conf.html). Note that at least under the Windows operating system, often no configuration is necessary.<br/>                                                                                                                     
 
 (*) OSB resources path are constructed as follows: `<project-name>/<root-folder>/.../<parent-folder>/<resource-name>`.<br/>
