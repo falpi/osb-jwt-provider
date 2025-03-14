@@ -8,7 +8,7 @@ An highly configurable WebLogic Custom Identity Assertion Provider with support 
 Furthermore, the use of OWSM policies may not be a proper solution for those who are used to managing authentication and authorization through the simple management of users and groups of the integrated authentication provider of WebLogic. As if that wasn't enough, OAUTH2 introduces the need to adopt identities defined by very long and opaque strings (client_id), that are difficult to re-associate to a given consumer without appropriate mechanisms of credential mappings and in this OWSM is of no help.<br/><br/>
 Fortunately, since the old versions of WebLogic there is the possibility to extend the product to support custom authentication schemes. The proposed library is based in particular on a Custom Identity Assertion Provider that supports OAUTH2 authentication based on signed JWT tokens and offer also an optional identity mappings mechanism to translate client_ids to weblogic realm users.<br/><br/>
 In addition to the JWT-based authentication scheme, the provider also offers support for the legacy Basic Auth to simplify the progressive adoption of JWT authentication by different consumers on the same Proxy Service, without the need to create different Proxies for each authentication scheme.<br/><br/>
-It has currently been tested on an Oracle Service Bus 12.1.3 and with Azure Entra ID as the IDP</p>
+It has currently been tested on an Oracle Service Bus 12.1.3 and 12.2.1.4 and with Azure Entra ID as the IDP</p>
 
 ## Token Types
 <p align="justify">In WebLogic Identity Asserter terminology, Token Types are a way to declare which authentication schemes a given provider supports and which are active at a given time, i.e. which can be selected for authentication of a Proxy Service. The provider proposed in this project supports the JWT and BASIC schemes and allows to select them individually or in a combined way through the "JWT+BASIC" type.<br/><br/>
@@ -112,11 +112,27 @@ For example, you can configure the `VALIDATION_ASSERTION` parameter with a simpl
 <p align="center"><img src="https://github.com/user-attachments/assets/45f6af65-3cb5-4cc3-8062-a3f8a13d7b0a" /></p>
 
 ## Build instructions
-<p align="justify">The sources can be compiled with any Java IDE with Ant support but you need to prepare the necessary dependencies for WebLogic and Oracle Service Bus libraries. The repository contains a project already prepared for a JDeveloper 12.1.3 installed as part of the Oracle SOA Suite Quick Start for Developers under Windows operating system (see references).<br/>
- 
-Ant compilation can be triggered from JDeveloper by right-clicking on the "Build.xml" file and selecting the "all" target or from the command line by running the "Build.cmd" Windows batch.</p>
+<p align="justify">The sources can be compiled with any Java IDE with Ant support but you need to prepare the necessary dependencies for WebLogic and Oracle Service Bus libraries. You only need to modify the "Build.xml" file to suit your environment. The file supports multiple configurations already prepared for WebLogic 12.1.3 and 12.2.1. Here is an excerpt of the section that needs to be customized.</p>
 
- In both cases, at the end of the compilation, two jar archives are produced and automatically copied to the ```<WEBLOGIC_HOME>/wlserver/server/lib/mbeantypes``` folder from which WebLogic loads the security providers at startup. At the end of the compilation, you can directly launch the WebLogic environment integrated into JDeveloper to test the provider's operation.</p>
+```xml
+    <!-- weblogic version selector (only one must be true) -->
+    <property name="weblogic-12.1.3" value="true"/>
+    <property name="weblogic-12.2.1" value="false"/>
+    
+    <!-- weblogic version specific properties -->
+    <property if:true="${weblogic-12.1.3}" name="javaHomeDir" value="C:/Programmi/Java/jdk1.7"/>
+    <property if:true="${weblogic-12.1.3}" name="weblogicDir" value="C:/Oracle/Middleware/12.1.3"/>   
+    <property if:true="${weblogic-12.1.3}" name="templateFile" value="BeanInfoBinder-12.1.3.template"/>
+    <property if:true="${weblogic-12.1.3}" name="builtinProviders" value="cssWlSecurityProviders.jar"/>
+    
+    <property if:true="${weblogic-12.2.1}" name="javaHomeDir" value="C:/Programmi/Java/jdk1.8"/>
+    <property if:true="${weblogic-12.2.1}" name="weblogicDir" value="C:/Oracle/Middleware/12.2.1"/>    
+    <property if:true="${weblogic-12.2.1}" name="templateFile" value="BeanInfoBinder-12.2.1.template"/>
+    <property if:true="${weblogic-12.2.1}" name="builtinProviders" value="wls-security-providers.jar"/>
+```
+<p align="justify">The repository contains a project already prepared for a JDeveloper 12.1.3 installed as part of the Oracle SOA Suite Quick Start for Developers under Windows operating system (see references). Ant compilation can be triggered from JDeveloper by right-clicking on the "Build.xml" file and selecting the "all" target or from the command line by running the "Build.cmd" Windows batch.</p>
+
+In both cases, at the end of the compilation, two jar archives are produced and automatically copied to the ```<WEBLOGIC_HOME>/wlserver/server/lib/mbeantypes``` folder from which WebLogic loads the security providers at startup. At the end of the compilation, you can directly launch the WebLogic environment integrated into JDeveloper to test the provider's operation.</p>
 
 ## Credits
 - **JSON-java** (https://github.com/stleary/JSON-java)<br/>
