@@ -8,7 +8,7 @@ An highly configurable WebLogic Custom Identity Assertion Provider with support 
 Furthermore, the use of OWSM policies may not be a proper solution for those who are used to managing authentication and authorization through the simple management of users and groups of the integrated authentication provider of WebLogic. As if that wasn't enough, OAUTH2 introduces the need to adopt identities defined by very long and opaque strings (client_id), that are difficult to re-associate to a given consumer without appropriate mechanisms of credential mappings and in this OWSM is of no help.<br/><br/>
 Fortunately, since the old versions of WebLogic there is the possibility to extend the product to support custom authentication schemes. The proposed library is based in particular on a Custom Identity Assertion Provider that supports OAUTH2 authentication based on signed JWT tokens and offer also an optional identity mappings mechanism to translate client_ids to weblogic realm users.<br/><br/>
 In addition to the JWT-based authentication scheme, the provider also offers support for the legacy Basic Auth to simplify the progressive adoption of JWT authentication by different consumers on the same Proxy Service, without the need to create different Proxies for each authentication scheme.<br/><br/>
-It has currently been tested on an Oracle Service Bus 12.1.3 and with Azure Entra ID as the IDP</p>
+It has currently been tested on an Oracle Service Bus 12.1.3 and 12.2.1.4 and with Azure Entra ID as the IDP</p>
 
 ## Token Types
 <p align="justify">In WebLogic Identity Asserter terminology, Token Types are a way to declare which authentication schemes a given provider supports and which are active at a given time, i.e. which can be selected for authentication of a Proxy Service. The provider proposed in this project supports the JWT and BASIC schemes and allows to select them individually or in a combined way through the "JWT+BASIC" type.<br/><br/>
@@ -27,9 +27,10 @@ As you can see from the image the provider offers similar types but with a diffe
 
 Parameter                     | Description                                                      
 ----------------------------- | --------------------------------------------------------------- 
-`LOGGING_LEVEL`               | Minimum level of log messages that end up in the logging file.
-`BASIC_AUTH_STATUS`           | Allows to control Basic authentication if it is among those actives.
-`JWT_AUTH_STATUS`             | Allows to control JWT authentication if it is among those actives.
+`LOGGING_LEVEL`               | Minimum level of log messages printed.
+`LOGGING_LINES`               | Maximum number of stacktrace lines logged.
+`BASIC_AUTH`                  | Allows to control Basic authentication if it is among those actives.
+`JWT_AUTH`                    | Allows to control JWT authentication if it is among those actives.
 `JWT_KEYS_URL`                | Download URL for public keys used for JWT signature validation.
 `JWT_KEYS_FORMAT`             | Payload format for public keys. Could be JSON or XML.
 `JWT_KEYS_MODULUS_XPATH`      | XPath expression for public key modulus. If payload is in JSON format it's translated to XML before. The default value is suitable for standard JWKS (JSON Web Key Set).
@@ -47,10 +48,14 @@ Parameter                     | Description
 `JWT_IDENTITY_ASSERTION`      | Must contain a javascript text that returns the identity of the jwt token according to the specifications of the IDP used. It must return a String object.
 `VALIDATION_ASSERTION`        | May contain a javascript text that must validate or reject the authentication request according to arbitrary criteria defined by the user. If present, it must return a Boolean object.
 `DEBUGGING_ASSERTION`         | May contain a javascript text that is used to filter log messages with TRACE or DEBUG level according to arbitrary criteria defined by the user. This can be useful to reduce log messages and analyze specific requests. If present, it must return a Boolean object.
+`DEBUGGING_PROPERTIES`        | Allows you to send one or more string expressions to the log file. They are printed as log messages with DEBUG level. Any template variables are resolved allowing you to analyze the runtime context. 
 `KERBEROS_CONFIGURATION`      | May contain text that defines the configuration for outgoing Kerberos calls. Must follow the standard "krb5.conf" file format (https://web.mit.edu/kerberos/krb5-1.12/doc/admin/conf_files/krb5_conf.html). Note that at least under the Windows operating system, often no configuration is necessary.<br/>                                                                                                                     
 
-(*) The path to a resource is constructed as follows: `project-name/root-folder/.../parent-folder/resource-name`.<br/>
-If a resource is located directly under a project, the path is constructed as follows: `project-name/resource-name`.<br/>
+(*) OSB resources path are constructed as follows: `<project-name>/<root-folder>/.../<parent-folder>/<resource-name>`.<br/>
+If a resource is located directly under a project, the path is constructed as follows: `<project-name>/<resource-name>`.<br/>
+Please note that resources of type "Proxy Server" can only be created in the fixed path `System/Proxy Servers/<resource-name>`.<br/>
+
+
 For more information on OSB resources follow this [link](https://docs.oracle.com/cd/E23943_01/admin.1111/e15867/project_explorer.htm#OSBAG822)<br/>
  
 Below is a screenshot of the available parameters populated with sample values.<br/>
@@ -99,9 +104,9 @@ In this case the `JWT_IDENTITY_ASSERTION` parameter would be valued with: `'${to
 In this case the `JWT_IDENTITY_ASSERTION` parameter would be valued with: `'${token.payload.appid}'`.<br/>
 
 #### 4. Combined identity
-<p align="justify">It is possible to combine scenarios 2 and 3 to strengthen security, maintaining the management of the mapping on the OSB and at the same time forcing the use of a claim by verifying that it corresponds to the mapped user. In this way, you also get the benefit of forcing OAUTH2 app-registrations dedicated to use with the OSB, avoiding that identities already used in other contexts are recycled. This scenario can be implemented by leveraging the "VALIDATION ASSERTION" parameter to force this verification.</p>
+<p align="justify">It is possible to combine scenarios 2 and 3 to strengthen security, maintaining the management of the mapping on the OSB and at the same time forcing the use of a claim by verifying that it corresponds to the mapped user. In this way, you also get the benefit of forcing OAUTH2 app-registrations dedicated to use with the OSB, avoiding that identities already used in other contexts are recycled. This scenario can be implemented by leveraging the VALIDATION_ASSERTION parameter to force this verification.</p>
 
-For example, you can configure the `VALIDATION_ASSERTION` parameter with a simple script like this:  `'${token.payload.sub}'='${username}'`.<br/>
+For example, you can configure the `VALIDATION_ASSERTION` parameter with a simple script like this:  `'${token.payload.sub}'=='${username}'`.<br/>
 
 ## How to configure Mapping Service Account
 <p align="justify">The OSB resource used for translating the JWT token identity into the weblogic realm username must be a "Service Account" of type "mapping" and must be handled as highlighted in the following screenshot. Please note that it is not necessary to fill in the "Remote Password" field, which can be filled with arbitrary text.</p>
@@ -109,11 +114,23 @@ For example, you can configure the `VALIDATION_ASSERTION` parameter with a simpl
 <p align="center"><img src="https://github.com/user-attachments/assets/45f6af65-3cb5-4cc3-8062-a3f8a13d7b0a" /></p>
 
 ## Build instructions
-<p align="justify">The sources can be compiled with any Java IDE with Ant support but you need to prepare the necessary dependencies for WebLogic and Oracle Service Bus libraries. The repository contains a project already prepared for a JDeveloper 12.1.3 installed as part of the Oracle SOA Suite Quick Start for Developers under Windows operating system (see references).<br/>
- 
-Ant compilation can be triggered from JDeveloper by right-clicking on the "Build.xml" file and selecting the "all" target or from the command line by running the "Build.cmd" Windows batch.</p>
+<p align="justify">The sources can be compiled with any Java IDE with Ant support but you need to prepare the necessary dependencies for WebLogic and Oracle Service Bus libraries. You only need to modify the "Build.xml" file to suit your environment. The file supports multiple configurations already prepared for WebLogic 12.1.3 and 12.2.1. Here is an excerpt of the section that needs to be customized.</p>
 
- In both cases, at the end of the compilation, two jar archives are produced and automatically copied to the ```<WEBLOGIC_HOME>/wlserver/server/lib/mbeantypes``` folder from which WebLogic loads the security providers at startup. At the end of the compilation, you can directly launch the WebLogic environment integrated into JDeveloper to test the provider's operation.</p>
+```xml
+    <!-- weblogic version selector (only one must be true) -->
+    <property name="weblogic-12.1.3" value="true"/>
+    <property name="weblogic-12.2.1" value="false"/>
+    
+    <!-- weblogic version specific properties -->
+    <property if:true="${weblogic-12.1.3}" name="javaHomeDir" value="C:/Programmi/Java/jdk1.7"/>
+    <property if:true="${weblogic-12.1.3}" name="weblogicDir" value="C:/Oracle/Middleware/12.1.3"/>   
+    ...    
+    <property if:true="${weblogic-12.2.1}" name="javaHomeDir" value="C:/Programmi/Java/jdk1.8"/>
+    <property if:true="${weblogic-12.2.1}" name="weblogicDir" value="C:/Oracle/Middleware/12.2.1"/>    
+```
+<p align="justify">The repository contains a project already prepared for a JDeveloper 12.1.3 installed as part of the Oracle SOA Suite Quick Start for Developers under Windows operating system (see references). Ant compilation can be triggered from JDeveloper by right-clicking on the "Build.xml" file and selecting the "all" target or from the command line by running the "Build.cmd" Windows batch.</p>
+
+In both cases, at the end of the compilation, two jar archives are produced and automatically copied to the ```<WEBLOGIC_HOME>/wlserver/server/lib/mbeantypes``` folder from which WebLogic loads the security providers at startup. At the end of the compilation, you can directly launch the WebLogic environment integrated into JDeveloper to test the provider's operation.</p>
 
 ## Credits
 - **JSON-java** (https://github.com/stleary/JSON-java)<br/>
