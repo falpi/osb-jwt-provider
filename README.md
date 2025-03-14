@@ -29,8 +29,8 @@ Parameter                     | Description
 ----------------------------- | --------------------------------------------------------------- 
 `LOGGING_LEVEL`               | Minimum level of log messages printed.
 `LOGGING_LINES`               | Maximum number of stacktrace lines logged.
-`BASIC_AUTH_STATUS`           | Allows to control Basic authentication if it is among those actives.
-`JWT_AUTH_STATUS`             | Allows to control JWT authentication if it is among those actives.
+`BASIC_AUTH`                  | Allows to control Basic authentication if it is among those actives.
+`JWT_AUTH`                    | Allows to control JWT authentication if it is among those actives.
 `JWT_KEYS_URL`                | Download URL for public keys used for JWT signature validation.
 `JWT_KEYS_FORMAT`             | Payload format for public keys. Could be JSON or XML.
 `JWT_KEYS_MODULUS_XPATH`      | XPath expression for public key modulus. If payload is in JSON format it's translated to XML before. The default value is suitable for standard JWKS (JSON Web Key Set).
