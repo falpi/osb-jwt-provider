@@ -49,8 +49,11 @@ Parameter                     | Description
 `DEBUGGING_ASSERTION`         | May contain a javascript text that is used to filter log messages with TRACE or DEBUG level according to arbitrary criteria defined by the user. This can be useful to reduce log messages and analyze specific requests. If present, it must return a Boolean object.
 `KERBEROS_CONFIGURATION`      | May contain text that defines the configuration for outgoing Kerberos calls. Must follow the standard "krb5.conf" file format (https://web.mit.edu/kerberos/krb5-1.12/doc/admin/conf_files/krb5_conf.html). Note that at least under the Windows operating system, often no configuration is necessary.<br/>                                                                                                                     
 
-(*) OSB resources path are constructed as follows: `project-name/root-folder/.../parent-folder/resource-name`.<br/>
-If a resource is located directly under a project, the path is constructed as follows: `project-name/resource-name`.<br/>
+(*) OSB resources path are constructed as follows: `<project-name>/<root-folder>/.../<parent-folder>/<resource-name>`.<br/>
+If a resource is located directly under a project, the path is constructed as follows: `<project-name>/<resource-name>`.<br/>
+Please note that resources of type "Proxy Server" can only be created in the fixed path `System/Proxy Servers/<resource-name>`.<br/>
+
+
 For more information on OSB resources follow this [link](https://docs.oracle.com/cd/E23943_01/admin.1111/e15867/project_explorer.htm#OSBAG822)<br/>
  
 Below is a screenshot of the available parameters populated with sample values.<br/>
