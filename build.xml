@@ -4,37 +4,54 @@
     <!-- Global parameters -->
     <!-- #################################################################################################### -->
     
+    <!-- identificativo del provider -->
+    <property name="providerName" value="CustomIdentityAsserter" />
+    
     <!-- merge external libraries in deploy jar (true/false) -->
     <property name="mergeLibraries" value="false"/>
+
+    <!-- weblogic version selector (only one must be true) -->
+    <property name="weblogic-12.1.3" value="true"/>
+    <property name="weblogic-12.2.1" value="false"/>
+    
+    <!-- weblogic version specific properties -->
+    <property if:true="${weblogic-12.1.3}" name="javaHomeDir" value="C:/Programmi/Java/jdk1.7"/>
+    <property if:true="${weblogic-12.1.3}" name="weblogicDir" value="C:/Oracle/Middleware/12.1.3"/>   
+    <property if:true="${weblogic-12.1.3}" name="templateFile" value="BeanInfoBinder-12.1.3.template"/>
+    <property if:true="${weblogic-12.1.3}" name="builtinProviders" value="cssWlSecurityProviders.jar"/>
+    
+    <property if:true="${weblogic-12.2.1}" name="javaHomeDir" value="C:/Programmi/Java/jdk1.8"/>
+    <property if:true="${weblogic-12.2.1}" name="weblogicDir" value="C:/Oracle/Middleware/12.2.1"/>    
+    <property if:true="${weblogic-12.2.1}" name="templateFile" value="BeanInfoBinder-12.2.1.template"/>
+    <property if:true="${weblogic-12.2.1}" name="builtinProviders" value="wls-security-providers.jar"/>
 
     <!-- #################################################################################################### -->
     <!-- various path specificators -->
     <!-- #################################################################################################### -->
-    
-    <property name="providerName" value="CustomIdentityAsserter" />
-    
+        
     <property name="libDir" value="lib"/>
-    <property name="toolsDir" value="tools"/>
     <property name="buildDir" value="build"/>
     <property name="deployDir" value="deploy"/>
     <property name="sourceDir" value="src"/>
+    <property name="resourceDir" value="res"/>
     <property name="packageDir" value="${buildDir}/temp/org/falpi/osb/security/providers"/>
-    
-    <property name="javaHomeDir" value="C:/Programmi/Java/jdk1.7"/>
-    <property name="weblogicDir" value="C:/Oracle/Middleware/12.1.3"/>   
-
+    <property name="templateDir" value="${buildDir}/weblogic/management/internal/mbean"/>
+        
     <path id="myclasspath">
+        <pathelement location="${buildDir}"/>
+        
         <pathelement location="${javaHomeDir}/lib/tools.jar"/>
         <pathelement location="${javaHomeDir}/jre/lib/rt.jar"/>
-        <pathelement location="${libDir}/tools.jar"/>
+        
         <pathelement location="${libDir}/json-20230618.jar"/>
         <pathelement location="${libDir}/httpcore-4.4.13.jar"/>
         <pathelement location="${libDir}/httpclient-4.5.13.jar"/>
         <pathelement location="${libDir}/commons-codec-1.11.jar"/>
         <pathelement location="${libDir}/nimbus-jose-jwt-9.48.jar"/>
+        
         <pathelement location="${weblogicDir}/osb/lib/servicebus.jar"/>
         <pathelement location="${weblogicDir}/wlserver/server/lib/weblogic.jar"/>
-        <pathelement location="${weblogicDir}/wlserver/server/lib/mbeantypes/cssWlSecurityProviders.jar"/>
+        <pathelement location="${weblogicDir}/wlserver/server/lib/mbeantypes/${builtinProviders}"/>
     </path>
     
     <!-- #################################################################################################### -->
@@ -42,8 +59,8 @@
     <!-- #################################################################################################### -->
     
     <target name="all" depends="build,deploy"/>
-    <target name="build" depends="clean,build.tools,build.mdf,build.mjf"/>
-    
+    <target name="build" depends="clean,build.MTF,build.MDF,build.MJF"/>
+   
     <target name="clean">
         <delete dir="${buildDir}" failonerror="false" />
         <delete dir="${deployDir}" failonerror="false" />
@@ -51,28 +68,18 @@
     </target>
     
     <!-- ==================================================================================================== -->
-    <!-- Build tool package to replace default code generation templates of MBeanMaker -->
+    <!-- Build the Provider MBean template file (to replace default template of MBeanMaker) -->
     <!-- ==================================================================================================== -->
-    <target name="build.tools">
-        <mkdir dir="${buildDir}" />
-        <delete dir="${buildDir}/weblogic" failonerror="false"/>
-        <delete file="${buildDir}/weblogic.jar" failonerror="false"/>
-        <javac srcdir="${toolsDir}" destdir="${buildDir}" includes="**/*.java">
-            <classpath>
-                <pathelement location="${weblogicDir}/wlserver/server/lib/weblogic.jar"/>
-            </classpath>
-        </javac>
-        <copy todir="${buildDir}/weblogic">
-          <fileset dir="${toolsDir}/weblogic"/>
-        </copy>
-        <jar destfile="${libDir}/tools.jar" basedir="${buildDir}" includes="weblogic/**"/>
-        <delete dir="${buildDir}/weblogic" />
+    <target name="build.MTF">      
+        <delete dir="${templateDir}" failonerror="false" />
+        <mkdir dir="${templateDir}"/>        
+        <copy file="${resourceDir}/${templateFile}" tofile="${templateDir}/BeanInfoBinder.template" />    
     </target>
     
     <!-- ==================================================================================================== -->
     <!-- Build the Provider MBean definition file -->
     <!-- ==================================================================================================== -->
-    <target name="build.mdf">
+    <target name="build.MDF">
         <mkdir dir="${buildDir}"/>
         <delete dir="${buildDir}/temp" failonerror="false"/>        
         <copy todir="${buildDir}/temp">
@@ -93,7 +100,7 @@
     <!-- ==================================================================================================== -->
     <!-- Build the Provider MBean -->
     <!-- ==================================================================================================== -->
-    <target name="build.mjf">
+    <target name="build.MJF">
         <delete dir="${deployDir}" failonerror="false"/>
         <mkdir dir="${deployDir}"/>
         <java dir="${buildDir}" fork="true" classname="weblogic.management.commo.WebLogicMBeanMaker">

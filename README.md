@@ -25,7 +25,7 @@ As you can see from the image the provider offers similar types but with a diffe
 ## Provider Parameters
 <p align="justify">The provider is highly configurable and can be adapted to be used with different types of identity providers.<br/>Below is a detailed description of each parameter.</p>
 
-Parameter                     | Description                                                     
+Parameter                     | Description                                                      
 ----------------------------- | --------------------------------------------------------------- 
 `LOGGING_LEVEL`               | Minimum level of log messages that end up in the logging file.
 `BASIC_AUTH_STATUS`           | Allows to control Basic authentication if it is among those actives.

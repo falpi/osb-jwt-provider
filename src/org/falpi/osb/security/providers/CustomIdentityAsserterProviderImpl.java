@@ -17,6 +17,7 @@ import java.lang.reflect.Modifier;
 
 import java.util.Map;
 import java.util.Date;
+import java.util.List;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -104,12 +105,8 @@ import com.nimbusds.jose.proc.SecurityContext;
 import com.nimbusds.jose.util.Base64URL;
 import com.nimbusds.jose.JWSObject.State;
 
-import java.util.List;
-
 import org.json.XML;
 import org.json.JSONObject;
-
-import weblogic.wsee.security.wst.binding.TokenType;
 
 public final class CustomIdentityAsserterProviderImpl implements AuthenticationProviderV2, IdentityAsserterV2 {
 
@@ -186,6 +183,7 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
    // ==================================================================================================================================
 
    // Gestione del logging
+   private int IntLoggingLines = 0;
    private int IntLoggingLevel = LogLevel.DEBUG;
    private int IntLoggingLevelMin = LogLevel.TRACE;
    private String StrLoggingLevel;
@@ -306,8 +304,11 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
       // ==================================================================================================================================
                      
       StrLoggingLevel = ObjProviderMBean.getLOGGING_LEVEL();
-      String StrBasicAuthStatus = ObjProviderMBean.getBASIC_AUTH_STATUS();
-      String StrJwtAuthStatus = ObjProviderMBean.getJWT_AUTH_STATUS();
+      IntLoggingLines = ObjProviderMBean.getLOGGING_LINES();
+                     
+      String StrBasicAuthStatus = ObjProviderMBean.getBASIC_AUTH();
+      String StrJwtAuthStatus = ObjProviderMBean.getJWT_AUTH();
+      
       String StrJwtKeysURL = ObjProviderMBean.getJWT_KEYS_URL();
       String StrJwtKeysFormat = ObjProviderMBean.getJWT_KEYS_FORMAT();
       String StrJwtKeysModulusXPath = ObjProviderMBean.getJWT_KEYS_MODULUS_XPATH();
@@ -319,15 +320,17 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
       String StrJwtKeysHostAuthMode = ObjProviderMBean.getJWT_KEYS_HOST_AUTH_MODE();
       String StrJwtKeysHostAccountPath = ObjProviderMBean.getJWT_KEYS_HOST_ACCOUNT_PATH();
       String StrJwtKeysProxyServerMode = ObjProviderMBean.getJWT_KEYS_PROXY_SERVER_MODE();
-      String StrJwtKeysProxyServerPath = ObjProviderMBean.getJWT_KEYS_PROXY_SERVER_PATH();      
+      String StrJwtKeysProxyServerPath = ObjProviderMBean.getJWT_KEYS_PROXY_SERVER_PATH(); 
+      
       String StrJwtIdentityMappingMode = ObjProviderMBean.getJWT_IDENTITY_MAPPING_MODE();
       String StrJwtIdentityMappingPath = ObjProviderMBean.getJWT_IDENTITY_MAPPING_PATH();
       String[] ArrJwtIdentityAssertion = ObjProviderMBean.getJWT_IDENTITY_ASSERTION();
+      
       String[] ArrValidationAssertion = ObjProviderMBean.getVALIDATION_ASSERTION();
       String[] ArrDebuggingAssertion = ObjProviderMBean.getDEBUGGING_ASSERTION();
       String[] ArrDebuggingProperties = ObjProviderMBean.getDEBUGGING_PROPERTIES();
       String[] ArrKerberosConfiguration = ObjProviderMBean.getKERBEROS_CONFIGURATION();      
-            
+      
       // Comprime gli array multiriga
       String StrJwtIdentityAssertion = joinStringArray(ArrJwtIdentityAssertion,System.lineSeparator());
       String StrValidationAssertion = joinStringArray(ArrValidationAssertion,System.lineSeparator());
@@ -371,21 +374,22 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
             }
          } catch (Exception ObjException) {
             String StrError = "Debugging assertion error";
-            LogMessage(LogLevel.WARN,StrError,ObjException.getMessage());
+            LogMessage(LogLevel.WARN,StrError,ObjException);
          }
       }
 
       // ==================================================================================================================================
-      // Se logging  attivo genera loggini preliminare
+      // Genera logging di debug per dump configurazione
       // ==================================================================================================================================
 
-      // Se necessario genera logging di debug
+      // Genera logging
       LogMessage(LogLevel.DEBUG,"==========================================================================================");
       LogMessage(LogLevel.DEBUG,"CONFIGURATION");
       LogMessage(LogLevel.DEBUG,"==========================================================================================");
       LogMessage(LogLevel.DEBUG,"LOGGING_LEVEL: " + StrLoggingLevel);
-      LogMessage(LogLevel.DEBUG,"BASIC_AUTH_STATUS: " + StrBasicAuthStatus);
-      LogMessage(LogLevel.DEBUG,"JWT_AUTH_STATUS: " + StrJwtAuthStatus);
+      LogMessage(LogLevel.DEBUG,"LOGGING_LINES: " + IntLoggingLines);
+      LogMessage(LogLevel.DEBUG,"BASIC_AUTH: " + StrBasicAuthStatus);
+      LogMessage(LogLevel.DEBUG,"JWT_AUTH: " + StrJwtAuthStatus);
       LogMessage(LogLevel.DEBUG,"JWT_KEYS_URL: " + StrJwtKeysURL);
       LogMessage(LogLevel.DEBUG,"JWT_KEYS_FORMAT: " + StrJwtKeysFormat);
       LogMessage(LogLevel.DEBUG,"JWT_KEYS_MODULUS_XPATH: " + StrJwtKeysModulusXPath);
@@ -404,7 +408,25 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
       LogMessage(LogLevel.DEBUG,"VALIDATION_ASSERTION: " + StrValidationAssertion.replaceAll("\n",""));
       LogMessage(LogLevel.DEBUG,"DEBUGGING_ASSERTION: " + StrDebuggingAssertion.replaceAll("\n",""));
       LogMessage(LogLevel.DEBUG,"DEBUGGING_PROPERTIES: " + StrDebuggingProperties);      
-      LogMessage(LogLevel.DEBUG,"KERBEROS_CONFIGURATION: " + StrKerberosConfiguration);      
+      LogMessage(LogLevel.DEBUG,"KERBEROS_CONFIGURATION: " + StrKerberosConfiguration);       
+            
+      // Controlli di congruenza configurazione
+      LogMessage(LogLevel.TRACE,"------------------------------------------------------------------------------------------");
+      StrJwtKeysURL = (String) CheckMandatoryParameter("JWT_KEYS_URL", StrJwtKeysURL);
+      StrJwtKeysModulusXPath = (String) CheckMandatoryParameter("JWT_KEYS_MODULUS_XPATH", StrJwtKeysModulusXPath);
+      StrJwtKeysExponentXPath = (String) CheckMandatoryParameter("JWT_KEYS_EXPONENT_XPATH", StrJwtKeysExponentXPath);      
+      CheckMandatoryParameter("JWT_KEYS_CACHE_TTL",IntJwtKeysCacheTTL);
+      CheckMandatoryParameter("JWT_KEYS_CONN_TIMEOUT",IntJwtKeysConnTimeout);
+      CheckMandatoryParameter("JWT_KEYS_READ_TIMEOUT",IntJwtKeysReadTimeout);      
+      if (!StrJwtKeysHostAuthMode.equals("ANONYMOUS")) StrJwtKeysHostAccountPath = (String) CheckMandatoryParameter("JWT_KEYS_HOST_ACCOUNT_PATH", StrJwtKeysHostAccountPath);
+      if (!StrJwtKeysProxyServerMode.equals("DIRECT")) StrJwtKeysProxyServerPath = (String) CheckMandatoryParameter("JWT_KEYS_PROXY_SERVER_PATH", StrJwtKeysProxyServerPath);
+      if (!StrJwtIdentityMappingMode.equals("DISABLE")) StrJwtIdentityMappingPath = (String) CheckMandatoryParameter("JWT_IDENTITY_MAPPING_PATH", StrJwtIdentityMappingPath);
+      StrJwtIdentityAssertion = (String) CheckMandatoryParameter("JWT_IDENTITY_ASSERTION", StrJwtIdentityAssertion);
+
+      // ==================================================================================================================================
+      // Genera logging di debug per dump contesto
+      // ==================================================================================================================================
+      
       LogMessage(LogLevel.DEBUG,"==========================================================================================");
       LogMessage(LogLevel.DEBUG,"CONTEXT");
       LogMessage(LogLevel.DEBUG,"==========================================================================================");
@@ -490,7 +512,7 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
                   
          } catch (Exception ObjException) {
             String StrError = "Basic auth error";
-            LogMessage(LogLevel.ERROR,StrError,ObjException.getMessage());
+            LogMessage(LogLevel.ERROR,StrError,ObjException);
             throw new IdentityAssertionException(StrError);        
          }      
       }
@@ -516,7 +538,7 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
             
          } catch (Exception ObjException) {
             String StrError = "Token parsing error";
-            LogMessage(LogLevel.ERROR,StrError,ObjException.getMessage());
+            LogMessage(LogLevel.ERROR,StrError,ObjException);
             throw new IdentityAssertionException(StrError);        
          }
             
@@ -605,7 +627,7 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
                }               
             } catch (Exception ObjException) {
                String StrError = "Error retrieving keys";
-               LogMessage(LogLevel.ERROR,StrError,ObjException.getMessage());
+               LogMessage(LogLevel.ERROR,StrError,ObjException);
                throw new IdentityAssertionException(StrError);
             }   
                            
@@ -637,7 +659,7 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
             
          } catch (Exception ObjException) {
             String StrError = "Error validating token";
-            LogMessage(LogLevel.ERROR,StrError,ObjException.getMessage());
+            LogMessage(LogLevel.ERROR,StrError,ObjException);
             throw new IdentityAssertionException(StrError);
          }
          
@@ -664,7 +686,7 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
                
             } catch (Exception ObjException) {
                String StrError = "Identity assertion error";
-               LogMessage(LogLevel.ERROR,StrError,ObjException.getMessage());
+               LogMessage(LogLevel.ERROR,StrError,ObjException);
                throw new IdentityAssertionException(StrError);
             }
          }
@@ -700,7 +722,7 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
                }            
             } catch (Exception ObjException) {
                String StrError = "Identity mapping error";
-               LogMessage(LogLevel.ERROR,StrError,ObjException.getMessage());
+               LogMessage(LogLevel.ERROR,StrError,ObjException);
                throw new IdentityAssertionException(StrError);
             }
          }
@@ -730,7 +752,7 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
             }
          } catch (Exception ObjException) {
             String StrError = "Validation assertion error";
-            LogMessage(LogLevel.ERROR,StrError,ObjException.getMessage());
+            LogMessage(LogLevel.ERROR,StrError,ObjException);
             throw new IdentityAssertionException(StrError);
          }
       }
@@ -743,7 +765,7 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
 
          // Se necessario genera logging di debug
          LogMessage(LogLevel.DEBUG,"==========================================================================================");
-         LogMessage(LogLevel.DEBUG,"LOGGING PROPERTIES");
+         LogMessage(LogLevel.DEBUG,"DEBUGGING PROPERTIES");
          LogMessage(LogLevel.DEBUG,"==========================================================================================");
          
          try {
@@ -752,7 +774,7 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
             }  
          } catch (Exception ObjException) {
             String StrError = "Debug properties error";
-            LogMessage(LogLevel.WARN,StrError,ObjException.getMessage());
+            LogMessage(LogLevel.WARN,StrError,ObjException);
          }
       }
       
@@ -987,12 +1009,12 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
 
       // Se lo statuscode è diverso da 200 genera eccezione
       if (ObjHttpResponse.getStatusLine().getStatusCode() != 200) {
-         throw new Exception("HTTP "+ObjHttpResponse.getStatusLine().getStatusCode() + " - " + ObjHttpResponse.getStatusLine().getReasonPhrase());
+         throw new Exception(ObjHttpResponse.getStatusLine().getReasonPhrase()+" (HTTP "+ObjHttpResponse.getStatusLine().getStatusCode()+")");
       }
 
       // Se il content-type non è corretto genera eccezione
       if (!ObjHttpResponse.getEntity().getContentType().getValue().startsWith(StrContentType)) {
-         throw new Exception("Unexpected content-type '" + ObjHttpResponse.getEntity().getContentType().getValue() + "'");
+         throw new Exception("Unexpected content-type ("+ObjHttpResponse.getEntity().getContentType().getValue()+")");
       }
 
       // Acquisisce payload in formato testo
@@ -1017,6 +1039,7 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
       String[] ArrParts;
       String StrSplitDomain;
       String StrSplitUserName;
+      ArrayList<String> ArrTargetAuthSchemes = new ArrayList<String>();
       
       // ==================================================================================================================================
       // Prepara configurazione request di base
@@ -1024,8 +1047,9 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
 
       // Configurazione base
       RequestConfig.Builder ObjRequestConfigBuilder =
-         RequestConfig.custom().setConnectTimeout(IntConnectTimeout * 1000).setConnectionRequestTimeout(IntRequestTimeout * 1000);
-
+         RequestConfig.custom().setConnectTimeout(IntConnectTimeout * 1000)
+                               .setConnectionRequestTimeout(IntRequestTimeout * 1000);
+              
       // ==================================================================================================================================
       // Prepara configurazione per autenticazione
       // ==================================================================================================================================
@@ -1070,6 +1094,7 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
                LogMessage(LogLevel.DEBUG,"Host Auth UserName: "+StrHostUserName);                  
 
                // Predispone schema di autenticazione
+               ArrTargetAuthSchemes.add(AuthSchemes.BASIC);
                ObjAuthSchemeRegistry.register(AuthSchemes.BASIC,new BasicSchemeFactory());
 
                // Predispone credenziali
@@ -1099,6 +1124,7 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
                LogMessage(LogLevel.DEBUG,"Host Auth UserName: "+StrSplitUserName);   
 
                // Predispone schema di autenticazione
+               ArrTargetAuthSchemes.add(AuthSchemes.NTLM);
                ObjAuthSchemeRegistry.register(AuthSchemes.NTLM,new NTLMSchemeFactory());
 
                // Predispone credenziali
@@ -1117,6 +1143,7 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
                ArrLoginContext.add(loginKerberos(StrKerberosConfiguration,StrHostUserName,StrHostPassword));
                
                // Predispone schema di autenticazione
+               ArrTargetAuthSchemes.add(AuthSchemes.SPNEGO);               
                ObjAuthSchemeRegistry.register(AuthSchemes.SPNEGO,new SPNegoSchemeFactory());
 
                // Predispone credenziali
@@ -1177,9 +1204,11 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
                   LogMessage(LogLevel.DEBUG,"Proxy Server Auth UserName: "+StrProxyUserName);                  
    
                   // Se necessario predispone schema di autenticazione
-                  if (!StrHostAuthMode.equals("BASIC"))
+                  if (!StrHostAuthMode.equals("BASIC")) {
+                     ArrTargetAuthSchemes.add(AuthSchemes.BASIC);                              
                      ObjAuthSchemeRegistry.register(AuthSchemes.BASIC,new BasicSchemeFactory());
-
+                  }
+                  
                   // Predispone credenziali
                   ObjAuthCredsProvider.setCredentials(ObjProxyAuthScope,new UsernamePasswordCredentials(StrProxyUserName,StrProxyPassword));
                   break;
@@ -1207,9 +1236,11 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
                   LogMessage(LogLevel.TRACE,"Proxy Server Auth UserName: "+StrSplitUserName);  
                   
                   // Se necessario predispone schema di autenticazione
-                  if (!StrHostAuthMode.equals("NTLM"))
+                  if (!StrHostAuthMode.equals("NTLM")) {
+                     ArrTargetAuthSchemes.add(AuthSchemes.NTLM); 
                      ObjAuthSchemeRegistry.register(AuthSchemes.NTLM,new NTLMSchemeFactory());
-
+                  }
+                  
                   // Predispone credenziali
                   ObjAuthCredsProvider.setCredentials(ObjProxyAuthScope,new NTCredentials(StrSplitUserName, StrProxyPassword, null,StrSplitDomain));
                   break;
@@ -1226,8 +1257,10 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
                   ArrLoginContext.add(loginKerberos(StrKerberosConfiguration,StrProxyUserName,StrProxyPassword));                  
 
                   // Se necessario predispone schema di autenticazione
-                  if (!StrHostAuthMode.equals("KERBEROS"))
-                     ObjAuthSchemeRegistry.register(AuthSchemes.SPNEGO,new SPNegoSchemeFactory());
+                  if (!StrHostAuthMode.equals("KERBEROS")) {
+                     ArrTargetAuthSchemes.add(AuthSchemes.SPNEGO); 
+                     ObjAuthSchemeRegistry.register(AuthSchemes.SPNEGO,new SPNegoSchemeFactory());                     
+                  }
 
                   // Predispone credenziali
                   ObjAuthCredsProvider.setCredentials(ObjProxyAuthScope,                     
@@ -1244,6 +1277,9 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
       // ==================================================================================================================================
       // Prepara request client
       // ==================================================================================================================================
+
+      // Evita il fastidioso logging che avvisa della mancanza di supporto per uno schema proposto dal server
+      ObjRequestConfigBuilder.setTargetPreferredAuthSchemes(ArrTargetAuthSchemes);
 
       // Request client base
       HttpClientBuilder ObjHttpClientBuilder = HttpClients.custom()
@@ -1453,27 +1489,67 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
    // Formatta lo stack trace
    // ==================================================================================================================================
 
-   public static String getStackTrace(Exception ObjException) {
+   public static String getStackTrace(int IntLines,Exception ObjException) {
+            
+      // Acquisisce lo stacktrace
       StringWriter ObjStringWriter = new StringWriter();
       PrintWriter ObjPrintWriter = new PrintWriter(ObjStringWriter);
       ObjException.printStackTrace(ObjPrintWriter);
-      return ObjStringWriter.toString(); 
+      
+      // Frammenta lo stacktrace in righe
+      String[] ArrStackTrace = ObjStringWriter.toString().split("\n");
+      
+      // Filtra le righe richieste
+      String StrStackTrace = "";            
+      for (int IntIndex=0;IntIndex<Math.min(IntLines,ArrStackTrace.length);IntIndex++) {
+         StrStackTrace+= (StrStackTrace.equals("")?(""):("\n"))+ArrStackTrace[IntIndex].toString();
+      }
+      
+      // Restituisce stacktrace filtrato
+      return StrStackTrace;
    }
    
    // ==================================================================================================================================
    // Genera messaggio di logging
    // ==================================================================================================================================
+
    public void LogMessage(int Level,String StrMessage) {
-      LogMessage(Level,StrMessage,"");
+      LogMessage(Level,StrMessage,null);
    }   
 
-   public void LogMessage(int Level,String StrMessage,String StrDetails) {
+   public void LogMessage(int Level,String StrMessage,Object ObjDetails) {
+                  
+      // Se il livello di logging dichiarato è sopra la soglia di filtro esegue
       if (Math.max(IntLoggingLevel,IntLoggingLevelMin)<=Level) {
+         
+         // Se i dettagli forniti sono una stringa la predispone
+         String StrDetails = (ObjDetails!=null)&&(ObjDetails.getClass().getSimpleName()=="String")?((String)ObjDetails):("");
+         
+         // Se i dettagli forniti sono una eccezione la predispone
+         Exception ObjException = (ObjDetails!=null)&&(Exception.class.isAssignableFrom(ObjDetails.getClass()))?((Exception)ObjDetails):(null);
+                  
+         // Prova a costruire la stringa di suffisso del messaggio
+         String StrSuffix = StrDetails+(((ObjException!=null)&&(ObjException.getCause()!=null))?(ObjException.getCause()):(""));
+         
+         // Se il suffisso non è stato popolato e c'è una eccezione prova a estrapolare la prima dello stacktrace
+         if (StrSuffix.equals("")&&(ObjException!=null)) {
+            String[] ArrSuffix = getStackTrace(1,ObjException).split(":",2);
+            StrSuffix = ArrSuffix[ArrSuffix.length-1].trim();
+         }
+                                                                                                   
+         // Genera messaggio di log
          System.out.println(new SimpleDateFormat("'<'yyyy-MM-dd HH:mm:ss'>'").format(new Date(System.currentTimeMillis()))+
                             " <CIA> "+
                             String.format("%-8s","<" + LogLevel.getDescription(Level)+">")+
                             StrMessage+
-                            ((!StrDetails.equals(""))?(": "+StrDetails):("")));
+                            ((!StrSuffix.equals(""))?(": "+StrSuffix):("")));
+         
+         // Se necessario genera marker+stacktrace
+         if ((ObjException!=null)&&(Math.max(IntLoggingLevel,IntLoggingLevelMin)==LogLevel.TRACE)&&(IntLoggingLines>0)) {            
+            System.out.println("--- StackTrace ---------------------------------------------------------------------------------------------------------------");
+            System.out.println(getStackTrace(IntLoggingLines,ObjException));
+            System.out.println("------------------------------------------------------------------------------------------------------------------------------");            
+         }
       }
    }   
 
@@ -1481,6 +1557,38 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
    // Other Utilities
    // ##################################################################################################################################
    
+   // Verifica se un parametro obbligatorio e valorizzato
+   public Object CheckMandatoryParameter(String StrParameterName,Object ObjParameterValue) throws IdentityAssertionException {
+
+      // Prepara nome della classe del parametro
+      String StrClassName = (ObjParameterValue==null)?("null"):(ObjParameterValue.getClass().getSimpleName());
+
+      // Se si tratta di un parametro stringa esegue trim
+      if (StrClassName.equals("String")) {
+         ObjParameterValue = ((String)ObjParameterValue).trim();
+      }
+      
+      // Se necessario genera trace
+      LogMessage(LogLevel.TRACE,
+                 "Checking Parameter "+StrParameterName+": "+
+                 ((ObjParameterValue==null)?("is null"):
+                  ("class '"+StrClassName+"' "+
+                   ((!StrClassName.equals("String"))?(""):
+                    (ObjParameterValue.equals("")?("is empty"):(""))))));
+      
+      // Verifica se il parametro
+      if ((ObjParameterValue==null)||
+          ((StrClassName.equals("String"))&&((String)ObjParameterValue).equals(""))) {
+         String StrError = "Configuration error";
+         LogMessage(LogLevel.ERROR,StrError,"mandatory parameter missing '"+StrParameterName+"'");
+         throw new IdentityAssertionException(StrError);
+      }
+      
+      // Restituisce valore eventualmente corretto con trim
+      return ObjParameterValue;
+   }   
+   
+   // Permette di manipolare un attributo static/private di una classe
    public static void setFinalStatic(Field ObjField, Object ObjValue) throws Exception {
       ObjField.setAccessible(true);
       Field ObjModifiersField = Field.class.getDeclaredField("modifiers");
@@ -1488,4 +1596,11 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
       ObjModifiersField.setInt(ObjField, ObjField.getModifiers() & ~Modifier.FINAL);
       ObjField.set(null,ObjValue);
    }
+
+   // Converte array di byte in stringa esadecimale
+   public static String bytesToHex(byte[] ArrBytes) {
+      StringBuilder ObjResult = new StringBuilder();
+      for (byte ObjByte : ArrBytes) ObjResult.append(String.format("%02X", ObjByte));
+      return ObjResult.toString();
+   }   
 }

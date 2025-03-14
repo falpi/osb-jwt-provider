@@ -28,8 +28,7 @@
   Name          = "Version"
   Type          = "java.lang.String"
   Writeable     = "false"
-  Default       = "&quot;1.0&quot;"
-   
+  Default       = "&quot;1.0&quot;"   
  />
 
    <MBeanAttribute  
@@ -44,8 +43,7 @@
      &quot;CIA.JWT+BASIC&quot;,
      &quot;CIA.JWT+BASIC#1&quot;,
      &quot;CIA.JWT+BASIC#2&quot; 
-  }"
-                   
+  }"                  
  />
 
    <MBeanAttribute  
@@ -72,7 +70,16 @@
  />
 
     <MBeanAttribute  
-  Name 		= "BASIC_AUTH_STATUS"
+  Name 		= "LOGGING_LINES"
+  Type 		= "java.lang.Integer"
+  Writeable 	= "true"
+  Default 	= "5"
+  Description   = "Maximum stacktrace rows to be logged"
+  Dynamic       = "true"
+ />
+
+    <MBeanAttribute  
+  Name 		= "BASIC_AUTH"
   Type 		= "java.lang.String"
   LegalValues   = "ENABLE,DISABLE" 
   Writeable 	= "true"
@@ -82,7 +89,7 @@
  />  
  
     <MBeanAttribute  
-  Name 		= "JWT_AUTH_STATUS"
+  Name 		= "JWT_AUTH"
   Type 		= "java.lang.String"
   LegalValues   = "ENABLE,DISABLE" 
   Writeable 	= "true"
@@ -201,7 +208,6 @@
   Name 		= "JWT_KEYS_PROXY_SERVER_PATH"   
   Type 		= "java.lang.String"
   Writeable 	= "true"
-  Default 	= "&quot;System/Proxy Servers/PROXY_Default&quot;"
   Description   = "OSB path for the proxy server used to extract proxy host and credentials"
   Dynamic       = "true"
  />
@@ -228,7 +234,6 @@
   Name 		= "JWT_IDENTITY_ASSERTION"
   Type 		= "java.lang.String[]"
   Writeable 	= "true"
-  LegalNull     = "false"
   Description   = "Identity assertion script (javascript returning string)"
   Dynamic       = "true"
  />
@@ -240,12 +245,20 @@
   Description   = "Validation assertion script (javascript returning boolean)"
   Dynamic       = "true"
  />
+  
+    <MBeanAttribute  
+  Name 		= "KERBEROS_CONFIGURATION"
+  Type 		= "java.lang.String[]"
+  Writeable 	= "true"
+  Description   = "Configuration for kerberos authentication"
+  Dynamic       = "true"
+ />
  
     <MBeanAttribute  
   Name 		= "DEBUGGING_ASSERTION"
   Type 		= "java.lang.String[]"
   Writeable 	= "true"
-  Description   = "Debug/Trace logging filter assertion (javascript returning boolean)"
+  Description   = "Logging filter assertion (javascript returning boolean)"
   Dynamic       = "true"
  /> 
  
@@ -253,15 +266,7 @@
   Name 		= "DEBUGGING_PROPERTIES"
   Type 		= "java.lang.String[]"
   Writeable 	= "true"
-  Description   = "Debug/Trace logging properties/espressions"
-  Dynamic       = "true"
- />
-  
-    <MBeanAttribute  
-  Name 		= "KERBEROS_CONFIGURATION"
-  Type 		= "java.lang.String[]"
-  Writeable 	= "true"
-  Description   = "Configuration for kerberos authentication"
+  Description   = "Properties/espressions to be logged"
   Dynamic       = "true"
  />
 
