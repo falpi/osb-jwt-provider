@@ -124,13 +124,9 @@ For example, you can configure the `VALIDATION_ASSERTION` parameter with a simpl
     <!-- weblogic version specific properties -->
     <property if:true="${weblogic-12.1.3}" name="javaHomeDir" value="C:/Programmi/Java/jdk1.7"/>
     <property if:true="${weblogic-12.1.3}" name="weblogicDir" value="C:/Oracle/Middleware/12.1.3"/>   
-    <property if:true="${weblogic-12.1.3}" name="templateFile" value="BeanInfoBinder-12.1.3.template"/>
-    <property if:true="${weblogic-12.1.3}" name="builtinProviders" value="cssWlSecurityProviders.jar"/>
-    
+    ...    
     <property if:true="${weblogic-12.2.1}" name="javaHomeDir" value="C:/Programmi/Java/jdk1.8"/>
     <property if:true="${weblogic-12.2.1}" name="weblogicDir" value="C:/Oracle/Middleware/12.2.1"/>    
-    <property if:true="${weblogic-12.2.1}" name="templateFile" value="BeanInfoBinder-12.2.1.template"/>
-    <property if:true="${weblogic-12.2.1}" name="builtinProviders" value="wls-security-providers.jar"/>
 ```
 <p align="justify">The repository contains a project already prepared for a JDeveloper 12.1.3 installed as part of the Oracle SOA Suite Quick Start for Developers under Windows operating system (see references). Ant compilation can be triggered from JDeveloper by right-clicking on the "Build.xml" file and selecting the "all" target or from the command line by running the "Build.cmd" Windows batch.</p>
 
