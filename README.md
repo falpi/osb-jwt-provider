@@ -1,6 +1,5 @@
 <p align="center"><img src="https://github.com/user-attachments/assets/acfcac92-b4c7-46a6-a85a-c597c6f02ac0" /></p>
-
-<h1 align="center">WebLogic Identity Assertion Provider<br/>for OAUTH2/JWT authentication on<br/>Oracle Service Bus</h1>
+<div id="user-content-toc" align="center"><ul><summary><h1 align="center">WebLogic Identity Assertion Provider<br/>for OAUTH2/JWT authentication on<br/>Oracle Service Bus</h1></summary></ul></div>
 
 ## Overview
 <p align="justify">Up to and including version 12.1.3 the Oracle Service Bus does not support OAUTH2/JWT inbound and outbound authentication out of the box. Starting with version 12.2.1, the Bus supports it through the use of OWSM policies but without the certification and flexibility needed to use a third-party IDP such as Azure Entra ID.<br/><br/>
