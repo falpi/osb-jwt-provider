@@ -58,8 +58,8 @@ Please note that resources of type "Proxy Server" can only be created in the fix
 
 For more information on OSB resources follow this [link](https://docs.oracle.com/cd/E23943_01/admin.1111/e15867/project_explorer.htm#OSBAG822)<br/>
  
-Below is a screenshot of the available parameters populated with sample values.<br/>
-<p align="center"><img src="https://github.com/user-attachments/assets/fb5b2ba8-d923-49af-916b-0126d80ad10a" /></p>
+Below is a screenshot of the available parameters populated with sample values suitable for Azure Entra ID.<br/>
+<p align="center"><img src="https://github.com/user-attachments/assets/07150608-36e2-4cef-999e-4f37cdffc5c4" /></p>
 
 ## Template Variables
 <p align="justify">All string configuration parameters support the use of substitution variables to create configurations that can dynamically adapt to the runtime state. The following is a list of supported variables.</p>
