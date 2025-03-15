@@ -13,22 +13,23 @@ It has currently been tested on an Oracle Service Bus 12.1.3 and 12.2.1.4 and wi
 
 ```<WEBLOGIC_HOME>/wlserver/server/lib/mbeantypes```
 
-<p align="justify">Once you have restarted WebLogic, as shown in the following screenshots, you just need to create a new provider using the "Provider" tab of the Realm settings, selecting the "CustomIdentityAsserter" (CIA) item which is the identifier of this provider.</p>
+<p align="justify">Once you have restarted WebLogic, as shown in the following screenshots, you just need to create a new provider using the "Provider" tab of the Realm settings in WebLogic Console, selecting the "CustomIdentityAsserter" (CIA) item which is the identifier of this provider. We then need to reorder the providers to move ours to the top.</p>
 <p align="center"><img src="https://github.com/user-attachments/assets/75512bac-005a-447e-8d12-9b999fab4c7f" /></p>
 <p align="center"><img src="https://github.com/user-attachments/assets/59a05b5c-1565-4bf7-99fb-8233e2da9e1f" /></p>
-Installing the provider registers in the system the presence of new types of "Tokens" that can be used to secure the Proxy Services.
 
 ## Token Types
-<p align="justify">In WebLogic Identity Asserter terminology, Token Types are a declarative way to show which authentication schemes a given provider supports and which are active at a given time, i.e. which can be selected for authentication of a Proxy Service. The provider proposed in this project supports the JWT and BASIC schemes and allows to select them individually or in a combined way through the "JWT+BASIC" type.<br/><br/>
-The "JWT+BASIC" typology is useful because on a given Proxy Service it is possible to select only one type of token at a time and the combined token allows to keep both authentication schemes active at the same time on a single Proxy Service. This allows to implement a progressive migration of consumers from the BASIC scheme to the JWT scheme in a progressive way, without having to create different Proxy Services for each scheme.</p>
-<p align="center"><img src="https://github.com/user-attachments/assets/a94a2dd0-2c46-45eb-aab2-d28b82ed1493" /></p>
-<p align="justify">
-As you can see from the image the provider offers similar types but with a different suffix (#1 and #2). This makes it possible to create multiple instances of the same provider and differentiate their configuration to support different IDPs.</p>
+<p align="justify">Installing the provider registers in the system the presence of new types of "Tokens" that can be used to secure the Proxy Services. In WebLogic Identity Asserter terminology, Token Types are a declarative way to show which authentication schemes a given provider supports and which are active at a given time, i.e. which can be selected for authentication of a Proxy Service. The provider proposed in this project supports the JWT and BASIC schemes and allows to select them individually or in a combined way through the "JWT+BASIC" type.<br/><br/>
+The "JWT+BASIC" typology is useful because on a given Proxy Service it is possible to select only one type of token at a time and the combined token allows to keep both authentication schemes active at the same time on a single Proxy Service. This allows to implement a progressive migration of consumers from the BASIC scheme to the JWT scheme in a progressive way, without having to create different Proxy Services for each scheme.<br/><br/> 
+As you can see from the image below the provider offers similar types but with a different suffix (#1 and #2). This makes it possible to create multiple instances of the same provider and differentiate their configuration to support different IDPs.</p>
 
-## Configuration of Proxy Services
-<p align="justify">To enable custom authentication, you need to act on the configuration of the transport details of a proxy service, as highlighted in the following screenshot. The selected token must be one of those selected as active for the provider (with the prefix "CIA." which stands for "Custom Identity Asserter").</p>
+<p align="center"><img src="https://github.com/user-attachments/assets/a94a2dd0-2c46-45eb-aab2-d28b82ed1493" /></p>
+
+## How to configure Proxy Services
+<p align="justify">To enable the use of our provider on Proxy Services, you need to act from the JDeveloper IDE or from the Service Bus console on the configuration of the Proxy transport details as shown in the following screenshot.</br></br>
+In the "Authentication Header" field the http header must be specified, whose presence activates the use of the custom authentication provider. It can be any valid identifier, however if you want to support the BASIC authentication scheme together with the JWT scheme, the header must necessarily be the standard "Authorization".</br></br>
+In the "Authentication Token Type" field you need to select one of the token types selected as active in the Provider configuration.</p>
+
 <p align="center"><img src="https://github.com/user-attachments/assets/29391a49-5547-48e4-a05d-3ff937863811" /></p>
-<p align="justify">In the "Authentication Header" field, the http header must be specified, whose presence activates the use of the custom authentication provider. It can be any valid identifier, however if you want to support the BASIC authentication scheme together with the JWT scheme, the header must necessarily be the standard "Authorization" one as shown in the image.</p>
 
 ## Provider Parameters
 <p align="justify">The provider is highly configurable and can be adapted to be used with different types of identity providers.<br/>Below is a detailed description of each parameter.</p>
