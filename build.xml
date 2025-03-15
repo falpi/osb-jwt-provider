@@ -4,7 +4,7 @@
     <!-- Global parameters -->
     <!-- #################################################################################################### -->
     
-    <!-- identificativo del provider -->
+    <!-- provider name -->
     <property name="providerName" value="CustomIdentityAsserter" />
     
     <!-- merge external libraries in deploy jar (true/false) -->

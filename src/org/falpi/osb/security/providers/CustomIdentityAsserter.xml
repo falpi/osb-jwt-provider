@@ -245,14 +245,6 @@
   Description   = "Validation assertion script (javascript returning boolean)"
   Dynamic       = "true"
  />
-  
-    <MBeanAttribute  
-  Name 		= "KERBEROS_CONFIGURATION"
-  Type 		= "java.lang.String[]"
-  Writeable 	= "true"
-  Description   = "Configuration for kerberos authentication"
-  Dynamic       = "true"
- />
  
     <MBeanAttribute  
   Name 		= "DEBUGGING_ASSERTION"
@@ -267,6 +259,14 @@
   Type 		= "java.lang.String[]"
   Writeable 	= "true"
   Description   = "Properties/espressions to be logged"
+  Dynamic       = "true"
+ />
+  
+    <MBeanAttribute  
+  Name 		= "KERBEROS_CONFIGURATION"
+  Type 		= "java.lang.String[]"
+  Writeable 	= "true"
+  Description   = "Configuration for kerberos authentication"
   Dynamic       = "true"
  />
 

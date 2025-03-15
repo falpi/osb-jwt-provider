@@ -439,7 +439,7 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
       // ==================================================================================================================================
 
       // Verifica la tipologia del token
-      if (!(ObjToken.getClass().getSimpleName()).equals("String")) {
+      if (!(ObjToken instanceof String)) {
          String StrError = "Unsupported token class";
          LogMessage(LogLevel.ERROR,StrError,ObjToken.getClass().getSimpleName());
          throw new IdentityAssertionException(StrError);
@@ -626,7 +626,7 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
                   throw new Exception("unable to extract key");
                }               
             } catch (Exception ObjException) {
-               String StrError = "Error retrieving keys";
+               String StrError = "Keys retrieving error";
                LogMessage(LogLevel.ERROR,StrError,ObjException);
                throw new IdentityAssertionException(StrError);
             }   
@@ -658,7 +658,7 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
             verifyJwt(ObjSignedJWT, StrKeyModulus, StrKeyExponent);            
             
          } catch (Exception ObjException) {
-            String StrError = "Error validating token";
+            String StrError = "Token validation error";
             LogMessage(LogLevel.ERROR,StrError,ObjException);
             throw new IdentityAssertionException(StrError);
          }
@@ -1523,10 +1523,10 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
       if (Math.max(IntLoggingLevel,IntLoggingLevelMin)<=Level) {
          
          // Se i dettagli forniti sono una stringa la predispone
-         String StrDetails = (ObjDetails!=null)&&(ObjDetails.getClass().getSimpleName()=="String")?((String)ObjDetails):("");
+         String StrDetails = (ObjDetails!=null)&&(ObjDetails instanceof String)?((String)ObjDetails):("");
          
          // Se i dettagli forniti sono una eccezione la predispone
-         Exception ObjException = (ObjDetails!=null)&&(Exception.class.isAssignableFrom(ObjDetails.getClass()))?((Exception)ObjDetails):(null);
+         Exception ObjException = (ObjDetails!=null)&&(ObjDetails instanceof Exception)?((Exception)ObjDetails):(null);
                   
          // Prova a costruire la stringa di suffisso del messaggio
          String StrSuffix = StrDetails+(((ObjException!=null)&&(ObjException.getCause()!=null))?(ObjException.getCause()):(""));
