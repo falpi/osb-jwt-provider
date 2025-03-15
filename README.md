@@ -1,7 +1,6 @@
 <p align="center"><img src="https://github.com/user-attachments/assets/acfcac92-b4c7-46a6-a85a-c597c6f02ac0" /></p>
 
 <h1 align="center">WebLogic Identity Assertion Provider<br/>for OAUTH2/JWT authentication on<br/>Oracle Service Bus</h1>
-An highly configurable WebLogic Custom Identity Assertion Provider with support for inbound OAUTH2/JWT authentication for Oracle Service Bus Proxy Services.<br/>
 
 ## Overview
 <p align="justify">Up to and including version 12.1.3 the Oracle Service Bus does not support OAUTH2/JWT inbound and outbound authentication out of the box. Starting with version 12.2.1, the Bus supports it through the use of OWSM policies but without the certification and flexibility needed to use a third-party IDP such as Azure Entra ID.<br/><br/>
@@ -10,14 +9,24 @@ Fortunately, since the old versions of WebLogic there is the possibility to exte
 In addition to the JWT-based authentication scheme, the provider also offers support for the legacy Basic Auth to simplify the progressive adoption of JWT authentication by different consumers on the same Proxy Service, without the need to create different Proxies for each authentication scheme.<br/><br/>
 It has currently been tested on an Oracle Service Bus 12.1.3 and 12.2.1.4 and with Azure Entra ID as the IDP</p>
 
+## Installation
+<p align="justify">For in-depth information on Custom Providers, please refer to the product documentation (see references). In short, first you need to stop WebLogic and copy the provider packages into the folder:</p>
+
+```<WEBLOGIC_HOME>/wlserver/server/lib/mbeantypes```
+
+<p align="justify">Once you have restarted WebLogic, as shown in the following screenshots, you just need to create a new provider using the "Provider" tab of the Realm settings, selecting the "CustomIdentityAsserter" (CIA) item which is the identifier of this provider.</p>
+<p align="center"><img src="https://github.com/user-attachments/assets/75512bac-005a-447e-8d12-9b999fab4c7f" /></p>
+<p align="center"><img src="https://github.com/user-attachments/assets/59a05b5c-1565-4bf7-99fb-8233e2da9e1f" /></p>
+Installing the provider registers in the system the presence of new types of "Tokens" that can be used to secure the Proxy Services.
+
 ## Token Types
-<p align="justify">In WebLogic Identity Asserter terminology, Token Types are a way to declare which authentication schemes a given provider supports and which are active at a given time, i.e. which can be selected for authentication of a Proxy Service. The provider proposed in this project supports the JWT and BASIC schemes and allows to select them individually or in a combined way through the "JWT+BASIC" type.<br/><br/>
+<p align="justify">In WebLogic Identity Asserter terminology, Token Types are a declarative way to show which authentication schemes a given provider supports and which are active at a given time, i.e. which can be selected for authentication of a Proxy Service. The provider proposed in this project supports the JWT and BASIC schemes and allows to select them individually or in a combined way through the "JWT+BASIC" type.<br/><br/>
 The "JWT+BASIC" typology is useful because on a given Proxy Service it is possible to select only one type of token at a time and the combined token allows to keep both authentication schemes active at the same time on a single Proxy Service. This allows to implement a progressive migration of consumers from the BASIC scheme to the JWT scheme in a progressive way, without having to create different Proxy Services for each scheme.</p>
 <p align="center"><img src="https://github.com/user-attachments/assets/a94a2dd0-2c46-45eb-aab2-d28b82ed1493" /></p>
 <p align="justify">
 As you can see from the image the provider offers similar types but with a different suffix (#1 and #2). This makes it possible to create multiple instances of the same provider and differentiate their configuration to support different IDPs.</p>
 
-## How to configure Proxy Services
+## Configuration of Proxy Services
 <p align="justify">To enable custom authentication, you need to act on the configuration of the transport details of a proxy service, as highlighted in the following screenshot. The selected token must be one of those selected as active for the provider (with the prefix "CIA." which stands for "Custom Identity Asserter").</p>
 <p align="center"><img src="https://github.com/user-attachments/assets/29391a49-5547-48e4-a05d-3ff937863811" /></p>
 <p align="justify">In the "Authentication Header" field, the http header must be specified, whose presence activates the use of the custom authentication provider. It can be any valid identifier, however if you want to support the BASIC authentication scheme together with the JWT scheme, the header must necessarily be the standard "Authorization" one as shown in the image.</p>
@@ -54,7 +63,6 @@ Parameter                     | Description
 (*) OSB resources path are constructed as follows: `<project-name>/<root-folder>/.../<parent-folder>/<resource-name>`.<br/>
 If a resource is located directly under a project, the path is constructed as follows: `<project-name>/<resource-name>`.<br/>
 Please note that resources of type "Proxy Server" can only be created in the fixed path `System/Proxy Servers/<resource-name>`.<br/>
-
 
 For more information on OSB resources follow this [link](https://docs.oracle.com/cd/E23943_01/admin.1111/e15867/project_explorer.htm#OSBAG822)<br/>
  
