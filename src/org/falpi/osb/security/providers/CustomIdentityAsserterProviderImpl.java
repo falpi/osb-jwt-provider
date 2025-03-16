@@ -25,8 +25,8 @@ import java.util.HashMap;
 import java.util.Enumeration;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.security.AccessController;
 import java.security.Principal;
+import java.security.AccessController;
 import java.security.PrivilegedAction;
 
 import javax.security.auth.Subject;
@@ -117,7 +117,7 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
    // ==================================================================================================================================
    // Livelli di logging
    // ==================================================================================================================================
-   
+
    static class LogLevel {
       public final static int TRACE = 0;
       public final static int DEBUG = 1;
@@ -199,6 +199,7 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
    private String StrServerName;
    private String StrProjectName;   
    private String StrServiceName;
+   private String StrServicePath;
    
    private ServiceInfo ObjService;
    private TransportEndPoint ObjEndpoint;
@@ -211,8 +212,8 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
    private HashMap ObjJwtKeysCache = new HashMap();
         
    // Altre variabili di supporto
-   private String StrDescription = "";   
-   private String StrKerberosConfiguration = "";
+   private String StrDescription;   
+   private String StrKerberosConfiguration;
 
    private ScriptEngine ObjScriptEngine;
    private CustomIdentityAsserterMBean ObjProviderMBean;
@@ -221,7 +222,7 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
    private EmbeddedLDAPAtnDelegate ObjEmbeddedAuthenticator;
    
    // ##################################################################################################################################
-   // Implementa metodi di supporto
+   // Implementa interfacce di inbound security (AuthenticationProviderV2, IdentityAsserterV2)
    // ##################################################################################################################################
 
    @Override
@@ -361,6 +362,7 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
       
       StrProjectName = ObjService.getRef().getProjectName();
       StrServiceName = ObjService.getRef().getLocalName();
+      StrServicePath = ObjService.getRef().getFullName();
       
       // ==================================================================================================================================
       // Valuta l'abilitazione del logging (eventuali errori sono silenziati per non pregiudicare l'autenticazione)
@@ -412,16 +414,16 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
             
       // Controlli di congruenza configurazione
       LogMessage(LogLevel.TRACE,"------------------------------------------------------------------------------------------");
-      StrJwtKeysURL = (String) CheckMandatoryParameter("JWT_KEYS_URL", StrJwtKeysURL);
-      StrJwtKeysModulusXPath = (String) CheckMandatoryParameter("JWT_KEYS_MODULUS_XPATH", StrJwtKeysModulusXPath);
-      StrJwtKeysExponentXPath = (String) CheckMandatoryParameter("JWT_KEYS_EXPONENT_XPATH", StrJwtKeysExponentXPath);      
-      CheckMandatoryParameter("JWT_KEYS_CACHE_TTL",IntJwtKeysCacheTTL);
-      CheckMandatoryParameter("JWT_KEYS_CONN_TIMEOUT",IntJwtKeysConnTimeout);
-      CheckMandatoryParameter("JWT_KEYS_READ_TIMEOUT",IntJwtKeysReadTimeout);      
-      if (!StrJwtKeysHostAuthMode.equals("ANONYMOUS")) StrJwtKeysHostAccountPath = (String) CheckMandatoryParameter("JWT_KEYS_HOST_ACCOUNT_PATH", StrJwtKeysHostAccountPath);
-      if (!StrJwtKeysProxyServerMode.equals("DIRECT")) StrJwtKeysProxyServerPath = (String) CheckMandatoryParameter("JWT_KEYS_PROXY_SERVER_PATH", StrJwtKeysProxyServerPath);
-      if (!StrJwtIdentityMappingMode.equals("DISABLE")) StrJwtIdentityMappingPath = (String) CheckMandatoryParameter("JWT_IDENTITY_MAPPING_PATH", StrJwtIdentityMappingPath);
-      StrJwtIdentityAssertion = (String) CheckMandatoryParameter("JWT_IDENTITY_ASSERTION", StrJwtIdentityAssertion);
+      StrJwtKeysURL = (String) checkMandatoryParameter("JWT_KEYS_URL", StrJwtKeysURL);
+      StrJwtKeysModulusXPath = (String) checkMandatoryParameter("JWT_KEYS_MODULUS_XPATH", StrJwtKeysModulusXPath);
+      StrJwtKeysExponentXPath = (String) checkMandatoryParameter("JWT_KEYS_EXPONENT_XPATH", StrJwtKeysExponentXPath);      
+      checkMandatoryParameter("JWT_KEYS_CACHE_TTL",IntJwtKeysCacheTTL);
+      checkMandatoryParameter("JWT_KEYS_CONN_TIMEOUT",IntJwtKeysConnTimeout);
+      checkMandatoryParameter("JWT_KEYS_READ_TIMEOUT",IntJwtKeysReadTimeout);      
+      if (!StrJwtKeysHostAuthMode.equals("ANONYMOUS")) StrJwtKeysHostAccountPath = (String) checkMandatoryParameter("JWT_KEYS_HOST_ACCOUNT_PATH", StrJwtKeysHostAccountPath);
+      if (!StrJwtKeysProxyServerMode.equals("DIRECT")) StrJwtKeysProxyServerPath = (String) checkMandatoryParameter("JWT_KEYS_PROXY_SERVER_PATH", StrJwtKeysProxyServerPath);
+      if (!StrJwtIdentityMappingMode.equals("DISABLE")) StrJwtIdentityMappingPath = (String) checkMandatoryParameter("JWT_IDENTITY_MAPPING_PATH", StrJwtIdentityMappingPath);
+      StrJwtIdentityAssertion = (String) checkMandatoryParameter("JWT_IDENTITY_ASSERTION", StrJwtIdentityAssertion);
 
       // ==================================================================================================================================
       // Genera logging di debug per dump contesto
@@ -778,14 +780,18 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
          }
       }
       
+      // Genera logging di debug
       LogMessage(LogLevel.DEBUG,"##########################################################################################");
+
+      // Genera logging di info su sintesi autenticazione
+      LogMessage(LogLevel.INFO,"Inbound Assertion ("+StrAuthType+") => Server:"+StrServerName+", Proxy:"+StrServiceName+", User:"+StrUserName+((!StrIdentity.equals(StrUserName))?(" ("+StrIdentity+")"):("")));
 
       // Restituisce utente autenticato
       return new CustomIdentityAsserterCallbackHandlerImpl(StrUserName);
    }
 
    // ##################################################################################################################################
-   // Evaluate Script
+   // Evaluate script
    // ##################################################################################################################################
    public Object evaluateScript(String StrScript, String StrClassName) throws Exception {
             
@@ -807,7 +813,7 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
    }
 
    // ##################################################################################################################################
-   // Evaluate templates
+   // Replace template variables
    // ##################################################################################################################################
    public String replaceTemplates(String StrText) throws Exception {
       
@@ -847,7 +853,6 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
                      switch (ArrVariableTokens[1]) {
                         case "server": StrVariableValue = StrServerName; break;
                         case "project": StrVariableValue = StrProjectName; break;
-                        case "service": StrVariableValue = StrServiceName; break;
                      }
                      break;
                }
@@ -855,6 +860,16 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
             
             case 3:
                switch (ArrVariableTokens[0]) {
+                  case "osb" :
+                     switch (ArrVariableTokens[1]) {
+                        case "service": 
+                           switch (ArrVariableTokens[2]) {
+                              case "name": StrVariableValue = StrServiceName; break;
+                              case "path": StrVariableValue = StrServicePath; break;
+                           }
+                           break;                        
+                     }
+                     break;                  
                   case "token" :
                      switch (ArrVariableTokens[1]) {
                         case "header": StrVariableValue = (String) ObjSignedJWT.getHeader().toJSONObject().get(ArrVariableTokens[2]); break;
@@ -934,8 +949,12 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
    }
 
    // ##################################################################################################################################
-   // Acquisisce le informazioni sul contesto di sicurzza
+   // Networking Utilities
    // ##################################################################################################################################
+
+   // ==================================================================================================================================
+   // Acquisisce risorva via http
+   // ==================================================================================================================================
    public String getHttpResource(String StrRequestURL, 
                                  String StrContentType, 
                                  String StrAuthMode,String StrAuthPath, 
@@ -1024,9 +1043,9 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
       return StrPayload;
    }
 
-   // ##################################################################################################################################
-   // Acquisisce le informazioni sul contesto di sicurzza
-   // ##################################################################################################################################
+   // ==================================================================================================================================
+   // Prepara request http
+   // ==================================================================================================================================
    public CloseableHttpClient buildHttpClient(String StrRequestURL, 
                                               String StrHostAuthMode, String StrHostAccountPath, 
                                               String StrProxyAuthMode, String StrProxyServerPath, 
@@ -1558,7 +1577,7 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
    // ##################################################################################################################################
    
    // Verifica se un parametro obbligatorio e valorizzato
-   public Object CheckMandatoryParameter(String StrParameterName,Object ObjParameterValue) throws IdentityAssertionException {
+   public Object checkMandatoryParameter(String StrParameterName,Object ObjParameterValue) throws IdentityAssertionException {
 
       // Prepara nome della classe del parametro
       String StrClassName = (ObjParameterValue==null)?("null"):(ObjParameterValue.getClass().getSimpleName());
