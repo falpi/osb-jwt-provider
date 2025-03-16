@@ -76,7 +76,8 @@ Variable                      | Replaced by
 ----------------------------- | ------------------------------------------------------------------------------------
 `${osb.server}`               | The name of the WebLogic Managed Server that took charge of the request. 
 `${osb.project}`              | The name of the Osb Project that the endpoint that received the request is part of.
-`${osb.service}`              | The name of the Osb Proxy Service that took charge of the request.
+`${osb.service.name}`         | The name of the Osb Proxy Service that took charge of the request.
+`${osb.service.path}`         | The full path the Osb Proxy Service that took charge of the request.
 `${http.client.host}`         | The remote/client hostname of the http request.
 `${http.client.addr}`         | The remote/client address of the http request.
 `${http.server.host}`         | The local/server hostname of the machine that took charge of the request.
