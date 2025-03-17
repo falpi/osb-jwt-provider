@@ -191,7 +191,7 @@
        <!-- remove deployed files and redeploy the new ones -->
        <!-- :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::- -->
        <delete>
-           <fileset dir="${weblogicDir}/wlserver/server/lib/mbeantypes" includes="${outputName}*.*"/>
+           <fileset dir="${weblogicDir}/wlserver/server/lib/mbeantypes" includes="${providerName}*.*"/>
        </delete>
        <copy todir="${weblogicDir}/wlserver/server/lib/mbeantypes" >
            <fileset dir="${deployDir}" includes="${outputName}*.*"/>
