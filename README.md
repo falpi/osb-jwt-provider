@@ -123,21 +123,30 @@ For example, you can configure the `VALIDATION_ASSERTION` parameter with a simpl
 <p align="center"><img src="https://github.com/user-attachments/assets/45f6af65-3cb5-4cc3-8062-a3f8a13d7b0a" /></p>
 
 ## Build instructions
-<p align="justify">The sources can be compiled with any Java IDE with Ant support but you need to prepare the necessary dependencies for WebLogic and Oracle Service Bus libraries. You only need to modify the "Build.xml" file to suit your environment. The file supports multiple configurations already prepared for WebLogic 12.1.3 and 12.2.1. Here is an excerpt of the section that needs to be customized.</p>
+<p align="justify">The sources can be compiled with any Java IDE with Ant support but you need to prepare the necessary dependencies for WebLogic and Oracle Service Bus libraries. You only need to modify "javaHomeDir" and "weblogicDir" in "Build.xml" file to suit your environment. The file supports multiple terget already prepared for WebLogic 12.1.3 and 12.2.1 on a Windows operating system. Here is an excerpt of the section that needs to be customized.</p>
 
 ```xml
-    <!-- weblogic version selector (only one must be true) -->
-    <property name="weblogic-12.1.3" value="true"/>
-    <property name="weblogic-12.2.1" value="false"/>
-    
-    <!-- weblogic version specific properties -->
-    <property if:true="${weblogic-12.1.3}" name="javaHomeDir" value="C:/Programmi/Java/jdk1.7"/>
-    <property if:true="${weblogic-12.1.3}" name="weblogicDir" value="C:/Oracle/Middleware/12.1.3"/>   
-    ...    
-    <property if:true="${weblogic-12.2.1}" name="javaHomeDir" value="C:/Programmi/Java/jdk1.8"/>
-    <property if:true="${weblogic-12.2.1}" name="weblogicDir" value="C:/Oracle/Middleware/12.2.1"/>    
+   <switch value="${targetConfig}">
+     <case value="12.1.3">
+       ...
+       <property name="javaHomeDir" value="* *C:/Programmi/Java/jdk1.7"/>
+       <property name="weblogicDir" value="C:/Oracle/Middleware/12.1.3"/>   
+       ...
+     </case>
+     <case value="12.2.1">
+       ...
+       <property name="javaHomeDir" value="C:/Programmi/Java/jdk1.8"/>
+       <property name="weblogicDir" value="C:/Oracle/Middleware/12.2.1"/>    
+       ...
+     </case>        
+     <default>
+       <fail message="Unsupported target: ${targetConfig}"/>
+     </default>
+   </switch>    
 ```
-<p align="justify">The repository contains a project already prepared for a JDeveloper 12.1.3 installed as part of the Oracle SOA Suite Quick Start for Developers under Windows operating system (see references). Ant compilation can be triggered from JDeveloper by right-clicking on the "Build.xml" file and selecting the "all" target or from the command line by running the "Build.cmd" Windows batch.</p>
+<p align="justify">The repository contains two project already prepared for a JDeveloper 12.1.3 and/or JDeveloper 12.2.1.4 installation on Windows operating system. You could install them with respective versions of Oracle SOA Suite Quick Start for Developers (see references). Ant compilation can be triggered from JDeveloper by right-clicking on the "Build.xml" file and selecting the "all" target or from the command line by running the "Build-xxx.cmd" Windows batch. Please note that cross-compilation is fully supported, meaning you can compile the provider for version 12.2.1 from JDeveloper 12.1.3 or vice versa, as long as you have at least the dependency libraries properly configured in your Ant build targets.
+
+</p>
 
 In both cases, at the end of the compilation, two jar archives are produced and automatically copied to the ```<WEBLOGIC_HOME>/wlserver/server/lib/mbeantypes``` folder from which WebLogic loads the security providers at startup. At the end of the compilation, you can directly launch the WebLogic environment integrated into JDeveloper to test the provider's operation.</p>
 
