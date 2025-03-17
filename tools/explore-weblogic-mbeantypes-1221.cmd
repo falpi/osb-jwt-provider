@@ -1,0 +1,1 @@
+explorer C:\Oracle\Middleware\12.2.1\wlserver\server\lib\mbeantypes

@@ -1,36 +1,9 @@
 <project name="Build" default="all" basedir="." xmlns:if="ant:if" xmlns:unless="ant:unless">
     
     <!-- #################################################################################################### -->
-    <!-- Global parameters -->
+    <!-- Path specifiers -->
     <!-- #################################################################################################### -->
-
-    <!-- provider name -->
-    <property name="providerName" value="CustomIdentityAsserter" />
-        
-    <!-- merge external libraries in deploy jar (true/false) -->
-    <property name="mergeLibraries" value="false"/>
-
-    <!-- weblogic version selector (only one must be true) -->
-    <property name="weblogic-12.1.3" value="true"/>
-    <property name="weblogic-12.2.1" value="false"/>
-    
-    <!-- weblogic version specific properties -->
-    <property if:true="${weblogic-12.1.3}" name="weblogicVersion" value="12.1.3"/>
-    <property if:true="${weblogic-12.1.3}" name="javaHomeDir" value="C:/Programmi/Java/jdk1.7"/>
-    <property if:true="${weblogic-12.1.3}" name="weblogicDir" value="C:/Oracle/Middleware/12.1.3"/>   
-    <property if:true="${weblogic-12.1.3}" name="templateFile" value="BeanInfoBinder-12.1.3.template"/>
-    <property if:true="${weblogic-12.1.3}" name="builtinProviders" value="cssWlSecurityProviders.jar"/>
-    
-    <property if:true="${weblogic-12.2.1}" name="weblogicVersion" value="12.2.1"/>
-    <property if:true="${weblogic-12.2.1}" name="javaHomeDir" value="C:/Programmi/Java/jdk1.8"/>
-    <property if:true="${weblogic-12.2.1}" name="weblogicDir" value="C:/Oracle/Middleware/12.2.1"/>    
-    <property if:true="${weblogic-12.2.1}" name="templateFile" value="BeanInfoBinder-12.2.1.template"/>
-    <property if:true="${weblogic-12.2.1}" name="builtinProviders" value="wls-security-providers.jar"/>
-
-    <!-- #################################################################################################### -->
-    <!-- various path specificators -->
-    <!-- #################################################################################################### -->
-        
+      
     <property name="libDir" value="lib"/>
     <property name="buildDir" value="build"/>
     <property name="deployDir" value="deploy"/>
@@ -38,50 +11,131 @@
     <property name="resourceDir" value="res"/>
     <property name="packageDir" value="org/falpi/osb/security/providers"/>
     <property name="templateDir" value="${buildDir}/weblogic/management/internal/mbean"/>
-        
-    <path id="myclasspath">
-        <pathelement location="${buildDir}"/>
-        
-        <pathelement location="${javaHomeDir}/lib/tools.jar"/>
-        <pathelement location="${javaHomeDir}/jre/lib/rt.jar"/>
-        
-        <pathelement location="${libDir}/json-20230618.jar"/>
-        <pathelement location="${libDir}/httpcore-4.4.13.jar"/>
-        <pathelement location="${libDir}/httpclient-4.5.13.jar"/>
-        <pathelement location="${libDir}/commons-codec-1.11.jar"/>
-        <pathelement location="${libDir}/nimbus-jose-jwt-9.48.jar"/>
-        
-        <pathelement location="${weblogicDir}/osb/lib/servicebus.jar"/>
-        <pathelement location="${weblogicDir}/wlserver/server/lib/weblogic.jar"/>
-        <pathelement location="${weblogicDir}/wlserver/server/lib/mbeantypes/${builtinProviders}"/>
-    </path>
-
-    <!-- #################################################################################################### -->
-    <!-- Build output file name with versioning -->
-    <!-- #################################################################################################### -->
     
-    <taskdef name="xmltask" classpath="${libDir}/ant-xmltask-1.16.jar" classname="com.oopsconsultancy.xmltask.ant.XmlTask"/>     
+    <!-- #################################################################################################### -->
+    <!-- Load Ant extensions -->
+    <!-- #################################################################################################### -->    
+        
+    <!-- ant-contrib -->
     <taskdef classpath="${libDir}/ant-contrib-0.6.jar" resource="net/sf/antcontrib/antcontrib.properties"/>     
-
-    <copy todir="." file="${sourceDir}/${packageDir}/commo.dtd"/>
-    <xmltask source="${sourceDir}/${packageDir}/${providerName}.xml">
-       <copy path="/MBeanType/MBeanAttribute[@Name='Version']/@Default" property="providerVersionValue"/>
-    </xmltask>
-    <delete file="commo.dtd"/>
-    <propertyregex property="providerVersion" input="${providerVersionValue}" regexp='"' replace="" />
-
-    <tstamp><format property="buildStamp" pattern="yyyyddMM" /></tstamp> 
     
-    <property name="outputName" value="${providerName}-${providerVersion}.${buildStamp}-fmw_${weblogicVersion}" />
+    <!-- xmltask -->
+    <taskdef name="xmltask" classpath="${libDir}/ant-xmltask-1.16.jar" classname="com.oopsconsultancy.xmltask.ant.XmlTask"/>     
+    
+    <!-- #################################################################################################### -->
+    <!-- Preparation tasks -->
+    <!-- #################################################################################################### -->    
+    
+    <target name="target.1213">
+       <property name="targetConfig" value="12.1.3"/>
+    </target>
+
+    <target name="target.1221">
+       <property name="targetConfig" value="12.2.1"/>
+    </target>
+    
+    <target name="prepare">
+        
+        <!-- ==================================================================================================== -->
+        <!-- Synch property file  -->
+        <!-- ==================================================================================================== -->
+
+        <propertyfile if:set="targetConfig" file="build.conf">
+            <entry key="targetConfig" type="string" value="${targetConfig}" />
+        </propertyfile>
+    
+        <propertyfile unless:set="targetConfig" file="build.conf">
+            <entry key="targetConfig" type="string" default="12.1.3" />
+        </propertyfile>
+        
+        <property file="build.conf"/>            
+        
+        <!-- ==================================================================================================== -->
+        <!-- Target specific properties   -->
+        <!-- ==================================================================================================== -->
+        
+        <echo message="Selected target: ${targetConfig}"/>
+        
+        <switch value="${targetConfig}">
+          <case value="12.1.3">
+            <property name="weblogicVersion" value="12.1.3"/>
+            <property name="javaHomeDir" value="C:/Programmi/Java/jdk1.7"/>
+            <property name="weblogicDir" value="C:/Oracle/Middleware/12.1.3"/>   
+            <property name="templateFile" value="BeanInfoBinder-12.1.3.template"/>
+            <property name="builtinProviders" value="cssWlSecurityProviders.jar"/>
+          </case>
+          <case value="12.2.1">
+            <property name="weblogicVersion" value="12.2.1"/>
+            <property name="javaHomeDir" value="C:/Programmi/Java/jdk1.8"/>
+            <property name="weblogicDir" value="C:/Oracle/Middleware/12.2.1"/>    
+            <property name="templateFile" value="BeanInfoBinder-12.2.1.template"/>
+            <property name="builtinProviders" value="wls-security-providers.jar"/>
+          </case>        
+          <default>
+            <fail message="Unsupported target: ${targetConfig}"/>
+          </default>
+        </switch>    
+                   
+        <!-- ==================================================================================================== -->
+        <!-- Classpath property   -->
+        <!-- ==================================================================================================== -->
+            
+        <path id="myclasspath">
+            <pathelement location="${buildDir}"/>
+            
+            <pathelement location="${javaHomeDir}/lib/tools.jar"/>
+            <pathelement location="${javaHomeDir}/jre/lib/rt.jar"/>
+            
+            <pathelement location="${libDir}/json-20230618.jar"/>
+            <pathelement location="${libDir}/httpcore-4.4.13.jar"/>
+            <pathelement location="${libDir}/httpclient-4.5.13.jar"/>
+            <pathelement location="${libDir}/commons-codec-1.11.jar"/>
+            <pathelement location="${libDir}/nimbus-jose-jwt-9.48.jar"/>
+            
+            <pathelement location="${weblogicDir}/osb/lib/servicebus.jar"/>
+            <pathelement location="${weblogicDir}/wlserver/server/lib/weblogic.jar"/>
+            <pathelement location="${weblogicDir}/wlserver/server/lib/mbeantypes/${builtinProviders}"/>
+        </path>
+    
+        <!-- ==================================================================================================== -->
+        <!-- Build parameters -->
+        <!-- ==================================================================================================== -->
+    
+        <!-- merge external libraries in deploy jar (true/false) -->
+        <property name="mergeLibraries" value="false"/>
+    
+        <!-- prepare build timestamp -->
+        <tstamp><format property="buildTimestamp" pattern="yyyyddMM" /></tstamp> 
+    
+        <!-- provider name -->
+        <property name="providerName" value="CustomIdentityAsserter" />
+    
+        <!-- provider version -->
+        <copy todir="." file="${sourceDir}/${packageDir}/commo.dtd"/>
+        <xmltask source="${sourceDir}/${packageDir}/${providerName}.xml">
+           <copy path="/MBeanType/MBeanAttribute[@Name='Version']/@Default" property="providerVersionValue"/>
+        </xmltask>
+        <delete file="commo.dtd"/>    
+        <propertyregex property="providerVersion" input="${providerVersionValue}" regexp='"' replace="" />
+    
+        <!-- output file name -->    
+        <property name="outputFileName" value="osb-jwt-provider-${providerVersion}.${buildTimestamp}-fmw_${weblogicVersion}" />
+      
+    </target>
     
     <!-- #################################################################################################### -->
     <!-- Main tasks -->
     <!-- #################################################################################################### -->
+
+    <target name="all" depends="prepare,build,deploy"/>
+    <target name="all.1213" depends="target.1213,all"/>
+    <target name="all.1221" depends="target.1221,all"/>    
     
-    <target name="all" depends="build,deploy"/>
-    <target name="build" depends="clean,build.MTF,build.MDF,build.MJF"/>
+    <target name="build" depends="prepare,clean,build.MTF,build.MDF,build.MJF"/>
+    <target name="build.1213" depends="target.1213,build"/>
+    <target name="build.1221" depends="target.1221,build"/>
    
-    <target name="clean">
+    <target name="clean" depends="prepare">
         <delete dir="${buildDir}" failonerror="false" />
         <delete dir="${deployDir}" failonerror="false" />
         <echo message="Clean finish"></echo>
@@ -90,7 +144,7 @@
     <!-- ==================================================================================================== -->
     <!-- Build the Provider MBean template file (to replace default template of MBeanMaker) -->
     <!-- ==================================================================================================== -->
-    <target name="build.MTF">      
+    <target name="build.MTF" depends="prepare">      
         <delete dir="${templateDir}" failonerror="false" />
         <mkdir dir="${templateDir}"/>        
         <copy file="${resourceDir}/${templateFile}" tofile="${templateDir}/BeanInfoBinder.template" />    
@@ -99,7 +153,7 @@
     <!-- ==================================================================================================== -->
     <!-- Build the Provider MBean definition file -->
     <!-- ==================================================================================================== -->
-    <target name="build.MDF">
+    <target name="build.MDF" depends="prepare">
         <mkdir dir="${buildDir}"/>
         <delete dir="${buildDir}/temp" failonerror="false"/>        
         <copy todir="${buildDir}/temp">
@@ -107,7 +161,7 @@
                 <include name="**/*.*"/>
             </fileset>
         </copy>        
-        <java classname="weblogic.management.commo.WebLogicMBeanMaker">
+        <java fork="true" jvm="${javaHomeDir}/bin/java" dir="${basedir}" classname="weblogic.management.commo.WebLogicMBeanMaker">
             <arg line="-MDF ${buildDir}/temp/${packageDir}/${providerName}.xml"/>
             <arg value="-createStubs"/>
             <arg line="-files ${buildDir}/temp"/>
@@ -120,10 +174,10 @@
     <!-- ==================================================================================================== -->
     <!-- Build the Provider MBean -->
     <!-- ==================================================================================================== -->
-    <target name="build.MJF">
+    <target name="build.MJF" depends="prepare">
         <delete dir="${deployDir}" failonerror="false"/>
         <mkdir dir="${deployDir}"/>
-        <java dir="${buildDir}" fork="true" classname="weblogic.management.commo.WebLogicMBeanMaker">
+        <java fork="true" jvm="${javaHomeDir}/bin/java" dir="${buildDir}" classname="weblogic.management.commo.WebLogicMBeanMaker">
             <arg line="-MJF ${providerName}.jar"/>
             <arg line="-includeSource"/>
             <arg line="-files temp"/>
@@ -135,8 +189,8 @@
     <!-- ==================================================================================================== -->
     <!-- Allow to manually modify sources produced by MBeanMaker then rebuild and deploy modified version  -->
     <!-- ==================================================================================================== -->
-    <target name="rebuild">
-        <javac srcdir="${buildDir}/temp" destdir="${buildDir}/temp" includes="**/*.java">
+    <target name="rebuild" depends="prepare">
+        <javac fork="true" executable="${javaHomeDir}/bin/javac" srcdir="${buildDir}/temp" destdir="${buildDir}/temp" includes="**/*.java">
             <classpath>
                <path refid="myclasspath" />
                <pathelement path="${buildDir}/temp"/>
@@ -149,7 +203,7 @@
     <!-- ==================================================================================================== -->
     <!-- Deploy task  -->
     <!-- ==================================================================================================== -->
-    <target name="deploy">
+    <target name="deploy" depends="prepare">
     
        <echo message="merging libraries=${mergeLibraries}"/>
        <!-- :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::- -->
@@ -157,7 +211,7 @@
        <!-- currently it doesn't work because the weblogic oamcfgtool.jar file contains an incompatible version  -->
        <!-- of the apache commons-codec package which would be loaded instead of the one present in the archive  -->
        <!-- :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::- -->
-       <jar if:true="${mergeLibraries}" destfile="${deployDir}/${outputName}.jar">
+       <jar if:true="${mergeLibraries}" destfile="${deployDir}/${outputFileName}.jar">
           <zipfileset src="${buildDir}/${providerName}.jar"/>
           <restrict>
              <name name="**/*.class"/>
@@ -171,13 +225,13 @@
        <!-- :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::- -->
        <!-- Build separated jar files for MBean and the libraries                                                -->
        <!-- :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::- -->
-       <jar unless:true="${mergeLibraries}" destfile="${deployDir}/${outputName}.jar">
+       <jar unless:true="${mergeLibraries}" destfile="${deployDir}/${outputFileName}.jar">
            <zipfileset src="${buildDir}/${providerName}.jar"/>
            <manifest>
-              <attribute name="Class-Path" value="${outputName}.lib"/>
+              <attribute name="Class-Path" value="${outputFileName}.lib"/>
            </manifest>
        </jar>
-       <jar unless:true="${mergeLibraries}" destfile="${deployDir}/${outputName}.lib">
+       <jar unless:true="${mergeLibraries}" destfile="${deployDir}/${outputFileName}.lib">
           <restrict>
              <name name="**/*.class"/>
              <archives>
@@ -194,7 +248,7 @@
            <fileset dir="${weblogicDir}/wlserver/server/lib/mbeantypes" includes="${providerName}*.*"/>
        </delete>
        <copy todir="${weblogicDir}/wlserver/server/lib/mbeantypes" >
-           <fileset dir="${deployDir}" includes="${outputName}*.*"/>
+           <fileset dir="${deployDir}" includes="${outputFileName}*.*"/>
        </copy>
        <echo message="Deployes Mbean Jar"></echo>
     </target>       
