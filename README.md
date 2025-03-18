@@ -129,7 +129,7 @@ For example, you can configure the `VALIDATION_ASSERTION` parameter with a simpl
    <switch value="${targetConfig}">
      <case value="12.1.3">
        ...
-       <property name="javaHomeDir" value="* *C:/Programmi/Java/jdk1.7"/>
+       <property name="javaHomeDir" value="C:/Programmi/Java/jdk1.7"/>
        <property name="weblogicDir" value="C:/Oracle/Middleware/12.1.3"/>   
        ...
      </case>
