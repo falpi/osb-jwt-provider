@@ -119,7 +119,8 @@
         <propertyregex property="providerVersion" input="${providerVersionValue}" regexp='"' replace="" />
     
         <!-- output file name -->    
-        <property name="outputFileName" value="osb-jwt-provider-${providerVersion}.${buildTimestamp}-fmw_${weblogicVersion}" />
+        <property name="outputFilePrefix" value="osb-jwt-provider" />
+        <property name="outputFileName" value="${outputFilePrefix}-${providerVersion}.${buildTimestamp}-fmw_${weblogicVersion}" />
       
     </target>
     
@@ -245,10 +246,10 @@
        <!-- remove deployed files and redeploy the new ones -->
        <!-- :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::- -->
        <delete>
-           <fileset dir="${weblogicDir}/wlserver/server/lib/mbeantypes" includes="${providerName}*.*"/>
+           <fileset dir="${weblogicDir}/wlserver/server/lib/mbeantypes" includes="${outputFilePrefix}*.*"/>
        </delete>
        <copy todir="${weblogicDir}/wlserver/server/lib/mbeantypes" >
-           <fileset dir="${deployDir}" includes="${outputFileName}*.*"/>
+           <fileset dir="${deployDir}" includes="${outputFilePrefix}*.*"/>
        </copy>
        <echo message="Deployes Mbean Jar"></echo>
     </target>       
