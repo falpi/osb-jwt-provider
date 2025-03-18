@@ -1,5 +1,5 @@
-/deploy/
-/build/
 /.svn/
+/build/
+/deploy/
 /lib/tools.jar
-build.conf
+

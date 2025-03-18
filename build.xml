@@ -1,5 +1,5 @@
 <project name="Build" default="all" basedir="." xmlns:if="ant:if" xmlns:unless="ant:unless">
-    
+        
     <!-- #################################################################################################### -->
     <!-- Path specifiers -->
     <!-- #################################################################################################### -->
@@ -26,30 +26,33 @@
     <!-- Preparation tasks -->
     <!-- #################################################################################################### -->    
     
+    <!-- target to autodetect runtime environement -->
+    <target unless="targetConfig" name="target.auto">            
+      <property name="javaHomeDir" value="${java.home}/.." />
+      <property name="weblogicDir" value="${oracle.home}/.." />      
+      <switch value="${java.specification.version}">
+        <case value="1.7">
+           <property name="targetConfig" value="12.1.3"/>
+        </case>
+        <case value="1.8">
+           <property name="targetConfig" value="12.2.1"/>
+        </case>
+      </switch>      
+    </target>    
+    
+    <!-- target to force fmw 12.1.3 runtime environment -->
     <target name="target.1213">
        <property name="targetConfig" value="12.1.3"/>
     </target>
 
+    <!-- target to force fmw 12.2.1 runtime environment -->
     <target name="target.1221">
        <property name="targetConfig" value="12.2.1"/>
     </target>
     
-    <target name="prepare">
-        
-        <!-- ==================================================================================================== -->
-        <!-- Synch property file  -->
-        <!-- ==================================================================================================== -->
-
-        <propertyfile if:set="targetConfig" file="build.conf">
-            <entry key="targetConfig" type="string" value="${targetConfig}" />
-        </propertyfile>
-    
-        <propertyfile unless:set="targetConfig" file="build.conf">
-            <entry key="targetConfig" type="string" default="12.1.3" />
-        </propertyfile>
-        
-        <property file="build.conf"/>            
-        
+    <!-- target to prepare runtime environment properties -->
+    <target name="prepare">         
+            
         <!-- ==================================================================================================== -->
         <!-- Target specific properties   -->
         <!-- ==================================================================================================== -->
@@ -96,7 +99,7 @@
             <pathelement location="${weblogicDir}/wlserver/server/lib/weblogic.jar"/>
             <pathelement location="${weblogicDir}/wlserver/server/lib/mbeantypes/${builtinProviders}"/>
         </path>
-    
+           
         <!-- ==================================================================================================== -->
         <!-- Build parameters -->
         <!-- ==================================================================================================== -->
@@ -121,22 +124,22 @@
         <!-- output file name -->    
         <property name="outputFilePrefix" value="osb-jwt-provider" />
         <property name="outputFileName" value="${outputFilePrefix}-${providerVersion}.${buildTimestamp}-fmw_${weblogicVersion}" />
-      
+              
     </target>
     
     <!-- #################################################################################################### -->
     <!-- Main tasks -->
     <!-- #################################################################################################### -->
 
-    <target name="all" depends="prepare,build,deploy"/>
+    <target name="all" depends="target.auto,prepare,build,deploy"/>
     <target name="all.1213" depends="target.1213,all"/>
     <target name="all.1221" depends="target.1221,all"/>    
     
-    <target name="build" depends="prepare,clean,build.MTF,build.MDF,build.MJF"/>
+    <target name="build" depends="target.auto,prepare,clean,build.MTF,build.MDF,build.MJF"/>
     <target name="build.1213" depends="target.1213,build"/>
     <target name="build.1221" depends="target.1221,build"/>
    
-    <target name="clean" depends="prepare">
+    <target name="clean" depends="target.auto,prepare">
         <delete dir="${buildDir}" failonerror="false" />
         <delete dir="${deployDir}" failonerror="false" />
         <echo message="Clean finish"></echo>
@@ -145,7 +148,7 @@
     <!-- ==================================================================================================== -->
     <!-- Build the Provider MBean template file (to replace default template of MBeanMaker) -->
     <!-- ==================================================================================================== -->
-    <target name="build.MTF" depends="prepare">      
+    <target name="build.MTF" depends="target.auto,prepare">      
         <delete dir="${templateDir}" failonerror="false" />
         <mkdir dir="${templateDir}"/>        
         <copy file="${resourceDir}/${templateFile}" tofile="${templateDir}/BeanInfoBinder.template" />    
