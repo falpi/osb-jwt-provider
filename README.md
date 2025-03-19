@@ -6,7 +6,7 @@
 Furthermore, the use of OWSM policies may not be a proper solution for those who are used to managing authentication and authorization through the simple management of users and groups of the integrated authentication provider of WebLogic. As if that wasn't enough, OAUTH2 introduces the need to adopt identities defined by very long and opaque strings (client_id), that are difficult to re-associate to a given consumer without appropriate mechanisms of credential mappings and in this OWSM is of no help.<br/><br/>
 Fortunately, since the old versions of WebLogic there is the possibility to extend the product to support custom authentication schemes. The library proposed in this project is based in particular on a Custom Identity Assertion Provider that brings to the OSB an implementation of OAUTH2 authentication based on signed JWT tokens, currently only for inbound OSB security. This custom provider overcomes the rigidities of OWSM by offering more flexibility and control and optionally supports identity mapping to translate client_ids to WebLogic realm users.<br/><br/>
 In addition to the JWT-based authentication scheme, the provider also offers support for the legacy Basic Auth to simplify the progressive adoption of JWT authentication by different consumers on the same Proxy Service, without the need to create different Proxies for each authentication scheme.<br/><br/>
-It has currently been tested on an Oracle Service Bus 12.1.3 and 12.2.1.4 and with Azure Entra ID as the IDP.</p>
+It has currently been tested on all most recent Oracle Service Bus 12.1.3, 12.2.1.4 and 14.1.2 with Azure Entra ID as the IDP.</p>
 
 ## Installation
 <p align="justify">For in-depth information on Custom Providers, please refer to the product documentation (see references). In short, first you need to stop WebLogic and copy the provider packages into the folder:</p>
@@ -123,7 +123,7 @@ For example, you can configure the `VALIDATION_ASSERTION` parameter with a simpl
 <p align="center"><img src="https://github.com/user-attachments/assets/45f6af65-3cb5-4cc3-8062-a3f8a13d7b0a" /></p>
 
 ## Build instructions
-<p align="justify">The sources can be compiled with any Java IDE with Ant support but you need to prepare the necessary dependencies for WebLogic and Oracle Service Bus libraries. You only need to modify "javaHomeDir" and "weblogicDir" in "Build.xml" file to suit your environment. The file supports multiple terget already prepared for WebLogic 12.1.3 and 12.2.1 on a Windows operating system. Here is an excerpt of the section that needs to be customized.</p>
+<p align="justify">The sources can be compiled with any Java IDE with Ant support but you need to prepare the necessary dependencies for WebLogic and Oracle Service Bus libraries. You only need to modify "javaHomeDir" and "weblogicDir" in "Build.xml" file to suit your environment. The file supports multiple terget already prepared for WebLogic 12.1.3, 12.2.1 and 14.1.2 on a Windows operating system. Here is an excerpt of the section that needs to be customized.</p>
 
 ```xml
     <switch value="${targetConfig}">
@@ -150,9 +150,7 @@ For example, you can configure the `VALIDATION_ASSERTION` parameter with a simpl
       </default>
     </switch>    
 ```
-<p align="justify">The repository contains two project already prepared for a JDeveloper 12.1.3 and/or JDeveloper 12.2.1.4 installation on Windows operating system. You could install them with respective versions of Oracle SOA Suite Quick Start for Developers (see references). Ant compilation can be triggered from JDeveloper by right-clicking on the "Build.xml" file and selecting the "all" target or from the command line by running the "Build-xxx.cmd" Windows batch. Please note that cross-compilation is fully supported, meaning you can compile the provider for version 12.2.1 from JDeveloper 12.1.3 or vice versa, as long as you have at least the dependency libraries properly configured in your Ant build targets.
-
-</p>
+<p align="justify">The repository contains three projects already prepared for JDeveloper 12.1.3, 12.2.1.4 and 14.1.2 installation on Windows operating system. You could install JDeveloper with respective versions of Oracle SOA Suite Quick Start for Developers (see references). Ant compilation can be triggered from JDeveloper by right-clicking on the "Build.xml" file and selecting the "all" target or from the command line by running the "Build-xxx.cmd" Windows batch. Note that cross-compilation is fully supported, meaning that you can compile the provider for a different version target than JDeveloper, provided that at least the dependency libraries are accessible and configured correctly in the Ant build targets.</p>
 
 In both cases, at the end of the compilation, two jar archives are produced and automatically copied to the ```<WEBLOGIC_HOME>/wlserver/server/lib/mbeantypes``` folder from which WebLogic loads the security providers at startup. At the end of the compilation, you can directly launch the WebLogic environment integrated into JDeveloper to test the provider's operation.</p>
 
