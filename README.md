@@ -126,23 +126,29 @@ For example, you can configure the `VALIDATION_ASSERTION` parameter with a simpl
 <p align="justify">The sources can be compiled with any Java IDE with Ant support but you need to prepare the necessary dependencies for WebLogic and Oracle Service Bus libraries. You only need to modify "javaHomeDir" and "weblogicDir" in "Build.xml" file to suit your environment. The file supports multiple terget already prepared for WebLogic 12.1.3 and 12.2.1 on a Windows operating system. Here is an excerpt of the section that needs to be customized.</p>
 
 ```xml
-   <switch value="${targetConfig}">
-     <case value="12.1.3">
-       ...
-       <property name="javaHomeDir" value="C:/Programmi/Java/jdk1.7"/>
-       <property name="weblogicDir" value="C:/Oracle/Middleware/12.1.3"/>   
-       ...
-     </case>
-     <case value="12.2.1">
-       ...
-       <property name="javaHomeDir" value="C:/Programmi/Java/jdk1.8"/>
-       <property name="weblogicDir" value="C:/Oracle/Middleware/12.2.1"/>    
-       ...
-     </case>        
-     <default>
-       <fail message="Unsupported target: ${targetConfig}"/>
-     </default>
-   </switch>    
+    <switch value="${targetConfig}">
+      <case value="12.1.3">
+        ...
+        <property name="javaHomeDir" value="C:/Programmi/Java/jdk1.7"/>
+        <property name="weblogicDir" value="C:/Oracle/Middleware/12.1.3"/>   
+        ...
+      </case>
+      <case value="12.2.1">
+        ...
+        <property name="javaHomeDir" value="C:/Programmi/Java/jdk1.8"/>
+        <property name="weblogicDir" value="C:/Oracle/Middleware/12.2.1"/>    
+        ...
+      </case>        
+      <case value="14.1.2">
+        ...
+        <property name="javaHomeDir" value="C:/Programmi/Java/jdk17"/>
+        <property name="weblogicDir" value="C:/Oracle/Middleware/14.1.2"/>    
+        ...
+      </case>        
+      <default>
+        <fail message="Unsupported target: ${targetConfig}"/>
+      </default>
+    </switch>    
 ```
 <p align="justify">The repository contains two project already prepared for a JDeveloper 12.1.3 and/or JDeveloper 12.2.1.4 installation on Windows operating system. You could install them with respective versions of Oracle SOA Suite Quick Start for Developers (see references). Ant compilation can be triggered from JDeveloper by right-clicking on the "Build.xml" file and selecting the "all" target or from the command line by running the "Build-xxx.cmd" Windows batch. Please note that cross-compilation is fully supported, meaning you can compile the provider for version 12.2.1 from JDeveloper 12.1.3 or vice versa, as long as you have at least the dependency libraries properly configured in your Ant build targets.
 

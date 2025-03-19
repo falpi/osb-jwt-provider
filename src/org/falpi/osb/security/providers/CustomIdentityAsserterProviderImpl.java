@@ -53,8 +53,6 @@ import weblogic.management.security.ProviderMBean;
 import weblogic.management.provider.ManagementService;
 
 import org.apache.commons.io.IOUtils;
-import org.apache.commons.codec.binary.Base64;
-
 import org.apache.xmlbeans.XmlObject;
 import org.apache.xmlbeans.XmlCursor;
 import org.apache.xmlbeans.XmlOptions;
@@ -104,6 +102,8 @@ import com.nimbusds.jose.proc.JWSVerificationKeySelector;
 import com.nimbusds.jose.proc.SecurityContext;
 import com.nimbusds.jose.util.Base64URL;
 import com.nimbusds.jose.JWSObject.State;
+
+import com.nimbusds.jose.util.Base64;
 
 import org.json.XML;
 import org.json.JSONObject;
@@ -501,13 +501,13 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
          try {          
                         
             // Dedodifica il token basic
-            String[] ArrCredential = new String(Base64.decodeBase64(StrJwtPayload)).split(":",2);            
+            String[] ArrCredential = Base64.from(StrJwtPayload).decodeToString().split(":",2);            
             LogMessage(LogLevel.DEBUG,"UserName: "+ArrCredential[0]);   
             
             // Prova ad autenticare le credenziali sul realm weblogic
             StrUserName = ObjEmbeddedAuthenticator.authenticate(ArrCredential[0], ArrCredential[1]);
             
-            // Se l'utenza non Ë autenticata genera eccezione
+            // Se l'utenza non ‡ autenticata genera eccezione
             if ((StrUserName==null)||StrUserName.equals("")) {
                throw new Exception("wrong credentials");
             }
@@ -760,7 +760,7 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
       }
       
       // ==================================================================================================================================
-      // Se sono presenti propriet‡ da mandare in debug le gestisce
+      // Se sono presenti propriet√® da mandare in debug le gestisce
       // ==================================================================================================================================
 
       if (ArrDebuggingProperties.length>0) {
@@ -784,7 +784,10 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
       LogMessage(LogLevel.DEBUG,"##########################################################################################");
 
       // Genera logging di info su sintesi autenticazione
-      LogMessage(LogLevel.INFO,"Inbound Assertion ("+StrAuthType+") => Server:"+StrServerName+", Proxy:"+StrServiceName+", User:"+StrUserName+((!StrIdentity.equals(StrUserName))?(" ("+StrIdentity+")"):("")));
+      LogMessage(LogLevel.INFO,"Inbound Assertion ("+StrAuthType+
+                               ") => Server:"+StrServerName+
+                               ", Proxy:"+StrServiceName+
+                               ", User:"+StrUserName+((!StrIdentity.equals("")&&!StrIdentity.equals(StrUserName))?(" ("+StrIdentity+")"):("")));
 
       // Restituisce utente autenticato
       return new CustomIdentityAsserterCallbackHandlerImpl(StrUserName);
@@ -1031,7 +1034,7 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
          throw new Exception(ObjHttpResponse.getStatusLine().getReasonPhrase()+" (HTTP "+ObjHttpResponse.getStatusLine().getStatusCode()+")");
       }
 
-      // Se il content-type non Ë corretto genera eccezione
+      // Se il content-type non √® corretto genera eccezione
       if (!ObjHttpResponse.getEntity().getContentType().getValue().startsWith(StrContentType)) {
          throw new Exception("Unexpected content-type ("+ObjHttpResponse.getEntity().getContentType().getValue()+")");
       }
@@ -1373,7 +1376,9 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
       // Imposta propriet‡ di sistema kerberos
       System.setProperty("java.security.krb5.conf", ObjKerberosAuthConfig.toURI().toString());
       System.setProperty("javax.security.auth.useSubjectCredsOnly","false");
-      sun.security.krb5.Config.refresh();
+      
+      // Commentato perch√® non pi√π supportato sulla 14.1.2. In ogni caso √® di dubbia utilit√†
+      //sun.security.krb5.Config.refresh();
 
       // Imposta parametri del LoginModule
       Map ObjState = new HashMap();
@@ -1532,14 +1537,14 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
    // Genera messaggio di logging
    // ==================================================================================================================================
 
-   public void LogMessage(int Level,String StrMessage) {
-      LogMessage(Level,StrMessage,null);
+   public void LogMessage(int IntLevel,String StrMessage) {
+      LogMessage(IntLevel,StrMessage,null);
    }   
 
-   public void LogMessage(int Level,String StrMessage,Object ObjDetails) {
+   public void LogMessage(int IntLevel,String StrMessage,Object ObjDetails) {
                   
       // Se il livello di logging dichiarato Ë sopra la soglia di filtro esegue
-      if (Math.max(IntLoggingLevel,IntLoggingLevelMin)<=Level) {
+      if (Math.max(IntLoggingLevel,IntLoggingLevelMin)<=IntLevel) {
          
          // Se i dettagli forniti sono una stringa la predispone
          String StrDetails = (ObjDetails!=null)&&(ObjDetails instanceof String)?((String)ObjDetails):("");
@@ -1559,12 +1564,12 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
          // Genera messaggio di log
          System.out.println(new SimpleDateFormat("'<'yyyy-MM-dd HH:mm:ss'>'").format(new Date(System.currentTimeMillis()))+
                             " <CIA> "+
-                            String.format("%-8s","<" + LogLevel.getDescription(Level)+">")+
+                            String.format("%-8s","<" + LogLevel.getDescription(IntLevel)+">")+
                             StrMessage+
                             ((!StrSuffix.equals(""))?(": "+StrSuffix):("")));
          
          // Se necessario genera marker+stacktrace
-         if ((ObjException!=null)&&(Math.max(IntLoggingLevel,IntLoggingLevelMin)==LogLevel.TRACE)&&(IntLoggingLines>0)) {            
+         if ((ObjException!=null)&&(IntLevel==LogLevel.ERROR)&&(Math.max(IntLoggingLevel,IntLoggingLevelMin)==LogLevel.TRACE)&&(IntLoggingLines>0)) {            
             System.out.println("--- StackTrace ---------------------------------------------------------------------------------------------------------------");
             System.out.println(getStackTrace(IntLoggingLines,ObjException));
             System.out.println("------------------------------------------------------------------------------------------------------------------------------");            
@@ -1622,4 +1627,18 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
       for (byte ObjByte : ArrBytes) ObjResult.append(String.format("%02X", ObjByte));
       return ObjResult.toString();
    }   
+   
+   // Acquisisce versione java
+   private static int getJavaVersion() {
+      String StrVersion = System.getProperty("java.version");
+      if(StrVersion.startsWith("1.")) {
+          StrVersion = StrVersion.substring(2, 3);
+      } else {
+          int IntDotIndex = StrVersion.indexOf(".");
+          if(IntDotIndex != -1) { 
+             StrVersion = StrVersion.substring(0,IntDotIndex); 
+          }
+      } 
+      return Integer.parseInt(StrVersion);
+   }
 }
