@@ -156,6 +156,7 @@ In both cases, at the end of the compilation, two jar archives are produced and 
 
 ## Credits
 - **JSON-java** (https://github.com/stleary/JSON-java)<br/>
+- **Mozilla Rhino** (https://github.com/mozilla/rhino)
 - **Apache HttpClient** (https://hc.apache.org/httpcomponents-client-4.5.x/index.html)<br/>
 - **Nimbus JOSE + JWT** (https://connect2id.com/products/nimbus-jose-jwt)<br/>
 
