@@ -6,7 +6,7 @@
 Furthermore, the use of OWSM policies may not be a proper solution for those who are used to managing authentication and authorization through the simple management of users and groups of the integrated authentication provider of WebLogic. As if that wasn't enough, OAUTH2 introduces the need to adopt identities defined by very long and opaque strings (client_id), that are difficult to re-associate to a given consumer without appropriate mechanisms of credential mappings and in this OWSM is of no help.<br/><br/>
 Fortunately, since the old versions of WebLogic there is the possibility to extend the product to support custom authentication schemes. The library proposed in this project is based in particular on a Custom Identity Assertion Provider that brings to the OSB an implementation of OAUTH2 authentication based on signed JWT tokens, currently only for inbound OSB security. This custom provider overcomes the rigidities of OWSM by offering more flexibility and control and optionally supports identity mapping to translate client_ids to WebLogic realm users.<br/><br/>
 In addition to the JWT-based authentication scheme, the provider also offers support for the legacy Basic Auth to simplify the progressive adoption of JWT authentication by different consumers on the same Proxy Service, without the need to create different Proxies for each authentication scheme.<br/><br/>
-It has currently been tested on an Oracle Service Bus 12.1.3 and 12.2.1.4 and with Azure Entra ID as the IDP.</p>
+It has currently been tested on all most recent Oracle Service Bus 12.1.3, 12.2.1.4 and 14.1.2 with Azure Entra ID as the IDP.</p>
 
 ## Installation
 <p align="justify">For in-depth information on Custom Providers, please refer to the product documentation (see references). In short, first you need to stop WebLogic and copy the provider packages into the folder:</p>
@@ -123,7 +123,7 @@ For example, you can configure the `VALIDATION_ASSERTION` parameter with a simpl
 <p align="center"><img src="https://github.com/user-attachments/assets/45f6af65-3cb5-4cc3-8062-a3f8a13d7b0a" /></p>
 
 ## Build instructions
-<p align="justify">The sources can be compiled with any Java IDE with Ant support but you need to prepare the necessary dependencies for WebLogic and Oracle Service Bus libraries. You only need to modify "javaHomeDir" and "weblogicDir" in "Build.xml" file to suit your environment. The file supports multiple terget already prepared for WebLogic 12.1.3 and 12.2.1 on a Windows operating system. Here is an excerpt of the section that needs to be customized.</p>
+<p align="justify">The sources can be compiled with any Java IDE with Ant support but you need to prepare the necessary dependencies for WebLogic and Oracle Service Bus libraries. You only need to modify "javaHomeDir" and "weblogicDir" in "Build.xml" file to suit your environment. The file supports multiple terget already prepared for WebLogic 12.1.3, 12.2.1 and 14.1.2 on a Windows operating system. Here is an excerpt of the section that needs to be customized.</p>
 
 ```xml
     <switch value="${targetConfig}">
@@ -150,14 +150,123 @@ For example, you can configure the `VALIDATION_ASSERTION` parameter with a simpl
       </default>
     </switch>    
 ```
-<p align="justify">The repository contains two project already prepared for a JDeveloper 12.1.3 and/or JDeveloper 12.2.1.4 installation on Windows operating system. You could install them with respective versions of Oracle SOA Suite Quick Start for Developers (see references). Ant compilation can be triggered from JDeveloper by right-clicking on the "Build.xml" file and selecting the "all" target or from the command line by running the "Build-xxx.cmd" Windows batch. Please note that cross-compilation is fully supported, meaning you can compile the provider for version 12.2.1 from JDeveloper 12.1.3 or vice versa, as long as you have at least the dependency libraries properly configured in your Ant build targets.
-
-</p>
+<p align="justify">The repository contains three projects already prepared for JDeveloper 12.1.3, 12.2.1.4 and 14.1.2 installation on Windows operating system. You could install JDeveloper with respective versions of Oracle SOA Suite Quick Start for Developers (see references). Ant compilation can be triggered from JDeveloper by right-clicking on the "Build.xml" file and selecting the "all" target or from the command line by running the "Build-xxx.cmd" Windows batch. Note that cross-compilation is fully supported, meaning that you can compile the provider for a different version target than JDeveloper, provided that at least the dependency libraries are accessible and configured correctly in the Ant build targets.</p>
 
 In both cases, at the end of the compilation, two jar archives are produced and automatically copied to the ```<WEBLOGIC_HOME>/wlserver/server/lib/mbeantypes``` folder from which WebLogic loads the security providers at startup. At the end of the compilation, you can directly launch the WebLogic environment integrated into JDeveloper to test the provider's operation.</p>
 
+## Log Management
+<p align="justify">The provider generates logs in its own format, with different levels of attention depending on the type of information. The logging level to filter messages is defined by the LOGGING_LEVEL parameter. Below is an almost exhaustive example of the various types of log messages generated by the provider, both during initialization (weblogic boot) and at each request.</p>
+
+#### 1. Initialization Phase
+```log
+... <INFO>  ##########################################################################################
+... <INFO>  INITIALIZE
+... <INFO>  ##########################################################################################
+... <INFO>  ==========================================================================================
+... <INFO>  CONTEXT
+... <INFO>  ==========================================================================================
+... <INFO>  Realm Name ........... : myrealm
+... <INFO>  Domain Name .......... : DefaultDomain
+... <INFO>  Managed Name ......... : DefaultServer
+... <INFO>  ------------------------------------------------------------------------------------------
+... <INFO>  JWT Provider ......... : org.falpi.utils.JWTTokenNimbusShadedImpl
+... <INFO>  Scripting Engine ..... : Oracle Nashorn (1.8.0_391)
+... <INFO>  Scripting Language ... : ECMAScript (ECMA - 262 Edition 5.1)
+... <INFO>  ##########################################################################################
+```
+
+#### 2. Identity Assertion Phase
+```log
+... <DEBUG> ##########################################################################################
+... <DEBUG> ASSERT IDENTITY
+... <DEBUG> ##########################################################################################
+... <WARN>  Debugging assertion error: <eval>:1 ReferenceError: "test" is not defined
+... <DEBUG> ==========================================================================================
+... <DEBUG> CONFIGURATION
+... <DEBUG> ==========================================================================================
+... <DEBUG> LOGGING_LEVEL ................ : TRACE
+... <DEBUG> LOGGING_LINES ................ : 5
+... <DEBUG> BASIC_AUTH ................... : ENABLE
+... <DEBUG> JWT_AUTH ..................... : ENABLE
+... <DEBUG> JWT_KEYS_URL ................. : https://login.microsoftonline.com/common/discovery/keys
+... <DEBUG> JWT_KEYS_FORMAT .............. : JSON
+... <DEBUG> JWT_KEYS_MODULUS_XPATH ....... : //keys[kid='${token.header.kid}']/n
+... <DEBUG> JWT_KEYS_EXPONENT_XPATH ...... : //keys[kid='${token.header.kid}']/e
+... <DEBUG> JWT_KEYS_CACHE_TTL ........... : 0
+... <DEBUG> JWT_KEYS_CONN_TIMEOUT ........ : 5
+... <DEBUG> JWT_KEYS_READ_TIMEOUT ........ : 5
+... <DEBUG> JWT_KEYS_SSL_VERIFY .......... : DISABLE
+... <DEBUG> JWT_KEYS_HOST_AUTH_MODE ...... : ANONYMOUS
+... <DEBUG> JWT_KEYS_HOST_ACCOUNT_PATH ... : null
+... <DEBUG> JWT_KEYS_PROXY_SERVER_MODE ... : DIRECT
+... <DEBUG> JWT_KEYS_PROXY_SERVER_PATH ... : System/Proxy Servers/PROXY_Default
+... <DEBUG> JWT_IDENTITY_MAPPING_MODE .... : ACCOUNT
+... <DEBUG> JWT_IDENTITY_MAPPING_PATH .... : TEST/Mapper
+... <DEBUG> JWT_IDENTITY_ASSERTION ....... : '${token.payload.appid}'
+... <DEBUG> VALIDATION_ASSERTION ......... : 
+... <DEBUG> DEBUGGING_ASSERTION .......... : test
+... <DEBUG> DEBUGGING_PROPERTIES ......... : 
+... <DEBUG> KERBEROS_CONFIGURATION ....... : 
+... <TRACE> ------------------------------------------------------------------------------------------
+... <TRACE> Checking Parameter JWT_KEYS_URL: class 'String' 
+... <TRACE> Checking Parameter JWT_KEYS_MODULUS_XPATH: class 'String' 
+... <TRACE> Checking Parameter JWT_KEYS_EXPONENT_XPATH: class 'String' 
+... <TRACE> Checking Parameter JWT_KEYS_CACHE_TTL: class 'Integer' 
+... <TRACE> Checking Parameter JWT_KEYS_CONN_TIMEOUT: class 'Integer' 
+... <TRACE> Checking Parameter JWT_KEYS_READ_TIMEOUT: class 'Integer' 
+... <TRACE> Checking Parameter JWT_IDENTITY_MAPPING_PATH: class 'String' 
+... <TRACE> Checking Parameter JWT_IDENTITY_ASSERTION: class 'String' 
+... <DEBUG> ==========================================================================================
+... <DEBUG> CONTEXT
+... <DEBUG> ==========================================================================================
+... <DEBUG> Managed Name ..... : DefaultServer
+... <DEBUG> Project Name ..... : TEST
+... <DEBUG> Service Name ..... : Test
+... <DEBUG> ------------------------------------------------------------------------------------------
+... <DEBUG> Server Host ...... : <hostname>
+... <DEBUG> Server Addr ...... : 127.0.0.1
+... <DEBUG> ------------------------------------------------------------------------------------------
+... <DEBUG> Client Host ...... : <hostname>
+... <DEBUG> Client Addr ...... : 127.0.0.1
+... <DEBUG> ------------------------------------------------------------------------------------------
+... <DEBUG> Request URL ...... : http://<hostname>:7101/TEST/Test
+... <DEBUG> Content Type ..... : application/xml
+... <DEBUG> ------------------------------------------------------------------------------------------
+... <DEBUG> Selected Token ... : CIA.JWT+BASIC
+... <DEBUG> Detected Auth .... : JWT
+... <DEBUG> ==========================================================================================
+... <DEBUG> JWT AUTH
+... <DEBUG> ==========================================================================================
+... <DEBUG> ------------------------------------------------------------------------------------------
+... <DEBUG> KEYS RETRIEVE
+... <DEBUG> ------------------------------------------------------------------------------------------
+... <TRACE> Payload (JSON) .......... : {"keys":[{"kty":"RSA","cloud_instance_name":"microsoftonline.com"...
+... <TRACE> Payload (XML) ........... : <root><keys><kty>RSA</kty><cloud_instance_name>microsoftonline.com</cloud_instance_name>...
+... <TRACE> Template Variable #1: ${token.header.kid} => JDNa_4i4r7FgigL3sHIlI3xV-IU
+... <DEBUG> Modulus XPath Parsed .... : //keys[kid='JDNa_4i4r7FgigL3sHIlI3xV-IU']/n
+... <TRACE> Template Variable #1: ${token.header.kid} => JDNa_4i4r7FgigL3sHIlI3xV-IU
+... <DEBUG> Exponent XPath Parsed ... : //keys[kid='JDNa_4i4r7FgigL3sHIlI3xV-IU']/e
+... <DEBUG> ------------------------------------------------------------------------------------------
+... <DEBUG> TOKEN VALIDATION
+... <DEBUG> ------------------------------------------------------------------------------------------
+... <DEBUG> Key ID ............. : JDNa_4i4r7FgigL3sHIlI3xV-IU
+... <DEBUG> Key Modulus ........ : iQ745_U-vjkxPblaw6phBpe08fC42mpcrS4pcr15HiyZQyQV-BFcEVyLwPds...
+... <DEBUG> Key Exponent ....... : AQAB
+... <DEBUG> Token validation ... : true
+... <DEBUG> ------------------------------------------------------------------------------------------
+... <DEBUG> IDENTITY ASSERTION
+... <DEBUG> ------------------------------------------------------------------------------------------
+... <TRACE> Template Variable #1: ${token.payload.appid} => <client_id>
+... <DEBUG> Token Identity .... : <client_id>
+... <DEBUG> Mapping Account ... : TEST/Mapper
+... <DEBUG> Realm UserName .... : falpi
+... <DEBUG> ##########################################################################################
+... <INFO>  Inbound Assertion (JWT) => Proxy:Test, User:falpi (<client_id>), Client:<hostname> (127.0.0.1), Server:DefaultServer
+```
+
 ## Credits
 - **JSON-java** (https://github.com/stleary/JSON-java)<br/>
+- **Mozilla Rhino** (https://github.com/mozilla/rhino)
 - **Apache HttpClient** (https://hc.apache.org/httpcomponents-client-4.5.x/index.html)<br/>
 - **Nimbus JOSE + JWT** (https://connect2id.com/products/nimbus-jose-jwt)<br/>
 
