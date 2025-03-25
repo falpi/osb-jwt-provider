@@ -96,6 +96,12 @@
       </list>
    </hash>
    <hash n="oracle.jdeveloper.ant.AntRunConfiguration">
+      <list n="envNames">
+         <string v="JDK_JAVA_OPTIONS"/>
+      </list>
+      <list n="envValues">
+         <string v="${env:var=JDK_JAVA_OPTIONS} --add-exports java.xml/com.sun.org.apache.xpath.internal=ALL-UNNAMED --add-exports java.xml/com.sun.org.apache.xpath.internal.objects=ALL-UNNAMED"/>
+      </list>
       <value n="userJars" v="false"/>
    </hash>
    <hash n="oracle.jdeveloper.compiler.ant.AntConfiguration">
@@ -104,7 +110,7 @@
       <list n="targetList"/>
    </hash>
    <hash n="oracle.jdeveloper.compiler.OjcConfiguration">
-      <value n="internalEncoding" v="UTF-8"/>
+      <value n="internalEncoding" v="windows-1252"/>
       <value n="webIANAEncoding" v="windows-1252"/>
    </hash>
    <hash n="oracle.jdeveloper.deploy.dt.DeploymentProfiles">
@@ -129,10 +135,6 @@
    <hash n="oracle.jdevimpl.config.JProjectLibraries">
       <list n="exportedReferences">
          <hash>
-            <value n="id" v="Nimbus-jose-jwt-9.48.jar"/>
-            <value n="isJDK" v="false"/>
-         </hash>
-         <hash>
             <value n="id" v="Commons-codec-1.11.jar"/>
             <value n="isJDK" v="false"/>
          </hash>
@@ -151,42 +153,6 @@
       </list>
       <hash n="internalDefinitions">
          <list n="libraryDefinitions">
-            <hash>
-               <list n="classPath">
-                  <url path="../../../../../Oracle/Middleware/12.2.1/osb/lib/servicebus.jar" jar-entry=""/>
-               </list>
-               <value n="deployedByDefault" v="true"/>
-               <value n="description" v="Servicebus.jar"/>
-               <value n="id" v="Servicebus.jar"/>
-               <value n="locked" v="true"/>
-            </hash>
-            <hash>
-               <list n="classPath">
-                  <url path="../../../../../Oracle/Middleware/12.2.1/wlserver/server/lib/weblogic.jar" jar-entry=""/>
-               </list>
-               <value n="deployedByDefault" v="true"/>
-               <value n="description" v="Weblogic.jar"/>
-               <value n="id" v="Weblogic.jar"/>
-               <value n="locked" v="true"/>
-            </hash>
-            <hash>
-               <list n="classPath">
-                  <url path="../../../../../Oracle/Middleware/12.2.1/wlserver/server/lib/mbeantypes/wls-security-providers.jar" jar-entry=""/>
-               </list>
-               <value n="deployedByDefault" v="true"/>
-               <value n="description" v="wls-security-providers.jar"/>
-               <value n="id" v="wls-security-providers.jar"/>
-               <value n="locked" v="true"/>
-            </hash>
-            <hash>
-               <list n="classPath">
-                  <url path="lib/nimbus-jose-jwt-9.48.jar" jar-entry=""/>
-               </list>
-               <value n="deployedByDefault" v="true"/>
-               <value n="description" v="Nimbus-jose-jwt-9.48.jar"/>
-               <value n="id" v="Nimbus-jose-jwt-9.48.jar"/>
-               <value n="locked" v="true"/>
-            </hash>
             <hash>
                <list n="classPath">
                   <url path="lib/json-20230618.jar" jar-entry=""/>
@@ -232,6 +198,24 @@
                <value n="id" v="Wls-security-providers.jar"/>
                <value n="locked" v="true"/>
             </hash>
+            <hash>
+               <list n="classPath">
+                  <url path="../../../../../Oracle/Middleware/14.1.2/osb/lib/servicebus.jar" jar-entry=""/>
+               </list>
+               <value n="deployedByDefault" v="true"/>
+               <value n="description" v="Servicebus.jar"/>
+               <value n="id" v="Servicebus.jar"/>
+               <value n="locked" v="true"/>
+            </hash>
+            <hash>
+               <list n="classPath">
+                  <url path="../../../../../Oracle/Middleware/14.1.2/wlserver/server/lib/weblogic.jar" jar-entry=""/>
+               </list>
+               <value n="deployedByDefault" v="true"/>
+               <value n="description" v="Weblogic.jar"/>
+               <value n="id" v="Weblogic.jar"/>
+               <value n="locked" v="true"/>
+            </hash>
          </list>
       </hash>
       <list n="libraryReferences">
@@ -249,10 +233,6 @@
          </hash>
          <hash>
             <value n="id" v="Weblogic.jar"/>
-            <value n="isJDK" v="false"/>
-         </hash>
-         <hash>
-            <value n="id" v="Nimbus-jose-jwt-9.48.jar"/>
             <value n="isJDK" v="false"/>
          </hash>
          <hash>

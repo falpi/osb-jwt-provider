@@ -68,7 +68,7 @@
     </target>
     
     <!-- target to prepare runtime environment properties -->
-    <target name="prepare">         
+    <target name="prepare" depends="target.auto">         
             
         <!-- ==================================================================================================== -->
         <!-- Target specific properties   -->
@@ -79,26 +79,32 @@
         <switch value="${targetConfig}">
           <case value="12.1.3">
             <property name="mergeLibraries" value="true"/>
+            <property name="shadedLibraries" value="false"/>
             <property name="weblogicVersion" value="12.1.3"/>
             <property name="javaHomeDir" value="C:/Programmi/Java/jdk1.7"/>
             <property name="weblogicDir" value="C:/Oracle/Middleware/12.1.3"/>   
-            <property name="templateFile" value="BeanInfoBinder-12.1.3.template"/>
+            <property name="targetLibraries" value="target-libraries-12.1.3"/>
+            <property name="templateArchive" value="com.bea.core.beangen_3.0.0.0.jar"/>
             <property name="builtinProviders" value="cssWlSecurityProviders.jar"/>
           </case>
           <case value="12.2.1">
             <property name="mergeLibraries" value="true"/>
+            <property name="shadedLibraries" value="true"/>
             <property name="weblogicVersion" value="12.2.1"/>
             <property name="javaHomeDir" value="C:/Programmi/Java/jdk1.8"/>
             <property name="weblogicDir" value="C:/Oracle/Middleware/12.2.1"/>    
-            <property name="templateFile" value="BeanInfoBinder-12.2.1.template"/>
+            <property name="targetLibraries" value="target-libraries-12.2.1"/>
+            <property name="templateArchive" value="com.bea.core.beangen.jar"/>
             <property name="builtinProviders" value="wls-security-providers.jar"/>
           </case>        
           <case value="14.1.2">
             <property name="mergeLibraries" value="true"/>
+            <property name="shadedLibraries" value="false"/>
             <property name="weblogicVersion" value="14.1.2"/>
             <property name="javaHomeDir" value="C:/Programmi/Java/jdk17"/>
             <property name="weblogicDir" value="C:/Oracle/Middleware/14.1.2"/>    
-            <property name="templateFile" value="BeanInfoBinder-14.1.2.template"/>
+            <property name="targetLibraries" value="target-libraries-14.1.2"/>
+            <property name="templateArchive" value="com.bea.core.beangen.jar"/>
             <property name="builtinProviders" value="wls-security-providers.jar"/>
           </case>        
           <default>
@@ -107,50 +113,91 @@
         </switch>    
                    
         <!-- ==================================================================================================== -->
-        <!-- Classpath property   -->
+        <!-- Paths for package dependencies  -->
         <!-- ==================================================================================================== -->
-            
-        <path id="myclasspath">
-            <pathelement location="${buildDir}"/>
-            
-            <pathelement location="${javaHomeDir}/lib/tools.jar"/>
-            <pathelement location="${javaHomeDir}/jre/lib/rt.jar"/>
-            
+                        
+        <!-- common libraries shared by all targets -->
+        <path id="common-libraries">       
             <pathelement location="${libDir}/json-20230618.jar"/>
             <pathelement location="${libDir}/httpcore-4.4.13.jar"/>
             <pathelement location="${libDir}/httpclient-4.5.13.jar"/>
             <pathelement location="${libDir}/commons-codec-1.11.jar"/>
-            <pathelement location="${libDir}/nimbus-jose-jwt-9.48.jar"/>
+        </path>         
+        
+        <!-- dependencies for target 12.1.3 (jdk7) -->
+        <path id="target-libraries-12.1.3">         
+           <pathelement location="${libDir}/nimbus-jose-jwt-9.48.jar"/>
+        </path>
+
+        <!-- dependencies for target 12.2.1 (jdk8) -->
+        <path id="target-libraries-12.2.1">         
+            <pathelement location="${libDir}/tink-1.15.0.jar"/>
+            <pathelement location="${libDir}/gson-2.11.0.jar"/>
+            <pathelement location="${libDir}/nimbus-jose-jwt-9.48-shaded.jar"/>
+        </path>            
+             
+        <!-- dependencies for target 14.1.2 (jdk17+) -->
+        <path id="target-libraries-14.1.2">         
+            <pathelement location="${libDir}/rhino-1.7.15.jar"/>
+            <pathelement location="${libDir}/rhino-engine-1.7.15.jar"/>
+        </path>
+        
+        <!-- ==================================================================================================== -->
+        <!-- Paths for classpath dependencies   -->
+        <!-- ==================================================================================================== -->
             
+        <!-- core libraries shared by all targets -->
+        <path id="core-libraries">         
+            <pathelement location="${buildDir}"/>            
+            <pathelement location="${javaHomeDir}/lib/tools.jar"/>
+            <pathelement location="${javaHomeDir}/jre/lib/rt.jar"/>
+        </path>
+
+        <!-- target specific package libraries -->
+         <path id="package-libraries" >
+            <path refid="common-libraries"/>         
+            <path refid="${targetLibraries}"/>
+         </path>
+         
+        <!-- weblogic libraries shared by all targets -->
+        <path id="weblogic-libraries">         
             <pathelement location="${weblogicDir}/osb/lib/servicebus.jar"/>
             <pathelement location="${weblogicDir}/wlserver/server/lib/weblogic.jar"/>
             <pathelement location="${weblogicDir}/wlserver/server/lib/mbeantypes/${builtinProviders}"/>
         </path>
-           
+            
+        <!-- classpath -->
+        <path id="myclasspath">
+            <path refid="core-libraries"/>
+            <path refid="package-libraries"/>
+            <path refid="weblogic-libraries"/>
+        </path>
+                           
         <!-- ==================================================================================================== -->
         <!-- Build parameters -->
         <!-- ==================================================================================================== -->
         
         <!-- prepare build timestamp -->
-        <tstamp><format property="buildTimestamp" pattern="yyyyddMM" /></tstamp> 
+        <tstamp><format property="buildTimestamp" pattern="yyyyMMdd" /></tstamp> 
     
         <!-- provider name -->
         <property name="providerName" value="CustomIdentityAsserter" />
+        <!-- <property name="providerVersion" value="1.0"/> -->
     
         <!-- provider version -->
-        <!--
-        <copy todir="." file="${sourceDir}/${packageDir}/commo.dtd"/>
+        <copy todir="${basedir}" file="${sourceDir}/${packageDir}/commo.dtd"/>
         <xmltask source="${sourceDir}/${packageDir}/${providerName}.xml">
            <copy path="/MBeanType/MBeanAttribute[@Name='Version']/@Default" property="providerVersionValue"/>
         </xmltask>
         <delete file="commo.dtd"/>    
         <propertyregex property="providerVersion" input="${providerVersionValue}" regexp='"' replace="" />
-        -->
-        <property name="providerVersion" value="1.0"/>
                 
         <!-- output file name -->    
         <property name="outputFilePrefix" value="osb-jwt-provider" />
         <property name="outputFileName" value="${outputFilePrefix}-${providerVersion}.${buildTimestamp}-fmw_${weblogicVersion}" />
+        
+        <echo message="ProviderName: ${providerName} (${providerVersion})"/>
+        <echo message="OutputFileName: ${outputFileName}"/>
               
     </target>
     
@@ -175,12 +222,26 @@
     </target>
     
     <!-- ==================================================================================================== -->
-    <!-- Build the Provider MBean template file (to replace default template of MBeanMaker) -->
+    <!-- Build the Provider MBean template file -->
     <!-- ==================================================================================================== -->
-    <target name="build.MTF" depends="target.auto,prepare">      
+    <target name="build.MTF" depends="target.auto,prepare"> 
+    
         <delete dir="${templateDir}" failonerror="false" />
-        <mkdir dir="${templateDir}"/>        
-        <copy file="${resourceDir}/${templateFile}" tofile="${templateDir}/BeanInfoBinder.template" />    
+        
+        <loadfile property="beanInfoHead" srcfile="${resourceDir}/BeanInfoBinder-head.template"/>
+        <loadfile property="beanInfoBody" srcfile="${resourceDir}/BeanInfoBinder-body.template"/>
+                
+        <unzip src="${weblogicDir}/wlserver/modules/${templateArchive}" dest="${buildDir}">
+          <patternset>
+            <include name="**/BeanInfoBinder.template" />
+          </patternset>
+        </unzip>
+        
+        <replaceregexp file="${templateDir}/BeanInfoBinder.template" flags="s"
+                       match="(BeanInfoHelper;)" replace="\1${line.separator}${line.separator}${beanInfoHead}" />
+
+        <replaceregexp file="${templateDir}/BeanInfoBinder.template" flags="s"
+                       match="(return beanDescriptor;[^}]*})" replace="\1${line.separator}${line.separator}${beanInfoBody}" />
     </target>
     
     <!-- ==================================================================================================== -->
@@ -192,6 +253,8 @@
         <copy todir="${buildDir}/temp">
             <fileset dir="${sourceDir}">
                 <include name="**/*.*"/>
+                <exclude if="${shadedLibraries}" name="**/JWTTokenNimbusImpl.java"/>
+                <exclude unless="${shadedLibraries}" name="**/JWTTokenNimbusShadedImpl.java"/>
             </fileset>
         </copy>        
         <java fork="true" jvm="${javaHomeDir}/bin/java" dir="${basedir}" classname="weblogic.management.commo.WebLogicMBeanMaker">
@@ -251,6 +314,10 @@
        <mkdir dir="${deployDir}" />
        <copy file="${buildDir}/${providerName}.jar" tofile="${deployDir}/${outputFileName}.jar"/>
 
+       <pathconvert property="packageLibraries" refid="package-libraries" pathsep=",">       
+          <map from="${basedir}/lib/" to=""/>
+       </pathconvert>
+
        <!-- :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::: -->
        <!-- Build merged jar file                                                                                -->
        <!-- :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::: -->
@@ -259,7 +326,7 @@
              <name name="**/*.class"/>
              <archives>
                  <zips>
-                     <fileset dir="${libDir}" includes="*.jar" excludes="ant*.*"/>
+                     <fileset dir="${libDir}" includes="${packageLibraries}"/>
                  </zips>
              </archives>
           </restrict>
@@ -268,18 +335,17 @@
        <!-- :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::: -->
        <!-- Build separated jar files for MBean and the libraries                                                -->
        <!-- :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::: -->
-
        <jar unless:true="${mergeLibraries}" destfile="${deployDir}/${outputFileName}.jar" update="true">
            <manifest >
               <attribute name="Class-Path" value="${outputFileName}.lib"/>
            </manifest>
-       </jar>   
+       </jar> 
        <jar unless:true="${mergeLibraries}" destfile="${deployDir}/${outputFileName}.lib">
           <restrict>
              <name name="**/*.class"/>
              <archives>
                  <zips>
-                     <fileset dir="${libDir}" includes="*.jar"/>
+                     <fileset dir="${libDir}" includes="${packageLibraries}"/>
                  </zips>
              </archives>
           </restrict>

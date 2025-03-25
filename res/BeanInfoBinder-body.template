@@ -1,0 +1,55 @@
+   // ===============================================================================================================
+   // Customizzazione per garantire il corretto ordinanemento degli attributi
+   // ===============================================================================================================
+
+   public PropertyDescriptor[] getPropertyDescriptors() {
+                    
+     java.util.LinkedHashMap descriptors = new java.util.LinkedHashMap(32);
+     PropertyDescriptor[] propertyDescriptors;
+     
+     try {
+        this.buildPropertyDescriptors(descriptors);
+      } catch (Exception ObjException) {
+         System.out.println("!!!ERROR1:"+ObjException.getMessage());
+      }
+      
+      propertyDescriptors = new PropertyDescriptor[descriptors.size()];
+
+      try {
+        String StrXML = "";
+        InputStream ObjInputStream = this.getClass().getResourceAsStream("CustomIdentityAsserter.xml");        
+        InputStreamReader ObjStreamReader = new InputStreamReader(ObjInputStream,StandardCharsets.UTF_8);
+        BufferedReader ObjBufferedReader = new BufferedReader(ObjStreamReader);
+        
+        for (String StrText = ObjBufferedReader.readLine(); StrText != null; StrText = ObjBufferedReader.readLine()) {
+           StrXML+= StrText;
+        }
+        
+         XmlCursor ObjCursor;
+         XmlObject ObjDescriptor = XmlObject.Factory.parse(StrXML);
+         String StrAttributeName;
+   
+         propertyDescriptors[0] = (PropertyDescriptor) descriptors.get("Name");
+         propertyDescriptors[1] = (PropertyDescriptor) descriptors.get("Realm");
+        
+         // Seleziona il path richiesto
+         ObjCursor = ObjDescriptor.newCursor();
+         ObjCursor.selectPath("//*:MBeanAttribute/@Name");
+   
+         // Estrae il valore dell'attributo richiesto         
+         for (int IntIndex=2;ObjCursor.toNextSelection();IntIndex++) {
+            propertyDescriptors[IntIndex] = (PropertyDescriptor) descriptors.get(ObjCursor.getTextValue());
+         }
+   
+         // Dealloca il cursore
+         ObjCursor.dispose();
+      
+      } catch (Exception ObjException) {
+         System.out.println("!!!ERROR2:"+ObjException.getMessage());
+      }
+      
+     //propertyDescriptors = (PropertyDescriptor[]) descriptors.values().toArray(new PropertyDescriptor[descriptors.size()]);
+               
+     return propertyDescriptors;
+   }
+   // ===============================================================================================================

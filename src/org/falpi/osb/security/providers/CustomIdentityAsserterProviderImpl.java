@@ -5,6 +5,7 @@ package org.falpi.osb.security.providers;
 // ##################################################################################################################################
 
 import java.net.URL;
+
 import java.io.File;
 import java.io.FileWriter;
 import java.io.PrintWriter;
@@ -20,7 +21,6 @@ import java.util.Date;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashSet;
 import java.util.HashMap;
 import java.util.Enumeration;
 import java.util.regex.Matcher;
@@ -37,6 +37,7 @@ import javax.security.auth.login.AppConfigurationEntry;
 import javax.xml.namespace.QName;
 import javax.script.ScriptEngine;
 import javax.script.ScriptEngineManager;
+import javax.script.ScriptEngineFactory;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
@@ -84,32 +85,15 @@ import com.bea.wli.sb.ALSBConfigService;
 import com.bea.wli.sb.services.ServiceInfo;
 import com.bea.wli.sb.transports.TransportEndPoint;
 import com.bea.wli.security.encryption.PBE_EncryptionService;
+import com.bea.xbean.util.Base64;
 
-import com.nimbusds.jwt.SignedJWT;
-import com.nimbusds.jwt.JWTClaimsSet;
-import com.nimbusds.jwt.JWTClaimNames;
-import com.nimbusds.jwt.proc.ConfigurableJWTProcessor;
-import com.nimbusds.jwt.proc.DefaultJWTClaimsVerifier;
-import com.nimbusds.jwt.proc.DefaultJWTProcessor;
-import com.nimbusds.jwt.proc.JWTClaimsSetVerifier;
-import com.nimbusds.jose.jwk.JWKSet;
-import com.nimbusds.jose.jwk.RSAKey;
-import com.nimbusds.jose.jwk.KeyUse;
-import com.nimbusds.jose.jwk.source.ImmutableJWKSet;
-import com.nimbusds.jose.jwk.source.JWKSource;
-import com.nimbusds.jose.proc.JWSKeySelector;
-import com.nimbusds.jose.proc.JWSVerificationKeySelector;
-import com.nimbusds.jose.proc.SecurityContext;
-import com.nimbusds.jose.util.Base64URL;
-import com.nimbusds.jose.JWSObject.State;
-
-import com.nimbusds.jose.util.Base64;
+import org.falpi.utils.JWTToken;
 
 import org.json.XML;
 import org.json.JSONObject;
 
 public final class CustomIdentityAsserterProviderImpl implements AuthenticationProviderV2, IdentityAsserterV2 {
-
+   
    // ##################################################################################################################################
    // Dichiara sottoclassi 
    // ##################################################################################################################################
@@ -172,7 +156,7 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
                                                                  TokenTypes.JWT_TYPE,  TokenTypes.ALL_TYPE,
                                                                  TokenTypes.JWT_TYPE1, TokenTypes.ALL_TYPE1,
                                                                  TokenTypes.JWT_TYPE2, TokenTypes.ALL_TYPE2);
-   } 
+   }  
    
    // ##################################################################################################################################
    // Dichiara variabili
@@ -183,8 +167,8 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
    // ==================================================================================================================================
 
    // Gestione del logging
-   private int IntLoggingLines = 0;
-   private int IntLoggingLevel = LogLevel.DEBUG;
+   private int IntLoggingLines = 100;
+   private int IntLoggingLevel = LogLevel.TRACE;
    private int IntLoggingLevelMin = LogLevel.TRACE;
    private String StrLoggingLevel;
 
@@ -196,38 +180,48 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
    // Variabili di contesto
    private String StrRealmName;
    private String StrDomainName;
-   private String StrServerName;
+   private String StrManagedName;
    private String StrProjectName;   
    private String StrServiceName;
    private String StrServicePath;
+
+   private String StrClientHost;
+   private String StrClientAddr;
+   private String StrServerHost;
+   private String StrServerAddr;
+   private String StrServerName;
+   private String StrServerPort;
+   private String StrRequestURL;
+   private String StrContentType;
    
    private ServiceInfo ObjService;
    private TransportEndPoint ObjEndpoint;
    private HttpServletRequest ObjRequest;
-   private HttpServletResponse ObjResponse; 
+   private HttpServletResponse ObjResponse;  
    
    // Gestione del token jwt
    private String StrJwtKeyID;
-   private SignedJWT ObjSignedJWT;
+   private JWTToken ObjJwtToken;
+   private String StrJwtProvider;
    private HashMap ObjJwtKeysCache = new HashMap();
-        
+           
    // Altre variabili di supporto
    private String StrDescription;   
    private String StrKerberosConfiguration;
 
-   private ScriptEngine ObjScriptEngine;
-   private CustomIdentityAsserterMBean ObjProviderMBean;
-   
+   private ScriptEngine ObjScriptEngine;   
    private AuthenticatedSubject ObjKernelId;
    private EmbeddedLDAPAtnDelegate ObjEmbeddedAuthenticator;
-   
+
+   private CustomIdentityAsserterMBean ObjProviderMBean;
+
    // ##################################################################################################################################
    // Implementa interfacce di inbound security (AuthenticationProviderV2, IdentityAsserterV2)
    // ##################################################################################################################################
 
    @Override
    public void initialize(ProviderMBean ObjMBean, SecurityServices ObjSecurityServices) {
-
+                  
       // Genera logging
       LogMessage(LogLevel.INFO,"##########################################################################################");
       LogMessage(LogLevel.INFO,"INITIALIZE");
@@ -238,26 +232,62 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
 
       // Inizializza descrizione
       StrDescription = ObjMBean.getDescription() + "n" + ObjMBean.getVersion();
-      
-      // Inizializza lo script engine javascript
-      ObjScriptEngine =  new ScriptEngineManager().getEngineByName("JavaScript");   
+
+      // ==================================================================================================================================
+      // Inizializza token provider 
+      // ==================================================================================================================================
+
+      try {
+         // Se il target è weblogic 12.1.3 (java=7) la libreria originale nimbus può essere integrata perchè non è presente a sistema
+         // Se il target è weblogic 12.2.1 (7<java<17) poichè integra nimbus di una versione incompatibile occorre integrare una versione shaded 
+         // Se il target è weblogic 14.1.2 (java>=17) poichè integra nimbus di una versione compatibile la si può usare diretamente
+         StrJwtProvider = "org.falpi.utils.JWTTokenNimbus"+(((7<getJavaVersion())&&(getJavaVersion()<17))?("ShadedImpl"):("Impl"));
+         ObjJwtToken = (JWTToken) Class.forName(StrJwtProvider).newInstance();
          
+      } catch (Exception ObjException) {
+         String StrError = "Token provider error ("+StrJwtProvider+")";
+         LogMessage(LogLevel.ERROR,StrError,ObjException);
+         System.exit(0);
+      }
+
+      // ==================================================================================================================================
+      // Inizializza script engine
+      // ==================================================================================================================================
+      
+      // Prova a istanziare lo sript engine built-in
+      ObjScriptEngine =  new ScriptEngineManager().getEngineByName("JavaScript"); 
+      
+      // Se lo script engine JavaScript non è disponibile prova ad utilizzare lo script engine esterno      
+      if ((ObjScriptEngine==null)) {
+         try {
+            ObjScriptEngine = ((ScriptEngineFactory) Class.forName("org.mozilla.javascript.engine.RhinoScriptEngineFactory").newInstance()).getScriptEngine();
+         } catch (Exception ObjException) {
+            String StrError = "Script engine error (RhinoScriptEngineFactory)";
+            LogMessage(LogLevel.ERROR,StrError,ObjException);
+            System.exit(0);
+         }
+      }
+      
       // Inizializza provider di autenticazione di default per supporto alla basic authentication
       ObjKernelId = (AuthenticatedSubject) AccessController.doPrivileged(PrivilegedActions.getKernelIdentityAction());
       
       StrRealmName = ObjProviderMBean.getRealm().getName();
       StrDomainName = ManagementService.getRuntimeAccess(ObjKernelId).getDomainName();
-      StrServerName = ManagementService.getRuntimeAccess(ObjKernelId). getServerName();
+      StrManagedName = ManagementService.getRuntimeAccess(ObjKernelId). getServerName();
       
       ObjEmbeddedAuthenticator = new EmbeddedLDAPAtnDelegate(ObjMBean, null,StrRealmName, StrDomainName, false);     
-      
+    
       // Se necessario genera logging di debug
       LogMessage(LogLevel.INFO,"==========================================================================================");
       LogMessage(LogLevel.INFO,"CONTEXT");
       LogMessage(LogLevel.INFO,"==========================================================================================");
-      LogMessage(LogLevel.INFO,"Realm Name: " + StrRealmName);
-      LogMessage(LogLevel.INFO,"Domain Name: " + StrDomainName);
-      LogMessage(LogLevel.INFO,"Server Name: " + StrServerName);
+      LogMessage(LogLevel.INFO,"Realm Name ........... : " + StrRealmName);
+      LogMessage(LogLevel.INFO,"Domain Name .......... : " + StrDomainName);
+      LogMessage(LogLevel.INFO,"Managed Name ......... : " + StrManagedName);  
+      LogMessage(LogLevel.INFO,"------------------------------------------------------------------------------------------");
+      LogMessage(LogLevel.INFO,"JWT Provider ......... : " + StrJwtProvider);  
+      LogMessage(LogLevel.INFO,"Scripting Engine ..... : " + ObjScriptEngine.getFactory().getEngineName()+" ("+ObjScriptEngine.getFactory().getEngineVersion()+")");  
+      LogMessage(LogLevel.INFO,"Scripting Language ... : " + ObjScriptEngine.getFactory().getLanguageName()+" ("+ObjScriptEngine.getFactory().getLanguageVersion()+")");  
       LogMessage(LogLevel.INFO,"##########################################################################################");      
    }
 
@@ -360,9 +390,20 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
       ObjRequest = (HttpServletRequest) ObjContext.getValue("com.bea.contextelement.alsb.transport.http.http-request");
       //ObjResponse = (HttpServletResponse) ObjContext.getValue("com.bea.contextelement.alsb.transport.http.http-response");
       
+      // Salva contesto osb
       StrProjectName = ObjService.getRef().getProjectName();
       StrServiceName = ObjService.getRef().getLocalName();
       StrServicePath = ObjService.getRef().getFullName();
+      
+      // Salva contesto client
+      StrClientHost = ObjRequest.getRemoteHost(); 
+      StrClientAddr = ObjRequest.getRemoteAddr();
+      StrServerHost = ObjRequest.getLocalName();
+      StrServerAddr = ObjRequest.getLocalAddr();
+      StrServerName = ObjRequest.getServerName();
+      StrServerPort = String.valueOf(ObjRequest.getServerPort());
+      StrRequestURL = ObjRequest.getRequestURL().toString();
+      StrContentType = ObjRequest.getContentType();
       
       // ==================================================================================================================================
       // Valuta l'abilitazione del logging (eventuali errori sono silenziati per non pregiudicare l'autenticazione)
@@ -388,29 +429,29 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
       LogMessage(LogLevel.DEBUG,"==========================================================================================");
       LogMessage(LogLevel.DEBUG,"CONFIGURATION");
       LogMessage(LogLevel.DEBUG,"==========================================================================================");
-      LogMessage(LogLevel.DEBUG,"LOGGING_LEVEL: " + StrLoggingLevel);
-      LogMessage(LogLevel.DEBUG,"LOGGING_LINES: " + IntLoggingLines);
-      LogMessage(LogLevel.DEBUG,"BASIC_AUTH: " + StrBasicAuthStatus);
-      LogMessage(LogLevel.DEBUG,"JWT_AUTH: " + StrJwtAuthStatus);
-      LogMessage(LogLevel.DEBUG,"JWT_KEYS_URL: " + StrJwtKeysURL);
-      LogMessage(LogLevel.DEBUG,"JWT_KEYS_FORMAT: " + StrJwtKeysFormat);
-      LogMessage(LogLevel.DEBUG,"JWT_KEYS_MODULUS_XPATH: " + StrJwtKeysModulusXPath);
-      LogMessage(LogLevel.DEBUG,"JWT_KEYS_EXPONENT_XPATH: " + StrJwtKeysExponentXPath);
-      LogMessage(LogLevel.DEBUG,"JWT_KEYS_CACHE_TTL: " + IntJwtKeysCacheTTL);
-      LogMessage(LogLevel.DEBUG,"JWT_KEYS_CONN_TIMEOUT: " + IntJwtKeysConnTimeout);
-      LogMessage(LogLevel.DEBUG,"JWT_KEYS_READ_TIMEOUT: " + IntJwtKeysReadTimeout);
-      LogMessage(LogLevel.DEBUG,"JWT_KEYS_SSL_VERIFY: " + StrJwtKeysSSLVerify);
-      LogMessage(LogLevel.DEBUG,"JWT_KEYS_HOST_AUTH_MODE: " + StrJwtKeysHostAuthMode);
-      LogMessage(LogLevel.DEBUG,"JWT_KEYS_HOST_ACCOUNT_PATH: " + StrJwtKeysHostAccountPath);
-      LogMessage(LogLevel.DEBUG,"JWT_KEYS_PROXY_SERVER_MODE: " + StrJwtKeysProxyServerMode);
-      LogMessage(LogLevel.DEBUG,"JWT_KEYS_PROXY_SERVER_PATH: " + StrJwtKeysProxyServerPath);
-      LogMessage(LogLevel.DEBUG,"JWT_IDENTITY_MAPPING_MODE: " + StrJwtIdentityMappingMode);
-      LogMessage(LogLevel.DEBUG,"JWT_IDENTITY_MAPPING_PATH: " + StrJwtIdentityMappingPath);
-      LogMessage(LogLevel.DEBUG,"JWT_IDENTITY_ASSERTION: " + StrJwtIdentityAssertion.replaceAll("\n",""));
-      LogMessage(LogLevel.DEBUG,"VALIDATION_ASSERTION: " + StrValidationAssertion.replaceAll("\n",""));
-      LogMessage(LogLevel.DEBUG,"DEBUGGING_ASSERTION: " + StrDebuggingAssertion.replaceAll("\n",""));
-      LogMessage(LogLevel.DEBUG,"DEBUGGING_PROPERTIES: " + StrDebuggingProperties);      
-      LogMessage(LogLevel.DEBUG,"KERBEROS_CONFIGURATION: " + StrKerberosConfiguration);       
+      LogMessage(LogLevel.DEBUG,"LOGGING_LEVEL ................ : " + StrLoggingLevel);
+      LogMessage(LogLevel.DEBUG,"LOGGING_LINES ................ : " + IntLoggingLines);
+      LogMessage(LogLevel.DEBUG,"BASIC_AUTH ................... : " + StrBasicAuthStatus);
+      LogMessage(LogLevel.DEBUG,"JWT_AUTH ..................... : " + StrJwtAuthStatus);
+      LogMessage(LogLevel.DEBUG,"JWT_KEYS_URL ................. : " + StrJwtKeysURL);
+      LogMessage(LogLevel.DEBUG,"JWT_KEYS_FORMAT .............. : " + StrJwtKeysFormat);
+      LogMessage(LogLevel.DEBUG,"JWT_KEYS_MODULUS_XPATH ....... : " + StrJwtKeysModulusXPath);
+      LogMessage(LogLevel.DEBUG,"JWT_KEYS_EXPONENT_XPATH ...... : " + StrJwtKeysExponentXPath);
+      LogMessage(LogLevel.DEBUG,"JWT_KEYS_CACHE_TTL ........... : " + IntJwtKeysCacheTTL);
+      LogMessage(LogLevel.DEBUG,"JWT_KEYS_CONN_TIMEOUT ........ : " + IntJwtKeysConnTimeout);
+      LogMessage(LogLevel.DEBUG,"JWT_KEYS_READ_TIMEOUT ........ : " + IntJwtKeysReadTimeout);
+      LogMessage(LogLevel.DEBUG,"JWT_KEYS_SSL_VERIFY .......... : " + StrJwtKeysSSLVerify);
+      LogMessage(LogLevel.DEBUG,"JWT_KEYS_HOST_AUTH_MODE ...... : " + StrJwtKeysHostAuthMode);
+      LogMessage(LogLevel.DEBUG,"JWT_KEYS_HOST_ACCOUNT_PATH ... : " + StrJwtKeysHostAccountPath);
+      LogMessage(LogLevel.DEBUG,"JWT_KEYS_PROXY_SERVER_MODE ... : " + StrJwtKeysProxyServerMode);
+      LogMessage(LogLevel.DEBUG,"JWT_KEYS_PROXY_SERVER_PATH ... : " + StrJwtKeysProxyServerPath);
+      LogMessage(LogLevel.DEBUG,"JWT_IDENTITY_MAPPING_MODE .... : " + StrJwtIdentityMappingMode);
+      LogMessage(LogLevel.DEBUG,"JWT_IDENTITY_MAPPING_PATH .... : " + StrJwtIdentityMappingPath);
+      LogMessage(LogLevel.DEBUG,"JWT_IDENTITY_ASSERTION ....... : " + StrJwtIdentityAssertion.replaceAll("\n",""));
+      LogMessage(LogLevel.DEBUG,"VALIDATION_ASSERTION ......... : " + StrValidationAssertion.replaceAll("\n",""));
+      LogMessage(LogLevel.DEBUG,"DEBUGGING_ASSERTION .......... : " + StrDebuggingAssertion.replaceAll("\n",""));
+      LogMessage(LogLevel.DEBUG,"DEBUGGING_PROPERTIES ......... : " + StrDebuggingProperties);      
+      LogMessage(LogLevel.DEBUG,"KERBEROS_CONFIGURATION ....... : " + StrKerberosConfiguration);       
             
       // Controlli di congruenza configurazione
       LogMessage(LogLevel.TRACE,"------------------------------------------------------------------------------------------");
@@ -432,9 +473,19 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
       LogMessage(LogLevel.DEBUG,"==========================================================================================");
       LogMessage(LogLevel.DEBUG,"CONTEXT");
       LogMessage(LogLevel.DEBUG,"==========================================================================================");
-      LogMessage(LogLevel.DEBUG,"Server Name: "+StrServerName);
-      LogMessage(LogLevel.DEBUG,"Project Name: "+StrProjectName);
-      LogMessage(LogLevel.DEBUG,"Service Name: "+StrServiceName);               
+      LogMessage(LogLevel.DEBUG,"Managed Name ..... : "+StrManagedName);
+      LogMessage(LogLevel.DEBUG,"Project Name ..... : "+StrProjectName);
+      LogMessage(LogLevel.DEBUG,"Service Name ..... : "+StrServiceName);           
+      LogMessage(LogLevel.DEBUG,"------------------------------------------------------------------------------------------");
+      LogMessage(LogLevel.DEBUG,"Server Host ...... : "+StrServerHost);               
+      LogMessage(LogLevel.DEBUG,"Server Addr ...... : "+StrServerAddr);               
+      LogMessage(LogLevel.DEBUG,"------------------------------------------------------------------------------------------");
+      LogMessage(LogLevel.DEBUG,"Client Host ...... : "+StrClientHost);               
+      LogMessage(LogLevel.DEBUG,"Client Addr ...... : "+StrClientAddr);               
+      LogMessage(LogLevel.DEBUG,"------------------------------------------------------------------------------------------");
+      LogMessage(LogLevel.DEBUG,"Request URL ...... : "+StrRequestURL);               
+      LogMessage(LogLevel.DEBUG,"Content Type ..... : "+StrContentType);               
+      LogMessage(LogLevel.DEBUG,"------------------------------------------------------------------------------------------");
       
       // ==================================================================================================================================
       // Verifica che le informazioni sul token ricevuto sono corrette e coerenti con i tipi attivi
@@ -455,7 +506,7 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
       }
 
       // Se necessario genera logging di debug
-      LogMessage(LogLevel.DEBUG,"Selected Token Type: "+StrTokenType);
+      LogMessage(LogLevel.DEBUG,"Selected Token ... : "+StrTokenType);
       
       // ==================================================================================================================================
       // Esegue parsing del token e verifica la modalità di autenticazione
@@ -475,7 +526,7 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
       }
      
       // Se necessario genera logging di debug
-      LogMessage(LogLevel.DEBUG,"Detected Auth Type: "+StrAuthType);
+      LogMessage(LogLevel.DEBUG,"Detected Auth .... : "+StrAuthType);
 
       // Verifica la ammissibilità dell'autenticazione rilevata rispetto al token selezionato e ai flag di disattivazione
       if ((!StrTokenType.contains(StrAuthType))||
@@ -501,7 +552,7 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
          try {          
                         
             // Dedodifica il token basic
-            String[] ArrCredential = Base64.from(StrJwtPayload).decodeToString().split(":",2);            
+            String[] ArrCredential = new String(Base64.decode(StrJwtPayload.getBytes())).split(":",2);            
             LogMessage(LogLevel.DEBUG,"UserName: "+ArrCredential[0]);   
             
             // Prova ad autenticare le credenziali sul realm weblogic
@@ -532,11 +583,11 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
                
          try {            
             
-            // Decodifica il token JWT
-            ObjSignedJWT = SignedJWT.parse(StrJwtPayload);
+            // Esegue il parsing del token
+            ObjJwtToken.parse(StrJwtPayload);                     
             
             // Acquisisce l'id della chiave di firma del token
-            StrJwtKeyID = ObjSignedJWT.getHeader().getKeyID();        
+            StrJwtKeyID =  ObjJwtToken.getKeyID();        
             
          } catch (Exception ObjException) {
             String StrError = "Token parsing error";
@@ -589,7 +640,7 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
                if (StrJwtKeysFormat.equals("XML")) {
 
                   // Se necessario genera logging di debug
-                  LogMessage(LogLevel.DEBUG, "Payload (XML):" + StrJwtKeys);
+                  LogMessage(LogLevel.TRACE, "Payload (XML) ........... : " + StrJwtKeys);
 
                   // Acquisisce chiavi in formato xml
                   ObjJwtKeys = XmlObject.Factory.parse(StrJwtKeys);
@@ -600,13 +651,13 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
                   JSONObject ObjJSON = new JSONObject(StrJwtKeys);
 
                   // Se necessario genera logging di debug
-                  LogMessage(LogLevel.DEBUG,"Payload (JSON): " + ObjJSON.toString());
+                  LogMessage(LogLevel.TRACE,"Payload (JSON) .......... : " + ObjJSON.toString());
 
                   // Converte da JSON a XML
                   StrJwtKeys = "<root>"+XML.toString(ObjJSON)+"</root>";
                                                    
                   // Se necessario genera logging di debug
-                  LogMessage(LogLevel.DEBUG, "Payload (XML): " + StrJwtKeys);
+                  LogMessage(LogLevel.TRACE, "Payload (XML) ........... : " + StrJwtKeys);
 
                   // Acquisisce chiavi dal formato xml
                   ObjJwtKeys = XmlObject.Factory.parse(StrJwtKeys);
@@ -614,10 +665,10 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
 
                // Prepara espressioni xpath ed eventuale logging
                String StrJwtKeysModulusParsedXPath = replaceTemplates(StrJwtKeysModulusXPath);
-               LogMessage(LogLevel.DEBUG,"Modulus XPath Parsed: "+StrJwtKeysModulusParsedXPath);
+               LogMessage(LogLevel.DEBUG,"Modulus XPath Parsed .... : "+StrJwtKeysModulusParsedXPath);
 
                String StrJwtKeysExponentParsedXPath = replaceTemplates(StrJwtKeysExponentXPath);
-               LogMessage(LogLevel.DEBUG,"Exponent XPath Parsed: "+StrJwtKeysExponentParsedXPath);            
+               LogMessage(LogLevel.DEBUG,"Exponent XPath Parsed ... : "+StrJwtKeysExponentParsedXPath);            
 
                // Estrapola modulo ed esponente
                StrKeyModulus = getXMLTextValue(ObjJwtKeys,StrJwtKeysModulusParsedXPath);
@@ -651,20 +702,19 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
          LogMessage(LogLevel.DEBUG,"------------------------------------------------------------------------------------------");
 
          // Se necessario genera logging di debug
-         LogMessage(LogLevel.DEBUG,"Key ID: "+StrJwtKeyID);
-         LogMessage(LogLevel.DEBUG,"Key Modulus: "+StrKeyModulus);
-         LogMessage(LogLevel.DEBUG,"Key Exponent: "+StrKeyExponent);            
+         LogMessage(LogLevel.DEBUG,"Key ID ............. : "+StrJwtKeyID);
+         LogMessage(LogLevel.DEBUG,"Key Modulus ........ : "+StrKeyModulus);
+         LogMessage(LogLevel.DEBUG,"Key Exponent ....... : "+StrKeyExponent);            
 
-         try {
-            // Verifica token jwt
-            verifyJwt(ObjSignedJWT, StrKeyModulus, StrKeyExponent);            
+         try {            
+            // Verifica token jwt e genera logging
+            LogMessage(LogLevel.DEBUG,"Token validation ... : "+ObjJwtToken.verify(StrKeyModulus, StrKeyExponent));            
             
          } catch (Exception ObjException) {
             String StrError = "Token validation error";
             LogMessage(LogLevel.ERROR,StrError,ObjException);
             throw new IdentityAssertionException(StrError);
          }
-         
             
          // ==================================================================================================================================
          // Determina l'identità
@@ -694,7 +744,7 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
          }
 
          // Se necessario genera logging di debug
-         LogMessage(LogLevel.DEBUG,"Token Identity: " + StrIdentity);
+         LogMessage(LogLevel.DEBUG,"Token Identity .... : " + StrIdentity);
             
          // ==================================================================================================================================
          // Gestisce l'eventuale identity mapping
@@ -713,7 +763,7 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
                StrJwtIdentityMappingPath = replaceTemplates(StrJwtIdentityMappingPath);
                
                // Genera logging di debug
-               LogMessage(LogLevel.DEBUG,"Mapping Service Account: "+StrJwtIdentityMappingPath);
+               LogMessage(LogLevel.DEBUG,"Mapping Account ... : "+StrJwtIdentityMappingPath);
                
                // Prova a mappare l'identità allo username mediante un service account OSB di mapping
                StrUserName = getOSBMappedUser(StrJwtIdentityMappingPath,StrIdentity);
@@ -730,7 +780,7 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
          }
          
          // Se necessario genera logging di debug
-         LogMessage(LogLevel.DEBUG,"Realm UserName: " + StrUserName);
+         LogMessage(LogLevel.DEBUG,"Realm UserName .... : " + StrUserName);
       }
       
       // ==================================================================================================================================
@@ -784,10 +834,11 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
       LogMessage(LogLevel.DEBUG,"##########################################################################################");
 
       // Genera logging di info su sintesi autenticazione
-      LogMessage(LogLevel.INFO,"Inbound Assertion ("+StrAuthType+
-                               ") => Server:"+StrServerName+
-                               ", Proxy:"+StrServiceName+
-                               ", User:"+StrUserName+((!StrIdentity.equals("")&&!StrIdentity.equals(StrUserName))?(" ("+StrIdentity+")"):("")));
+      LogMessage(LogLevel.INFO,"Inbound Assertion ("+StrAuthType+") =>"+
+                               " Proxy:"+StrServiceName+
+                               ", User:"+StrUserName+((!StrIdentity.equals("")&&!StrIdentity.equals(StrUserName))?(" ("+StrIdentity+")"):(""))+
+                               ", Client:"+StrClientHost+((!StrClientHost.equals(StrClientAddr))?(" ("+StrClientAddr+")"):(""))+
+                               ", Server:"+StrManagedName);
 
       // Restituisce utente autenticato
       return new CustomIdentityAsserterCallbackHandlerImpl(StrUserName);
@@ -875,36 +926,36 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
                      break;                  
                   case "token" :
                      switch (ArrVariableTokens[1]) {
-                        case "header": StrVariableValue = (String) ObjSignedJWT.getHeader().toJSONObject().get(ArrVariableTokens[2]); break;
-                        case "payload": StrVariableValue = (String) ObjSignedJWT.getPayload().toJSONObject().get(ArrVariableTokens[2]); break;
+                        case "header": StrVariableValue = (String) ObjJwtToken.getHeader().get(ArrVariableTokens[2]); break;
+                        case "payload": StrVariableValue = (String) ObjJwtToken.getPayload().get(ArrVariableTokens[2]); break;
                      }
                      break;
                   case "http" :
                      switch (ArrVariableTokens[1]) {
                         case "client": 
                            switch (ArrVariableTokens[2]) {
-                              case "host": StrVariableValue = ObjRequest.getRemoteHost(); break;
-                              case "addr": StrVariableValue = ObjRequest.getRemoteAddr(); break;
+                              case "host": StrVariableValue = StrClientHost; break;
+                              case "addr": StrVariableValue = StrClientAddr; break;
                            }
                            break;
                         case "server": 
                            switch (ArrVariableTokens[2]) {
-                              case "host": StrVariableValue = ObjRequest.getLocalName(); break;
-                              case "addr": StrVariableValue = ObjRequest.getLocalAddr(); break;
-                              case "name": StrVariableValue = ObjRequest.getServerName(); break;
-                              case "port": StrVariableValue = String.valueOf(ObjRequest.getServerPort()) ; break;
+                              case "host": StrVariableValue = StrServerHost; break;
+                              case "addr": StrVariableValue = StrServerAddr; break;
+                              case "name": StrVariableValue = StrServerName; break;
+                              case "port": StrVariableValue = StrServerPort; break;
                            }
                            break;
                         case "content": 
                            switch (ArrVariableTokens[2]) {
-                              case "type": StrVariableValue = ObjRequest.getContentType(); break;
+                              case "type": StrVariableValue = StrContentType; break;
                               case "body": StrVariableValue = IOUtils.toString(ObjRequest.getReader()); break;
                               case "length": StrVariableValue = String.valueOf(ObjRequest.getContentLength()); break;
                            }
                            break;
                         case "request": 
                            switch (ArrVariableTokens[2]) {
-                              case "url": StrVariableValue = ObjRequest.getRequestURL().toString(); break;
+                              case "url": StrVariableValue = StrRequestURL; break;
                               case "proto": StrVariableValue = ObjRequest.getProtocol(); break;
                               case "scheme": StrVariableValue = ObjRequest.getScheme(); break;
                            }
@@ -1321,41 +1372,6 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
    // ##################################################################################################################################
    // Security Utilities
    // ##################################################################################################################################
-
-   // ==================================================================================================================================
-   // Verifica che il token jwt sia conforme a quanto atteso
-   // ==================================================================================================================================
-   public static boolean verifyJwt(SignedJWT ObjJwt, String StrModulus, String StrExponent) throws Exception {
-            
-      // Predispone per la verifica della firma
-      RSAKey ObjKey = new RSAKey.Builder(Base64URL.from(StrModulus),Base64URL.from(StrExponent))
-         .keyUse(KeyUse.SIGNATURE)
-         .keyID(ObjJwt.getHeader().getKeyID())
-         .algorithm(ObjJwt.getHeader().getAlgorithm())
-         .build(); 
-      
-      JWKSet ObjKeySet = new JWKSet(ObjKey);
-      JWKSource<SecurityContext> ObjKeySource = new ImmutableJWKSet<SecurityContext>(ObjKeySet);
-      JWSKeySelector<SecurityContext> ObjKeySelector = new JWSVerificationKeySelector<>(ObjJwt.getHeader().getAlgorithm(),ObjKeySource);
-            
-      // Predispone per la verifica dei claim
-      JWTClaimsSetVerifier<SecurityContext> ObjClaimSetVerifier = 
-         new DefaultJWTClaimsVerifier<>(
-            new JWTClaimsSet.Builder().build(),
-            new HashSet<>(Arrays.asList(JWTClaimNames.EXPIRATION_TIME, JWTClaimNames.NOT_BEFORE)));
-      
-      // Predispone il processore per la verifica del token
-      ConfigurableJWTProcessor<SecurityContext> ObjProcessor = new DefaultJWTProcessor<>();
-      
-      ObjProcessor.setJWSKeySelector(ObjKeySelector);      
-      ObjProcessor.setJWTClaimsSetVerifier(ObjClaimSetVerifier);
-            
-      // Esegue la verifica dei claim
-      JWTClaimsSet ObjClaimSet = ObjProcessor.process(ObjJwt, null);
-      
-      // Restituisce l'esito della verifica
-      return (ObjJwt.getState()==State.VERIFIED);
-   }
    
    // ==================================================================================================================================
    // Esegue autenticazione kerberos
@@ -1581,7 +1597,9 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
    // Other Utilities
    // ##################################################################################################################################
    
+   // ==================================================================================================================================
    // Verifica se un parametro obbligatorio e valorizzato
+   // ==================================================================================================================================
    public Object checkMandatoryParameter(String StrParameterName,Object ObjParameterValue) throws IdentityAssertionException {
 
       // Prepara nome della classe del parametro
@@ -1612,7 +1630,9 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
       return ObjParameterValue;
    }   
    
+   // ==================================================================================================================================
    // Permette di manipolare un attributo static/private di una classe
+   // ==================================================================================================================================
    public static void setFinalStatic(Field ObjField, Object ObjValue) throws Exception {
       ObjField.setAccessible(true);
       Field ObjModifiersField = Field.class.getDeclaredField("modifiers");
@@ -1621,14 +1641,18 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
       ObjField.set(null,ObjValue);
    }
 
+   // ==================================================================================================================================
    // Converte array di byte in stringa esadecimale
+   // ==================================================================================================================================
    public static String bytesToHex(byte[] ArrBytes) {
       StringBuilder ObjResult = new StringBuilder();
       for (byte ObjByte : ArrBytes) ObjResult.append(String.format("%02X", ObjByte));
       return ObjResult.toString();
    }   
    
+   // ==================================================================================================================================
    // Acquisisce versione java
+   // ==================================================================================================================================
    private static int getJavaVersion() {
       String StrVersion = System.getProperty("java.version");
       if(StrVersion.startsWith("1.")) {

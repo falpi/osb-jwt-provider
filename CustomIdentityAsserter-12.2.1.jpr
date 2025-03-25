@@ -102,10 +102,12 @@
    <hash n="oracle.jdeveloper.compiler.ant.AntConfiguration">
       <value n="makeTarget" v="all"/>
       <url n="projectBuildfile" path="build.xml"/>
-      <list n="targetList"/>
+      <list n="targetList">
+         <string v="all"/>
+      </list>
    </hash>
    <hash n="oracle.jdeveloper.compiler.OjcConfiguration">
-      <value n="internalEncoding" v="Cp1252"/>
+      <value n="internalEncoding" v="windows-1252"/>
       <value n="webIANAEncoding" v="windows-1252"/>
    </hash>
    <hash n="oracle.jdeveloper.deploy.dt.DeploymentProfiles">
@@ -127,10 +129,21 @@
          </list>
       </hash>
    </hash>
+   <hash n="oracle.jdeveloper.runner.RunConfigurations">
+      <hash n="runConfigurationDefinitions">
+         <hash n="Default">
+            <value n="compileBeforeRun" v="true"/>
+            <value n="custom" v="false"/>
+            <value n="name" v="Default"/>
+            <value n="runAntBeforeRun" v="false"/>
+            <value n="targetURL"/>
+         </hash>
+      </hash>
+   </hash>
    <hash n="oracle.jdevimpl.config.JProjectLibraries">
       <list n="exportedReferences">
          <hash>
-            <value n="id" v="Nimbus-jose-jwt-9.48.jar"/>
+            <value n="id" v="Nimbus-jose-jwt-9.48-shaded.jar"/>
             <value n="isJDK" v="false"/>
          </hash>
          <hash>
@@ -147,6 +160,14 @@
          </hash>
          <hash>
             <value n="id" v="Json-20230618.jar"/>
+            <value n="isJDK" v="false"/>
+         </hash>
+         <hash>
+            <value n="id" v="Gson-2.11.0.jar"/>
+            <value n="isJDK" v="false"/>
+         </hash>
+         <hash>
+            <value n="id" v="Tink-1.15.0.jar"/>
             <value n="isJDK" v="false"/>
          </hash>
       </list>
@@ -168,24 +189,6 @@
                <value n="deployedByDefault" v="true"/>
                <value n="description" v="Weblogic.jar"/>
                <value n="id" v="Weblogic.jar"/>
-               <value n="locked" v="true"/>
-            </hash>
-            <hash>
-               <list n="classPath">
-                  <url path="../../../../../Oracle/Middleware/12.2.1/wlserver/server/lib/mbeantypes/wls-security-providers.jar" jar-entry=""/>
-               </list>
-               <value n="deployedByDefault" v="true"/>
-               <value n="description" v="wls-security-providers.jar"/>
-               <value n="id" v="wls-security-providers.jar"/>
-               <value n="locked" v="true"/>
-            </hash>
-            <hash>
-               <list n="classPath">
-                  <url path="lib/nimbus-jose-jwt-9.48.jar" jar-entry=""/>
-               </list>
-               <value n="deployedByDefault" v="true"/>
-               <value n="description" v="Nimbus-jose-jwt-9.48.jar"/>
-               <value n="id" v="Nimbus-jose-jwt-9.48.jar"/>
                <value n="locked" v="true"/>
             </hash>
             <hash>
@@ -224,6 +227,42 @@
                <value n="id" v="Httpcore-4.4.13.jar"/>
                <value n="locked" v="true"/>
             </hash>
+            <hash>
+               <list n="classPath">
+                  <url path="../../../../../Oracle/Middleware/12.2.1/wlserver/server/lib/mbeantypes/wls-security-providers.jar" jar-entry=""/>
+               </list>
+               <value n="deployedByDefault" v="true"/>
+               <value n="description" v="Wls-security-providers.jar"/>
+               <value n="id" v="Wls-security-providers.jar"/>
+               <value n="locked" v="true"/>
+            </hash>
+            <hash>
+               <list n="classPath">
+                  <url path="lib/gson-2.11.0.jar" jar-entry=""/>
+               </list>
+               <value n="deployedByDefault" v="true"/>
+               <value n="description" v="Gson-2.11.0.jar"/>
+               <value n="id" v="Gson-2.11.0.jar"/>
+               <value n="locked" v="true"/>
+            </hash>
+            <hash>
+               <list n="classPath">
+                  <url path="lib/tink-1.15.0.jar" jar-entry=""/>
+               </list>
+               <value n="deployedByDefault" v="true"/>
+               <value n="description" v="Tink-1.15.0.jar"/>
+               <value n="id" v="Tink-1.15.0.jar"/>
+               <value n="locked" v="true"/>
+            </hash>
+            <hash>
+               <list n="classPath">
+                  <url path="lib/nimbus-jose-jwt-9.48-shaded.jar" jar-entry=""/>
+               </list>
+               <value n="deployedByDefault" v="true"/>
+               <value n="description" v="Nimbus-jose-jwt-9.48-shaded.jar"/>
+               <value n="id" v="Nimbus-jose-jwt-9.48-shaded.jar"/>
+               <value n="locked" v="true"/>
+            </hash>
          </list>
       </hash>
       <list n="libraryReferences">
@@ -232,7 +271,7 @@
             <value n="isJDK" v="false"/>
          </hash>
          <hash>
-            <value n="id" v="CssWlSecurityProviders.jar"/>
+            <value n="id" v="Weblogic.jar"/>
             <value n="isJDK" v="false"/>
          </hash>
          <hash>
@@ -240,11 +279,11 @@
             <value n="isJDK" v="false"/>
          </hash>
          <hash>
-            <value n="id" v="Weblogic.jar"/>
+            <value n="id" v="Wls-security-providers.jar"/>
             <value n="isJDK" v="false"/>
          </hash>
          <hash>
-            <value n="id" v="Nimbus-jose-jwt-9.48.jar"/>
+            <value n="id" v="Nimbus-jose-jwt-9.48-shaded.jar"/>
             <value n="isJDK" v="false"/>
          </hash>
          <hash>
@@ -261,6 +300,14 @@
          </hash>
          <hash>
             <value n="id" v="Json-20230618.jar"/>
+            <value n="isJDK" v="false"/>
+         </hash>
+         <hash>
+            <value n="id" v="Gson-2.11.0.jar"/>
+            <value n="isJDK" v="false"/>
+         </hash>
+         <hash>
+            <value n="id" v="Tink-1.15.0.jar"/>
             <value n="isJDK" v="false"/>
          </hash>
       </list>

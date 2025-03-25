@@ -94,7 +94,7 @@
       <list n="targetList"/>
    </hash>
    <hash n="oracle.jdeveloper.compiler.OjcConfiguration">
-      <value n="internalEncoding" v="Cp1252"/>
+      <value n="internalEncoding" v="windows-1252"/>
       <value n="webIANAEncoding" v="windows-1252"/>
    </hash>
    <hash n="oracle.jdeveloper.deploy.dt.DeploymentProfiles">
@@ -170,15 +170,6 @@
             </hash>
             <hash>
                <list n="classPath">
-                  <url path="lib/nimbus-jose-jwt-9.48.jar" jar-entry=""/>
-               </list>
-               <value n="deployedByDefault" v="true"/>
-               <value n="description" v="Nimbus-jose-jwt-9.48.jar"/>
-               <value n="id" v="Nimbus-jose-jwt-9.48.jar"/>
-               <value n="locked" v="true"/>
-            </hash>
-            <hash>
-               <list n="classPath">
                   <url path="lib/json-20230618.jar" jar-entry=""/>
                </list>
                <value n="deployedByDefault" v="true"/>
@@ -211,6 +202,15 @@
                <value n="deployedByDefault" v="true"/>
                <value n="description" v="Httpcore-4.4.13.jar"/>
                <value n="id" v="Httpcore-4.4.13.jar"/>
+               <value n="locked" v="true"/>
+            </hash>
+            <hash>
+               <list n="classPath">
+                  <url path="lib/nimbus-jose-jwt-9.48.jar" jar-entry=""/>
+               </list>
+               <value n="deployedByDefault" v="true"/>
+               <value n="description" v="Nimbus-jose-jwt-9.48.jar"/>
+               <value n="id" v="Nimbus-jose-jwt-9.48.jar"/>
                <value n="locked" v="true"/>
             </hash>
          </list>
