@@ -250,8 +250,8 @@ In both cases, at the end of the compilation, one or two jar archives are produc
 ... <DEBUG> TOKEN VALIDATION
 ... <DEBUG> ------------------------------------------------------------------------------------------
 ... <DEBUG> Key ID ............. : JDNa_4i4r7FgigL3sHIlI3xV-IU
-... <DEBUG> Key Modulus ........ : iQ745_U-vjkxPblaw6phBpe08fC42mpcrS4pcr15HiyZQyQV-BFcEVyLwPds...
-... <DEBUG> Key Exponent ....... : AQAB
+... <TRACE> Key Modulus ........ : iQ745_U-vjkxPblaw6phBpe08fC42mpcrS4pcr15HiyZQyQV-BFcEVyLwPds...
+... <TRACE> Key Exponent ....... : AQAB
 ... <DEBUG> Token validation ... : true
 ... <DEBUG> ------------------------------------------------------------------------------------------
 ... <DEBUG> IDENTITY ASSERTION
