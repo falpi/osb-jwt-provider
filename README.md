@@ -90,9 +90,11 @@ Variable                      | Replaced by
 `${http.request.proto}`       | The protocol version of http request.
 `${http.request.scheme}`      | The scheme of http request.
 `${http.header.<name>}`       | The value of the http header \<name\> in the http request.
-`${http.header.*}`            | A string with the key/value list of all http headers of the request.
+`${http.header.*}`            | Enumerate all http headers of the request, except "Authorization" to avoid disclosing the possible cleartext password in the logs.
 `${token.header.<attr>}`      | The value of the header \<attr\> element in the JWT token.
+`${token.header.*}`           | Enumerate all attributes of JWT token header.
 `${token.payload.<attr>}`     | The value of the payload \<attr\> element in the JWT token.
+`${token.payload.*}`          | Enumerate all attributes of JWT token payload.
 `${identity}`                 | The jwt token identity constructed from the assertion.
 `${username}`                 | The name of the user that must be present in the WebLogic realm. In the case of Basic Auth it coincides with the authenticated user while in the case of JWT Auth, if mapping is not required it coincides with the token identity otherwise it is the user mapped by the OSB mapping service account.<br/>
 
@@ -250,8 +252,8 @@ In both cases, at the end of the compilation, one or two jar archives are produc
 ... <DEBUG> TOKEN VALIDATION
 ... <DEBUG> ------------------------------------------------------------------------------------------
 ... <DEBUG> Key ID ............. : JDNa_4i4r7FgigL3sHIlI3xV-IU
-... <DEBUG> Key Modulus ........ : iQ745_U-vjkxPblaw6phBpe08fC42mpcrS4pcr15HiyZQyQV-BFcEVyLwPds...
-... <DEBUG> Key Exponent ....... : AQAB
+... <TRACE> Key Modulus ........ : iQ745_U-vjkxPblaw6phBpe08fC42mpcrS4pcr15HiyZQyQV-BFcEVyLwPds...
+... <TRACE> Key Exponent ....... : AQAB
 ... <DEBUG> Token validation ... : true
 ... <DEBUG> ------------------------------------------------------------------------------------------
 ... <DEBUG> IDENTITY ASSERTION
