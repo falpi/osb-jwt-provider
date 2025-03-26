@@ -87,6 +87,8 @@ import com.bea.wli.sb.transports.TransportEndPoint;
 import com.bea.wli.security.encryption.PBE_EncryptionService;
 import com.bea.xbean.util.Base64;
 
+import java.util.Set;
+
 import org.falpi.utils.JWTToken;
 
 import org.json.XML;
@@ -267,6 +269,10 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
             System.exit(0);
          }
       }
+
+      // ==================================================================================================================================
+      // Prepara contesto server
+      // ==================================================================================================================================
       
       // Inizializza provider di autenticazione di default per supporto alla basic authentication
       ObjKernelId = (AuthenticatedSubject) AccessController.doPrivileged(PrivilegedActions.getKernelIdentityAction());
@@ -276,8 +282,11 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
       StrManagedName = ManagementService.getRuntimeAccess(ObjKernelId). getServerName();
       
       ObjEmbeddedAuthenticator = new EmbeddedLDAPAtnDelegate(ObjMBean, null,StrRealmName, StrDomainName, false);     
+
+      // ==================================================================================================================================
+      // Genera logging di inizializzazione
+      // ==================================================================================================================================
     
-      // Se necessario genera logging di debug
       LogMessage(LogLevel.INFO,"==========================================================================================");
       LogMessage(LogLevel.INFO,"CONTEXT");
       LogMessage(LogLevel.INFO,"==========================================================================================");
@@ -372,7 +381,7 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
       // ==================================================================================================================================
       // Imposta livelli di logging
       // ==================================================================================================================================
-
+   
       IntLoggingLevel = LogLevel.getLevel(StrLoggingLevel);
       IntLoggingLevelMin = LogLevel.TRACE;
 
@@ -382,8 +391,12 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
       LogMessage(LogLevel.DEBUG,"##########################################################################################");
             
       // ==================================================================================================================================
-      // Acquisisce contesto
+      // Prepara contesto
       // ==================================================================================================================================
+
+      // Resetta identità
+      StrIdentity = "";
+      StrUserName = "";
 
       ObjService = (ServiceInfo) ObjContext.getValue("com.bea.contextelement.alsb.service-info");
       //ObjEndpoint = (TransportEndPoint) ObjContext.getValue("com.bea.contextelement.alsb.transport.endpoint");
@@ -703,8 +716,8 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
 
          // Se necessario genera logging di debug
          LogMessage(LogLevel.DEBUG,"Key ID ............. : "+StrJwtKeyID);
-         LogMessage(LogLevel.DEBUG,"Key Modulus ........ : "+StrKeyModulus);
-         LogMessage(LogLevel.DEBUG,"Key Exponent ....... : "+StrKeyExponent);            
+         LogMessage(LogLevel.TRACE,"Key Modulus ........ : "+StrKeyModulus);
+         LogMessage(LogLevel.TRACE,"Key Exponent ....... : "+StrKeyExponent);            
 
          try {            
             // Verifica token jwt e genera logging
@@ -926,8 +939,32 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
                      break;                  
                   case "token" :
                      switch (ArrVariableTokens[1]) {
-                        case "header": StrVariableValue = (String) ObjJwtToken.getHeader().get(ArrVariableTokens[2]); break;
-                        case "payload": StrVariableValue = (String) ObjJwtToken.getPayload().get(ArrVariableTokens[2]); break;
+                        case "header": 
+                           if (!ArrVariableTokens[2].equals("*")) {
+                              StrVariableValue = (String) ObjJwtToken.getHeader().get(ArrVariableTokens[2]);
+                           } else {
+                              Map<Object,Object> ObjPayload = ObjJwtToken.getHeader();                             
+                              
+                              StrVariableValue = "\n"+getLogMessage(LogLevel.DEBUG,"------------------------------------------------------------------------------------------\n");
+                              for (Map.Entry<Object,Object> ObjEntry : ObjPayload.entrySet()) {
+                                 StrVariableValue+= getLogMessage(LogLevel.DEBUG,ObjEntry.getKey()+": "+ObjEntry.getValue()+"\n");
+                              }
+                              StrVariableValue+= getLogMessage(LogLevel.DEBUG,"------------------------------------------------------------------------------------------");
+                           }
+                           break;                     
+                        case "payload": 
+                           if (!ArrVariableTokens[2].equals("*")) {
+                              StrVariableValue = (String) ObjJwtToken.getPayload().get(ArrVariableTokens[2]);
+                           } else {
+                              Map<Object,Object> ObjHeader = ObjJwtToken.getPayload();                             
+                              
+                              StrVariableValue = "\n"+getLogMessage(LogLevel.DEBUG,"------------------------------------------------------------------------------------------\n");
+                              for (Map.Entry<Object,Object> ObjEntry : ObjHeader.entrySet()) {
+                                 StrVariableValue+= getLogMessage(LogLevel.DEBUG,ObjEntry.getKey()+": "+ObjEntry.getValue()+"\n");
+                              }
+                              StrVariableValue+= getLogMessage(LogLevel.DEBUG,"------------------------------------------------------------------------------------------");
+                           }
+                           break;
                      }
                      break;
                   case "http" :
@@ -970,15 +1007,15 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
                               Enumeration ObjEnumeration = ObjRequest.getHeaderNames();
                               
                               // Costruire elenco header ad esclusione di "Authorization" per evitare dati sensibili nei log in caso di basic auth
-                              StrVariableValue = "\n-------------------------------------------------\n";
+                              StrVariableValue = "\n"+getLogMessage(LogLevel.DEBUG,"------------------------------------------------------------------------------------------\n");
                               while (ObjEnumeration.hasMoreElements()) {
                                  StrHeaderName = (String) ObjEnumeration.nextElement();
                                  if (!StrHeaderName.equals("Authorization")) {
                                     StrHeaderValue = ObjRequest.getHeader(StrHeaderName);
-                                    StrVariableValue+= StrHeaderName+": "+StrHeaderValue+"\n";
+                                    StrVariableValue+= getLogMessage(LogLevel.DEBUG,StrHeaderName+": "+StrHeaderValue+"\n");
                                  }
                               }
-                              StrVariableValue+= "--------------------------------------------------";
+                              StrVariableValue+= getLogMessage(LogLevel.DEBUG,"------------------------------------------------------------------------------------------");
                            }
                            break;
                      }
@@ -1143,7 +1180,7 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
          StrHostAccountPath = replaceTemplates(StrHostAccountPath);
          
          // Genera logging di debug
-         LogMessage(LogLevel.DEBUG,"Host Auth Service Account: "+StrHostAccountPath);                  
+         LogMessage(LogLevel.DEBUG,"Host Auth Account ....... : "+StrHostAccountPath);                  
 
          // Acquisisce risorsa service accountin formato XML
          XmlObject ObjServiceAccount = getOSBResource("ServiceAccount", StrHostAccountPath);
@@ -1164,7 +1201,7 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
             case "BASIC":
                
                // Genera logging di debug
-               LogMessage(LogLevel.DEBUG,"Host Auth UserName: "+StrHostUserName);                  
+               LogMessage(LogLevel.DEBUG,"Host Auth UserName ...... : "+StrHostUserName);                  
 
                // Predispone schema di autenticazione
                ArrTargetAuthSchemes.add(AuthSchemes.BASIC);
@@ -1193,8 +1230,8 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
                }
                
                // Genera logging di debug
-               LogMessage(LogLevel.DEBUG,"Host Auth Domain : "+StrSplitDomain);                  
-               LogMessage(LogLevel.DEBUG,"Host Auth UserName: "+StrSplitUserName);   
+               LogMessage(LogLevel.DEBUG,"Host Auth Domain ........  : "+StrSplitDomain);                  
+               LogMessage(LogLevel.DEBUG,"Host Auth UserName ...... : "+StrSplitUserName);   
 
                // Predispone schema di autenticazione
                ArrTargetAuthSchemes.add(AuthSchemes.NTLM);
@@ -1210,7 +1247,7 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
             case "KERBEROS":
                
                // Genera logging di debug
-               LogMessage(LogLevel.DEBUG,"Host Auth Principal: "+StrHostUserName);   
+               LogMessage(LogLevel.DEBUG,"Host Auth Principal ..... : "+StrHostUserName);   
                
                // Esegue login kerberos
                ArrLoginContext.add(loginKerberos(StrKerberosConfiguration,StrHostUserName,StrHostPassword));
@@ -1239,7 +1276,7 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
          StrProxyServerPath = replaceTemplates(StrProxyServerPath);
          
          // Genera logging di debug
-         LogMessage(LogLevel.DEBUG,"Proxy Server Resource: "+StrProxyServerPath);                  
+         LogMessage(LogLevel.DEBUG,"Proxy Server Resource ... : "+StrProxyServerPath);                  
 
          // Acquisisce risorsa ESB proxy in formato XML
          XmlObject ObjProxyServer = getOSBResource("ProxyServer", StrProxyServerPath);
@@ -1249,8 +1286,8 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
          int IntProxyPort = Integer.valueOf(getXMLTextValue(ObjProxyServer, "//*:server/@port"));
 
          // Se necessario genera logging di debug
-         LogMessage(LogLevel.DEBUG,"Proxy Server Host: "+StrProxyHost);                  
-         LogMessage(LogLevel.DEBUG,"Proxy Server Port: "+IntProxyPort);                  
+         LogMessage(LogLevel.DEBUG,"Proxy Server Host ....... : "+StrProxyHost);                  
+         LogMessage(LogLevel.DEBUG,"Proxy Server Port ....... : "+IntProxyPort);                  
          
          // Prepara auth scope del proxy
          HttpHost ObjProxyHost = new HttpHost(StrProxyHost, IntProxyPort);
@@ -1393,7 +1430,7 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
       System.setProperty("java.security.krb5.conf", ObjKerberosAuthConfig.toURI().toString());
       System.setProperty("javax.security.auth.useSubjectCredsOnly","false");
       
-      // Commentato perchÃ¨ non piÃ¹ supportato sulla 14.1.2. In ogni caso Ã¨ di dubbia utilitÃ 
+      // Commentato perchè non più supportato sulla 14.1.2. In ogni caso è di dubbia utilità 
       //sun.security.krb5.Config.refresh();
 
       // Imposta parametri del LoginModule
@@ -1550,7 +1587,7 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
    }
    
    // ==================================================================================================================================
-   // Genera messaggio di logging
+   // Gestione del logging
    // ==================================================================================================================================
 
    public void LogMessage(int IntLevel,String StrMessage) {
@@ -1578,10 +1615,7 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
          }
                                                                                                    
          // Genera messaggio di log
-         System.out.println(new SimpleDateFormat("'<'yyyy-MM-dd HH:mm:ss'>'").format(new Date(System.currentTimeMillis()))+
-                            " <CIA> "+
-                            String.format("%-8s","<" + LogLevel.getDescription(IntLevel)+">")+
-                            StrMessage+
+         System.out.println(getLogMessage(IntLevel,StrMessage)+
                             ((!StrSuffix.equals(""))?(": "+StrSuffix):("")));
          
          // Se necessario genera marker+stacktrace
@@ -1591,6 +1625,13 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
             System.out.println("------------------------------------------------------------------------------------------------------------------------------");            
          }
       }
+   }   
+
+   public static String getLogMessage(int IntLevel,String StrMessage) {
+      return new SimpleDateFormat("'<'yyyy-MM-dd HH:mm:ss'>'").format(new Date(System.currentTimeMillis()))+
+                                  " <CIA> "+
+                                  String.format("%-8s","<" + LogLevel.getDescription(IntLevel)+">")+
+                                  StrMessage;
    }   
 
    // ##################################################################################################################################
