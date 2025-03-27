@@ -90,13 +90,13 @@ Variable                      | Replaced by
 `${http.request.proto}`       | The protocol version of http request.
 `${http.request.scheme}`      | The scheme of http request.
 `${http.header.<name>}`       | The value of the http header \<name\> in the http request.
-`${http.header.*}`            | Enumerate all http headers of the request, except "Authorization" to avoid disclosing the possible cleartext password in the logs.
-`${token.header.<attr>}`      | The value of the header \<attr\> element in the JWT token.
-`${token.header.*}`           | Enumerate all attributes of JWT token header.
-`${token.payload.<attr>}`     | The value of the payload \<attr\> element in the JWT token.
-`${token.payload.*}`          | Enumerate all attributes of JWT token payload.
-`${identity}`                 | The jwt token identity constructed from the assertion.
-`${username}`                 | The name of the user that must be present in the WebLogic realm. In the case of Basic Auth it coincides with the authenticated user while in the case of JWT Auth, if mapping is not required it coincides with the token identity otherwise it is the user mapped by the OSB mapping service account.<br/>
+`${http.header.*}`            | Enumerate all http headers of the request, except "Authorization" to avoid disclosing password.
+`${token.header.<attr>}`      | The value of the header \<attr\> element in the JWT token. If token is not initialized return blank.
+`${token.header.*}`           | Enumerate all attributes of JWT token header. If token is not initialized return blank.
+`${token.payload.<attr>}`     | The value of the payload \<attr\> element in the JWT token. If token is not initialized return blank.
+`${token.payload.*}`          | Enumerate all attributes of JWT token payload. If token is not initialized return blank.
+`${identity}`                 | Asserted JWT token identity.
+`${username}`                 | Asserted UserName. In the case of Basic Auth it coincides with the authenticated user while in the case of JWT Auth, if mapping is not required it coincides with the token identity otherwise it is the user mapped by the OSB mapping service account. Must exist in the WebLogic realm. <br/>
 
 ## Identity mapping strategies
 <p align="justify">It is possible to implement different strategies to establish the identities of the JWT token and eventually map this identity to the users of the weblogic realm. Let's see some possible scenarios below.</p>
