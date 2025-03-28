@@ -4,42 +4,24 @@ package org.falpi.osb.security.providers;
 // Referenze
 // ##################################################################################################################################
 
-import java.net.URL;
-
-import java.io.File;
-import java.io.FileWriter;
-import java.io.PrintWriter;
-import java.io.StringWriter;
-import java.text.SimpleDateFormat;
-
-import java.lang.reflect.Field;
-import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
-
 import java.util.Map;
-import java.util.Date;
 import java.util.List;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Enumeration;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.security.Principal;
+import java.util.Iterator;
+import java.util.Collections;
 import java.security.AccessController;
-import java.security.PrivilegedAction;
 
-import javax.security.auth.Subject;
-import javax.security.auth.spi.LoginModule;
-import javax.security.auth.callback.CallbackHandler;
-import javax.security.auth.login.AppConfigurationEntry;
-
-import javax.xml.namespace.QName;
 import javax.script.ScriptEngine;
 import javax.script.ScriptEngineManager;
 import javax.script.ScriptEngineFactory;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import javax.security.auth.callback.CallbackHandler;
+import javax.security.auth.login.AppConfigurationEntry;
 
 import weblogic.security.service.ContextHandler;
 import weblogic.security.spi.AuthenticationProviderV2;
@@ -55,90 +37,35 @@ import weblogic.management.provider.ManagementService;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.xmlbeans.XmlObject;
-import org.apache.xmlbeans.XmlCursor;
-import org.apache.xmlbeans.XmlOptions;
 
-import org.apache.http.client.config.RequestConfig;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.impl.client.HttpClientBuilder;
-import org.apache.http.HttpHost;
-import org.apache.http.HttpResponse;
-import org.apache.http.auth.AuthSchemeProvider;
-import org.apache.http.auth.AuthScope;
-import org.apache.http.auth.Credentials;
-import org.apache.http.auth.NTCredentials;
-import org.apache.http.auth.UsernamePasswordCredentials;
-import org.apache.http.client.config.AuthSchemes;
-import org.apache.http.config.RegistryBuilder;
-import org.apache.http.conn.ssl.NoopHostnameVerifier;
-import org.apache.http.conn.ssl.TrustAllStrategy;
-import org.apache.http.impl.auth.NTLMSchemeFactory;
-import org.apache.http.impl.auth.BasicSchemeFactory;
-import org.apache.http.impl.client.BasicCredentialsProvider;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClients;
-import org.apache.http.impl.auth.SPNegoSchemeFactory;
-import org.apache.http.ssl.SSLContextBuilder;
-
-import com.bea.wli.config.Ref;
-import com.bea.wli.sb.ALSBConfigService;
 import com.bea.wli.sb.services.ServiceInfo;
 import com.bea.wli.sb.transports.TransportEndPoint;
-import com.bea.wli.security.encryption.PBE_EncryptionService;
 import com.bea.xbean.util.Base64;
-
-import java.util.Set;
-
-import org.falpi.utils.JWTToken;
 
 import org.json.XML;
 import org.json.JSONObject;
 
+import org.falpi.utils.OSBUtils;
+import org.falpi.utils.XMLUtils;
+import org.falpi.utils.JavaUtils;
+import org.falpi.utils.HttpUtils;
+import org.falpi.utils.HttpUtils.HttpMethod;
+import org.falpi.utils.StringUtils;
+import org.falpi.utils.jwt.JWTToken;
+import org.falpi.utils.logging.LogLevel;
+import org.falpi.utils.logging.LogManager;
+
 public final class CustomIdentityAsserterProviderImpl implements AuthenticationProviderV2, IdentityAsserterV2 {
    
    // ##################################################################################################################################
-   // Dichiara sottoclassi 
+   // Sottoclassi 
    // ##################################################################################################################################
-   
-   // ==================================================================================================================================
-   // Livelli di logging
-   // ==================================================================================================================================
-
-   static class LogLevel {
-      public final static int TRACE = 0;
-      public final static int DEBUG = 1;
-      public final static int INFO = 2;
-      public final static int WARN = 3;
-      public final static int ERROR = 4;
-      
-      public static int getLevel(String StrLoggingLevel)  {
-         switch (StrLoggingLevel) {
-            case "TRACE" : return TRACE; 
-            case "DEBUG" : return DEBUG; 
-            case "INFO" : return INFO; 
-            case "WARN" : return WARN; 
-            case "ERROR" : return ERROR; 
-            default : return -1;                                                            
-         }
-      }
-      
-      public static String getDescription(int IntLoggingLevel) {
-         switch (IntLoggingLevel) {
-            case TRACE : return "TRACE"; 
-            case DEBUG : return "DEBUG"; 
-            case INFO : return "INFO"; 
-            case WARN : return "WARN"; 
-            case ERROR : return "ERROR"; 
-            default :  return "?????";
-         }
-      }
-   }
-   
+  
    // ==================================================================================================================================
    // Tipologie di token supportate
    // ==================================================================================================================================
    
-   static class TokenTypes {
+   private static class TokenTypes {
       public final static String JWT_AUTH_ID = "JWT";
       public final static String BASIC_AUTH_ID = "BASIC";
 
@@ -169,10 +96,7 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
    // ==================================================================================================================================
 
    // Gestione del logging
-   private int IntLoggingLines = 100;
-   private int IntLoggingLevel = LogLevel.TRACE;
-   private int IntLoggingLevelMin = LogLevel.TRACE;
-   private String StrLoggingLevel;
+   private LogManager Logger;
 
    // Gestione dell'identificazione
    private String StrAuthType = "";
@@ -204,17 +128,14 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
    // Gestione del token jwt
    private String StrJwtKeyID;
    private JWTToken ObjJwtToken;
-   private String StrJwtProvider;
    private HashMap ObjJwtKeysCache = new HashMap();
            
    // Altre variabili di supporto
-   private String StrDescription;   
-   private String StrKerberosConfiguration;
-
    private ScriptEngine ObjScriptEngine;   
    private AuthenticatedSubject ObjKernelId;
    private EmbeddedLDAPAtnDelegate ObjEmbeddedAuthenticator;
 
+   private String StrDescription;   
    private CustomIdentityAsserterMBean ObjProviderMBean;
 
    // ##################################################################################################################################
@@ -223,17 +144,32 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
 
    @Override
    public void initialize(ProviderMBean ObjMBean, SecurityServices ObjSecurityServices) {
+      
+      // Inizializza logger
+      Logger = new LogManager("CIA");
                   
       // Genera logging
-      LogMessage(LogLevel.INFO,"##########################################################################################");
-      LogMessage(LogLevel.INFO,"INITIALIZE");
-      LogMessage(LogLevel.INFO,"##########################################################################################");
+      Logger.logMessage(LogLevel.INFO,"##########################################################################################");
+      Logger.logMessage(LogLevel.INFO,"INITIALIZE");
+      Logger.logMessage(LogLevel.INFO,"##########################################################################################");
       
       // Inizializza lo mbean
       ObjProviderMBean = (CustomIdentityAsserterMBean) ObjMBean;
 
       // Inizializza descrizione
       StrDescription = ObjMBean.getDescription() + "n" + ObjMBean.getVersion();
+
+      // ==================================================================================================================================
+      // Inizializza script engine
+      // ==================================================================================================================================
+            
+      try {
+         ObjScriptEngine = JavaUtils.getScriptEngine();
+      } catch (Exception ObjException) {
+         String StrError = "Script engine error";
+         Logger.logMessage(LogLevel.ERROR,StrError,ObjException);
+         System.exit(0);
+      }
 
       // ==================================================================================================================================
       // Inizializza token provider 
@@ -243,32 +179,13 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
          // Se il target è weblogic 12.1.3 (java=7) la libreria originale nimbus può essere integrata perchè non è presente a sistema
          // Se il target è weblogic 12.2.1 (7<java<17) poichè integra nimbus di una versione incompatibile occorre integrare una versione shaded 
          // Se il target è weblogic 14.1.2 (java>=17) poichè integra nimbus di una versione compatibile la si può usare diretamente
-         StrJwtProvider = "org.falpi.utils.JWTTokenNimbus"+(((7<getJavaVersion())&&(getJavaVersion()<17))?("ShadedImpl"):("Impl"));
-         ObjJwtToken = (JWTToken) Class.forName(StrJwtProvider).newInstance();
+         ObjJwtToken = JWTToken.create((JavaUtils.getJavaVersion()>7)&&(JavaUtils.getJavaVersion()<17)?("NimbusShaded"):("Nimbus"));
          
       } catch (Exception ObjException) {
-         String StrError = "Token provider error ("+StrJwtProvider+")";
-         LogMessage(LogLevel.ERROR,StrError,ObjException);
+         String StrError = "Token provider error";
+         Logger.logMessage(LogLevel.ERROR,StrError,ObjException);
          System.exit(0);
-      }
-
-      // ==================================================================================================================================
-      // Inizializza script engine
-      // ==================================================================================================================================
-      
-      // Prova a istanziare lo sript engine built-in
-      ObjScriptEngine =  new ScriptEngineManager().getEngineByName("JavaScript"); 
-      
-      // Se lo script engine JavaScript non è disponibile prova ad utilizzare lo script engine esterno      
-      if ((ObjScriptEngine==null)) {
-         try {
-            ObjScriptEngine = ((ScriptEngineFactory) Class.forName("org.mozilla.javascript.engine.RhinoScriptEngineFactory").newInstance()).getScriptEngine();
-         } catch (Exception ObjException) {
-            String StrError = "Script engine error (RhinoScriptEngineFactory)";
-            LogMessage(LogLevel.ERROR,StrError,ObjException);
-            System.exit(0);
-         }
-      }
+      } 
 
       // ==================================================================================================================================
       // Prepara contesto server
@@ -287,24 +204,24 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
       // Genera logging di inizializzazione
       // ==================================================================================================================================
     
-      LogMessage(LogLevel.INFO,"==========================================================================================");
-      LogMessage(LogLevel.INFO,"CONTEXT");
-      LogMessage(LogLevel.INFO,"==========================================================================================");
-      LogMessage(LogLevel.INFO,"Realm Name ........... : " + StrRealmName);
-      LogMessage(LogLevel.INFO,"Domain Name .......... : " + StrDomainName);
-      LogMessage(LogLevel.INFO,"Managed Name ......... : " + StrManagedName);  
-      LogMessage(LogLevel.INFO,"------------------------------------------------------------------------------------------");
-      LogMessage(LogLevel.INFO,"JWT Provider ......... : " + StrJwtProvider);  
-      LogMessage(LogLevel.INFO,"Scripting Engine ..... : " + ObjScriptEngine.getFactory().getEngineName()+" ("+ObjScriptEngine.getFactory().getEngineVersion()+")");  
-      LogMessage(LogLevel.INFO,"Scripting Language ... : " + ObjScriptEngine.getFactory().getLanguageName()+" ("+ObjScriptEngine.getFactory().getLanguageVersion()+")");  
-      LogMessage(LogLevel.INFO,"##########################################################################################");      
+      Logger.logMessage(LogLevel.INFO,"==========================================================================================");
+      Logger.logMessage(LogLevel.INFO,"CONTEXT");
+      Logger.logMessage(LogLevel.INFO,"==========================================================================================");
+      Logger.logMessage(LogLevel.INFO,"Realm Name ...........: " + StrRealmName);
+      Logger.logMessage(LogLevel.INFO,"Domain Name ..........: " + StrDomainName);
+      Logger.logMessage(LogLevel.INFO,"Managed Name .........: " + StrManagedName);  
+      Logger.logMessage(LogLevel.INFO,"------------------------------------------------------------------------------------------");
+      Logger.logMessage(LogLevel.INFO,"JWT Provider .........: " + ObjJwtToken.getClass().getCanonicalName());  
+      Logger.logMessage(LogLevel.INFO,"Scripting Engine .....: " + ObjScriptEngine.getFactory().getEngineName()+" ("+ObjScriptEngine.getFactory().getEngineVersion()+")");  
+      Logger.logMessage(LogLevel.INFO,"Scripting Language ...: " + ObjScriptEngine.getFactory().getLanguageName()+" ("+ObjScriptEngine.getFactory().getLanguageVersion()+")");  
+      Logger.logMessage(LogLevel.INFO,"##########################################################################################");      
    }
 
    @Override
    public void shutdown() {
-      LogMessage(LogLevel.INFO,"##########################################################################################");      
-      LogMessage(LogLevel.INFO,"SHUTDOWN");
-      LogMessage(LogLevel.INFO,"##########################################################################################");      
+      Logger.logMessage(LogLevel.INFO,"##########################################################################################");      
+      Logger.logMessage(LogLevel.INFO,"SHUTDOWN");
+      Logger.logMessage(LogLevel.INFO,"##########################################################################################");      
    }
 
    @Override
@@ -343,8 +260,8 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
       // Acquisisce configurazione
       // ==================================================================================================================================
                      
-      StrLoggingLevel = ObjProviderMBean.getLOGGING_LEVEL();
-      IntLoggingLines = ObjProviderMBean.getLOGGING_LINES();
+      String StrLoggingLevel = ObjProviderMBean.getLOGGING_LEVEL();
+      Integer IntLoggingLines = ObjProviderMBean.getLOGGING_LINES();
                      
       String StrBasicAuthStatus = ObjProviderMBean.getBASIC_AUTH();
       String StrJwtAuthStatus = ObjProviderMBean.getJWT_AUTH();
@@ -372,23 +289,11 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
       String[] ArrKerberosConfiguration = ObjProviderMBean.getKERBEROS_CONFIGURATION();      
       
       // Comprime gli array multiriga
-      String StrJwtIdentityAssertion = joinStringArray(ArrJwtIdentityAssertion,System.lineSeparator());
-      String StrValidationAssertion = joinStringArray(ArrValidationAssertion,System.lineSeparator());
-      String StrDebuggingAssertion = joinStringArray(ArrDebuggingAssertion,System.lineSeparator());
-      String StrDebuggingProperties = joinStringArray(ArrDebuggingProperties,",");
-      StrKerberosConfiguration = joinStringArray(ArrKerberosConfiguration,System.lineSeparator());
-      
-      // ==================================================================================================================================
-      // Imposta livelli di logging
-      // ==================================================================================================================================
-   
-      IntLoggingLevel = LogLevel.getLevel(StrLoggingLevel);
-      IntLoggingLevelMin = LogLevel.TRACE;
-
-      // Genera logging 
-      LogMessage(LogLevel.DEBUG,"##########################################################################################");
-      LogMessage(LogLevel.DEBUG,"ASSERT IDENTITY");
-      LogMessage(LogLevel.DEBUG,"##########################################################################################");
+      String StrJwtIdentityAssertion = StringUtils.join(ArrJwtIdentityAssertion,System.lineSeparator());
+      String StrValidationAssertion = StringUtils.join(ArrValidationAssertion,System.lineSeparator());
+      String StrDebuggingAssertion = StringUtils.join(ArrDebuggingAssertion,System.lineSeparator());
+      String StrDebuggingProperties = StringUtils.join(ArrDebuggingProperties,",");
+      String StrKerberosConfiguration = StringUtils.join(ArrKerberosConfiguration,System.lineSeparator());
             
       // ==================================================================================================================================
       // Prepara contesto
@@ -419,18 +324,22 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
       StrContentType = ObjRequest.getContentType();
       
       // ==================================================================================================================================
-      // Valuta l'abilitazione del logging (eventuali errori sono silenziati per non pregiudicare l'autenticazione)
-      // ==================================================================================================================================
+      // Imposta livelli di logging (eventuali errori sull'asserzione di debug sono silenziati per non pregiudicare l'autenticazione)
+      // ==================================================================================================================================   
+      
+      // Prepara livelli di logging di default
+      Logger.setLogLevel(StrLoggingLevel);
+      Logger.setLogLines(IntLoggingLines);
 
       // Se ecessario verifica del filtro per i messaggi di log di livello più basso
       if (!StrDebuggingAssertion.equals("")) {
          try {
             if (!((Boolean) evaluateScript(StrDebuggingAssertion,"Boolean"))) {
-               IntLoggingLevelMin = LogLevel.INFO;
+               Logger.setLogLevel(LogLevel.INFO);
             }
          } catch (Exception ObjException) {
             String StrError = "Debugging assertion error";
-            LogMessage(LogLevel.WARN,StrError,ObjException);
+            Logger.logMessage(LogLevel.WARN,StrError,ObjException);
          }
       }
 
@@ -438,67 +347,72 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
       // Genera logging di debug per dump configurazione
       // ==================================================================================================================================
 
+      // Genera logging 
+      Logger.logMessage(LogLevel.DEBUG,"##########################################################################################");
+      Logger.logMessage(LogLevel.DEBUG,"ASSERT IDENTITY");
+      Logger.logMessage(LogLevel.DEBUG,"##########################################################################################");
+
       // Genera logging
-      LogMessage(LogLevel.DEBUG,"==========================================================================================");
-      LogMessage(LogLevel.DEBUG,"CONFIGURATION");
-      LogMessage(LogLevel.DEBUG,"==========================================================================================");
-      LogMessage(LogLevel.DEBUG,"LOGGING_LEVEL ................ : " + StrLoggingLevel);
-      LogMessage(LogLevel.DEBUG,"LOGGING_LINES ................ : " + IntLoggingLines);
-      LogMessage(LogLevel.DEBUG,"BASIC_AUTH ................... : " + StrBasicAuthStatus);
-      LogMessage(LogLevel.DEBUG,"JWT_AUTH ..................... : " + StrJwtAuthStatus);
-      LogMessage(LogLevel.DEBUG,"JWT_KEYS_URL ................. : " + StrJwtKeysURL);
-      LogMessage(LogLevel.DEBUG,"JWT_KEYS_FORMAT .............. : " + StrJwtKeysFormat);
-      LogMessage(LogLevel.DEBUG,"JWT_KEYS_MODULUS_XPATH ....... : " + StrJwtKeysModulusXPath);
-      LogMessage(LogLevel.DEBUG,"JWT_KEYS_EXPONENT_XPATH ...... : " + StrJwtKeysExponentXPath);
-      LogMessage(LogLevel.DEBUG,"JWT_KEYS_CACHE_TTL ........... : " + IntJwtKeysCacheTTL);
-      LogMessage(LogLevel.DEBUG,"JWT_KEYS_CONN_TIMEOUT ........ : " + IntJwtKeysConnTimeout);
-      LogMessage(LogLevel.DEBUG,"JWT_KEYS_READ_TIMEOUT ........ : " + IntJwtKeysReadTimeout);
-      LogMessage(LogLevel.DEBUG,"JWT_KEYS_SSL_VERIFY .......... : " + StrJwtKeysSSLVerify);
-      LogMessage(LogLevel.DEBUG,"JWT_KEYS_HOST_AUTH_MODE ...... : " + StrJwtKeysHostAuthMode);
-      LogMessage(LogLevel.DEBUG,"JWT_KEYS_HOST_ACCOUNT_PATH ... : " + StrJwtKeysHostAccountPath);
-      LogMessage(LogLevel.DEBUG,"JWT_KEYS_PROXY_SERVER_MODE ... : " + StrJwtKeysProxyServerMode);
-      LogMessage(LogLevel.DEBUG,"JWT_KEYS_PROXY_SERVER_PATH ... : " + StrJwtKeysProxyServerPath);
-      LogMessage(LogLevel.DEBUG,"JWT_IDENTITY_MAPPING_MODE .... : " + StrJwtIdentityMappingMode);
-      LogMessage(LogLevel.DEBUG,"JWT_IDENTITY_MAPPING_PATH .... : " + StrJwtIdentityMappingPath);
-      LogMessage(LogLevel.DEBUG,"JWT_IDENTITY_ASSERTION ....... : " + StrJwtIdentityAssertion.replaceAll("\n",""));
-      LogMessage(LogLevel.DEBUG,"VALIDATION_ASSERTION ......... : " + StrValidationAssertion.replaceAll("\n",""));
-      LogMessage(LogLevel.DEBUG,"DEBUGGING_ASSERTION .......... : " + StrDebuggingAssertion.replaceAll("\n",""));
-      LogMessage(LogLevel.DEBUG,"DEBUGGING_PROPERTIES ......... : " + StrDebuggingProperties);      
-      LogMessage(LogLevel.DEBUG,"KERBEROS_CONFIGURATION ....... : " + StrKerberosConfiguration);       
+      Logger.logMessage(LogLevel.DEBUG,"==========================================================================================");
+      Logger.logMessage(LogLevel.DEBUG,"CONFIGURATION");
+      Logger.logMessage(LogLevel.DEBUG,"==========================================================================================");
+      Logger.logMessage(LogLevel.DEBUG,"LOGGING_LEVEL ................: " + StrLoggingLevel);
+      Logger.logMessage(LogLevel.DEBUG,"LOGGING_LINES ................: " + IntLoggingLines);
+      Logger.logMessage(LogLevel.DEBUG,"BASIC_AUTH ...................: " + StrBasicAuthStatus);
+      Logger.logMessage(LogLevel.DEBUG,"JWT_AUTH .....................: " + StrJwtAuthStatus);
+      Logger.logMessage(LogLevel.DEBUG,"JWT_KEYS_URL .................: " + StrJwtKeysURL);
+      Logger.logMessage(LogLevel.DEBUG,"JWT_KEYS_FORMAT ..............: " + StrJwtKeysFormat);
+      Logger.logMessage(LogLevel.DEBUG,"JWT_KEYS_MODULUS_XPATH .......: " + StrJwtKeysModulusXPath);
+      Logger.logMessage(LogLevel.DEBUG,"JWT_KEYS_EXPONENT_XPATH ......: " + StrJwtKeysExponentXPath);
+      Logger.logMessage(LogLevel.DEBUG,"JWT_KEYS_CACHE_TTL ...........: " + IntJwtKeysCacheTTL);
+      Logger.logMessage(LogLevel.DEBUG,"JWT_KEYS_CONN_TIMEOUT ........: " + IntJwtKeysConnTimeout);
+      Logger.logMessage(LogLevel.DEBUG,"JWT_KEYS_READ_TIMEOUT ........: " + IntJwtKeysReadTimeout);
+      Logger.logMessage(LogLevel.DEBUG,"JWT_KEYS_SSL_VERIFY ..........: " + StrJwtKeysSSLVerify);
+      Logger.logMessage(LogLevel.DEBUG,"JWT_KEYS_HOST_AUTH_MODE ......: " + StrJwtKeysHostAuthMode);
+      Logger.logMessage(LogLevel.DEBUG,"JWT_KEYS_HOST_ACCOUNT_PATH ...: " + StrJwtKeysHostAccountPath);
+      Logger.logMessage(LogLevel.DEBUG,"JWT_KEYS_PROXY_SERVER_MODE ...: " + StrJwtKeysProxyServerMode);
+      Logger.logMessage(LogLevel.DEBUG,"JWT_KEYS_PROXY_SERVER_PATH ...: " + StrJwtKeysProxyServerPath);
+      Logger.logMessage(LogLevel.DEBUG,"JWT_IDENTITY_MAPPING_MODE ....: " + StrJwtIdentityMappingMode);
+      Logger.logMessage(LogLevel.DEBUG,"JWT_IDENTITY_MAPPING_PATH ....: " + StrJwtIdentityMappingPath);
+      Logger.logMessage(LogLevel.DEBUG,"JWT_IDENTITY_ASSERTION .......: " + StrJwtIdentityAssertion.replaceAll("\n",""));
+      Logger.logMessage(LogLevel.DEBUG,"VALIDATION_ASSERTION .........: " + StrValidationAssertion.replaceAll("\n",""));
+      Logger.logMessage(LogLevel.DEBUG,"DEBUGGING_ASSERTION ..........: " + StrDebuggingAssertion.replaceAll("\n",""));
+      Logger.logMessage(LogLevel.DEBUG,"DEBUGGING_PROPERTIES .........: " + StrDebuggingProperties);      
+      Logger.logMessage(LogLevel.DEBUG,"KERBEROS_CONFIGURATION .......: " + StrKerberosConfiguration);       
             
       // Controlli di congruenza configurazione
-      LogMessage(LogLevel.TRACE,"------------------------------------------------------------------------------------------");
-      StrJwtKeysURL = (String) checkMandatoryParameter("JWT_KEYS_URL", StrJwtKeysURL);
-      StrJwtKeysModulusXPath = (String) checkMandatoryParameter("JWT_KEYS_MODULUS_XPATH", StrJwtKeysModulusXPath);
-      StrJwtKeysExponentXPath = (String) checkMandatoryParameter("JWT_KEYS_EXPONENT_XPATH", StrJwtKeysExponentXPath);      
-      checkMandatoryParameter("JWT_KEYS_CACHE_TTL",IntJwtKeysCacheTTL);
-      checkMandatoryParameter("JWT_KEYS_CONN_TIMEOUT",IntJwtKeysConnTimeout);
-      checkMandatoryParameter("JWT_KEYS_READ_TIMEOUT",IntJwtKeysReadTimeout);      
-      if (!StrJwtKeysHostAuthMode.equals("ANONYMOUS")) StrJwtKeysHostAccountPath = (String) checkMandatoryParameter("JWT_KEYS_HOST_ACCOUNT_PATH", StrJwtKeysHostAccountPath);
-      if (!StrJwtKeysProxyServerMode.equals("DIRECT")) StrJwtKeysProxyServerPath = (String) checkMandatoryParameter("JWT_KEYS_PROXY_SERVER_PATH", StrJwtKeysProxyServerPath);
-      if (!StrJwtIdentityMappingMode.equals("DISABLE")) StrJwtIdentityMappingPath = (String) checkMandatoryParameter("JWT_IDENTITY_MAPPING_PATH", StrJwtIdentityMappingPath);
-      StrJwtIdentityAssertion = (String) checkMandatoryParameter("JWT_IDENTITY_ASSERTION", StrJwtIdentityAssertion);
+      Logger.logMessage(LogLevel.TRACE,"------------------------------------------------------------------------------------------");
+      StrJwtKeysURL = (String) validateParameter("JWT_KEYS_URL", StrJwtKeysURL);
+      StrJwtKeysModulusXPath = (String) validateParameter("JWT_KEYS_MODULUS_XPATH", StrJwtKeysModulusXPath);
+      StrJwtKeysExponentXPath = (String) validateParameter("JWT_KEYS_EXPONENT_XPATH", StrJwtKeysExponentXPath);      
+      validateParameter("JWT_KEYS_CACHE_TTL",IntJwtKeysCacheTTL);
+      validateParameter("JWT_KEYS_CONN_TIMEOUT",IntJwtKeysConnTimeout);
+      validateParameter("JWT_KEYS_READ_TIMEOUT",IntJwtKeysReadTimeout);      
+      if (!StrJwtKeysHostAuthMode.equals("ANONYMOUS")) StrJwtKeysHostAccountPath = (String) validateParameter("JWT_KEYS_HOST_ACCOUNT_PATH", StrJwtKeysHostAccountPath);
+      if (!StrJwtKeysProxyServerMode.equals("DIRECT")) StrJwtKeysProxyServerPath = (String) validateParameter("JWT_KEYS_PROXY_SERVER_PATH", StrJwtKeysProxyServerPath);
+      if (!StrJwtIdentityMappingMode.equals("DISABLE")) StrJwtIdentityMappingPath = (String) validateParameter("JWT_IDENTITY_MAPPING_PATH", StrJwtIdentityMappingPath);
+      StrJwtIdentityAssertion = (String) validateParameter("JWT_IDENTITY_ASSERTION", StrJwtIdentityAssertion);
 
       // ==================================================================================================================================
       // Genera logging di debug per dump contesto
       // ==================================================================================================================================
       
-      LogMessage(LogLevel.DEBUG,"==========================================================================================");
-      LogMessage(LogLevel.DEBUG,"CONTEXT");
-      LogMessage(LogLevel.DEBUG,"==========================================================================================");
-      LogMessage(LogLevel.DEBUG,"Managed Name ..... : "+StrManagedName);
-      LogMessage(LogLevel.DEBUG,"Project Name ..... : "+StrProjectName);
-      LogMessage(LogLevel.DEBUG,"Service Name ..... : "+StrServiceName);           
-      LogMessage(LogLevel.DEBUG,"------------------------------------------------------------------------------------------");
-      LogMessage(LogLevel.DEBUG,"Server Host ...... : "+StrServerHost);               
-      LogMessage(LogLevel.DEBUG,"Server Addr ...... : "+StrServerAddr);               
-      LogMessage(LogLevel.DEBUG,"------------------------------------------------------------------------------------------");
-      LogMessage(LogLevel.DEBUG,"Client Host ...... : "+StrClientHost);               
-      LogMessage(LogLevel.DEBUG,"Client Addr ...... : "+StrClientAddr);               
-      LogMessage(LogLevel.DEBUG,"------------------------------------------------------------------------------------------");
-      LogMessage(LogLevel.DEBUG,"Request URL ...... : "+StrRequestURL);               
-      LogMessage(LogLevel.DEBUG,"Content Type ..... : "+StrContentType);               
-      LogMessage(LogLevel.DEBUG,"------------------------------------------------------------------------------------------");
+      Logger.logMessage(LogLevel.DEBUG,"==========================================================================================");
+      Logger.logMessage(LogLevel.DEBUG,"CONTEXT");
+      Logger.logMessage(LogLevel.DEBUG,"==========================================================================================");
+      Logger.logMessage(LogLevel.DEBUG,"Managed Name .....: "+StrManagedName);
+      Logger.logMessage(LogLevel.DEBUG,"Project Name .....: "+StrProjectName);
+      Logger.logMessage(LogLevel.DEBUG,"Service Name .....: "+StrServiceName);           
+      Logger.logMessage(LogLevel.DEBUG,"------------------------------------------------------------------------------------------");
+      Logger.logMessage(LogLevel.DEBUG,"Server Host ......: "+StrServerHost);               
+      Logger.logMessage(LogLevel.DEBUG,"Server Addr ......: "+StrServerAddr);               
+      Logger.logMessage(LogLevel.DEBUG,"------------------------------------------------------------------------------------------");
+      Logger.logMessage(LogLevel.DEBUG,"Client Host ......: "+StrClientHost);               
+      Logger.logMessage(LogLevel.DEBUG,"Client Addr ......: "+StrClientAddr);               
+      Logger.logMessage(LogLevel.DEBUG,"------------------------------------------------------------------------------------------");
+      Logger.logMessage(LogLevel.DEBUG,"Request URL ......: "+StrRequestURL);               
+      Logger.logMessage(LogLevel.DEBUG,"Content Type .....: "+StrContentType);               
+      Logger.logMessage(LogLevel.DEBUG,"------------------------------------------------------------------------------------------");
       
       // ==================================================================================================================================
       // Verifica che le informazioni sul token ricevuto sono corrette e coerenti con i tipi attivi
@@ -507,19 +421,19 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
       // Verifica la tipologia del token
       if (!(ObjToken instanceof String)) {
          String StrError = "Unsupported token class";
-         LogMessage(LogLevel.ERROR,StrError,ObjToken.getClass().getSimpleName());
+         Logger.logMessage(LogLevel.ERROR,StrError,ObjToken.getClass().getSimpleName());
          throw new IdentityAssertionException(StrError);
       }
 
       // Verifica la correttezza del tipo di token
       if (!TokenTypes.ALL_TYPES.contains(StrTokenType)) {        
          String StrError = "Unknown token type";
-         LogMessage(LogLevel.ERROR,StrError,StrTokenType);
+         Logger.logMessage(LogLevel.ERROR,StrError,StrTokenType);
          throw new IdentityAssertionException(StrError);
       }
 
       // Se necessario genera logging di debug
-      LogMessage(LogLevel.DEBUG,"Selected Token ... : "+StrTokenType);
+      Logger.logMessage(LogLevel.DEBUG,"Selected Token ...: "+StrTokenType);
       
       // ==================================================================================================================================
       // Esegue parsing del token e verifica la modalità di autenticazione
@@ -539,16 +453,16 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
       }
      
       // Se necessario genera logging di debug
-      LogMessage(LogLevel.DEBUG,"Detected Auth .... : "+StrAuthType);
+      Logger.logMessage(LogLevel.DEBUG,"Detected Auth ....: "+StrAuthType);
 
       // Verifica la ammissibilità dell'autenticazione rilevata rispetto al token selezionato e ai flag di disattivazione
       if ((!StrTokenType.contains(StrAuthType))||
           (StrAuthType.equals(TokenTypes.JWT_AUTH_ID)&&StrJwtAuthStatus.equals("DISABLE"))||
           (StrAuthType.equals(TokenTypes.BASIC_AUTH_ID)&&StrBasicAuthStatus.equals("DISABLE"))) {
          String StrError = "Disabled auth type";
-         LogMessage(LogLevel.ERROR,StrError,StrAuthType);
+         Logger.logMessage(LogLevel.ERROR,StrError,StrAuthType);
          throw new IdentityAssertionException(StrError);
-      }
+      } 
         
       // ==================================================================================================================================
       // Gestisce l'autenticazione BASIC
@@ -558,15 +472,15 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
       if (StrAuthType.equals(TokenTypes.BASIC_AUTH_ID)) {
          
          // Se necessario genera logging di debug
-         LogMessage(LogLevel.DEBUG,"==========================================================================================");
-         LogMessage(LogLevel.DEBUG,"BASIC AUTH");
-         LogMessage(LogLevel.DEBUG,"==========================================================================================");  
+         Logger.logMessage(LogLevel.DEBUG,"==========================================================================================");
+         Logger.logMessage(LogLevel.DEBUG,"BASIC AUTH");
+         Logger.logMessage(LogLevel.DEBUG,"==========================================================================================");  
                            
          try {          
                         
             // Dedodifica il token basic
             String[] ArrCredential = new String(Base64.decode(StrJwtPayload.getBytes())).split(":",2);            
-            LogMessage(LogLevel.DEBUG,"UserName: "+ArrCredential[0]);   
+            Logger.logMessage(LogLevel.DEBUG,"UserName: "+ArrCredential[0]);   
             
             // Prova ad autenticare le credenziali sul realm weblogic
             StrUserName = ObjEmbeddedAuthenticator.authenticate(ArrCredential[0], ArrCredential[1]);
@@ -578,7 +492,7 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
                   
          } catch (Exception ObjException) {
             String StrError = "Basic auth error";
-            LogMessage(LogLevel.ERROR,StrError,ObjException);
+            Logger.logMessage(LogLevel.ERROR,StrError,ObjException);
             throw new IdentityAssertionException(StrError);        
          }      
       }
@@ -590,9 +504,9 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
       if (StrAuthType.equals(TokenTypes.JWT_AUTH_ID)) {   
          
          // Se necessario genera logging di debug
-         LogMessage(LogLevel.DEBUG,"==========================================================================================");
-         LogMessage(LogLevel.DEBUG,"JWT AUTH");
-         LogMessage(LogLevel.DEBUG,"==========================================================================================");
+         Logger.logMessage(LogLevel.DEBUG,"==========================================================================================");
+         Logger.logMessage(LogLevel.DEBUG,"JWT AUTH");
+         Logger.logMessage(LogLevel.DEBUG,"==========================================================================================");
                
          try {            
             
@@ -604,7 +518,7 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
             
          } catch (Exception ObjException) {
             String StrError = "Token parsing error";
-            LogMessage(LogLevel.ERROR,StrError,ObjException);
+            Logger.logMessage(LogLevel.ERROR,StrError,ObjException);
             throw new IdentityAssertionException(StrError);        
          }
             
@@ -634,17 +548,19 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
             try {
                
                // Se necessario genera logging di debug
-               LogMessage(LogLevel.DEBUG,"------------------------------------------------------------------------------------------");
-               LogMessage(LogLevel.DEBUG,"KEYS RETRIEVE");
-               LogMessage(LogLevel.DEBUG,"------------------------------------------------------------------------------------------");
+               Logger.logMessage(LogLevel.DEBUG,"------------------------------------------------------------------------------------------");
+               Logger.logMessage(LogLevel.DEBUG,"KEYS RETRIEVE");
+               Logger.logMessage(LogLevel.DEBUG,"------------------------------------------------------------------------------------------");
+
+               // Imposta livello di padding
+               Logger.setPadLength(31);
 
                // Acquisisce payload delle chiavi pubbliche in formato stringa
-               String StrJwtKeys = getHttpResource(StrJwtKeysURL, 
-                                                   StrJwtKeysFormat.equals("XML")?("text/xml"):("application/json"),
+               String StrJwtKeys = HttpUtils.fetch(HttpMethod.GET,StrJwtKeysURL,StrJwtKeysFormat.equals("XML")?("text/xml"):("application/json"),
                                                    StrJwtKeysHostAuthMode, StrJwtKeysHostAccountPath,
                                                    StrJwtKeysProxyServerMode, StrJwtKeysProxyServerPath, 
                                                    StrJwtKeysSSLVerify.equals("ENABLE"), 
-                                                   IntJwtKeysConnTimeout, IntJwtKeysReadTimeout);
+                                                   IntJwtKeysConnTimeout, IntJwtKeysReadTimeout, Logger);
 
                // Inizializza
                XmlObject ObjJwtKeys;
@@ -653,7 +569,7 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
                if (StrJwtKeysFormat.equals("XML")) {
 
                   // Se necessario genera logging di debug
-                  LogMessage(LogLevel.TRACE, "Payload (XML) ........... : " + StrJwtKeys);
+                  Logger.logProperty(LogLevel.TRACE,"Payload (XML)",StrJwtKeys);
 
                   // Acquisisce chiavi in formato xml
                   ObjJwtKeys = XmlObject.Factory.parse(StrJwtKeys);
@@ -664,13 +580,13 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
                   JSONObject ObjJSON = new JSONObject(StrJwtKeys);
 
                   // Se necessario genera logging di debug
-                  LogMessage(LogLevel.TRACE,"Payload (JSON) .......... : " + ObjJSON.toString());
+                  Logger.logProperty(LogLevel.TRACE,"Payload (JSON)",ObjJSON.toString());
 
                   // Converte da JSON a XML
                   StrJwtKeys = "<root>"+XML.toString(ObjJSON)+"</root>";
                                                    
                   // Se necessario genera logging di debug
-                  LogMessage(LogLevel.TRACE, "Payload (XML) ........... : " + StrJwtKeys);
+                  Logger.logProperty(LogLevel.TRACE,"Payload (XML)",StrJwtKeys);
 
                   // Acquisisce chiavi dal formato xml
                   ObjJwtKeys = XmlObject.Factory.parse(StrJwtKeys);
@@ -678,14 +594,14 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
 
                // Prepara espressioni xpath ed eventuale logging
                String StrJwtKeysModulusParsedXPath = replaceTemplates(StrJwtKeysModulusXPath);
-               LogMessage(LogLevel.DEBUG,"Modulus XPath Parsed .... : "+StrJwtKeysModulusParsedXPath);
+               Logger.logProperty(LogLevel.DEBUG,"Modulus XPath Parsed",StrJwtKeysModulusParsedXPath);
 
                String StrJwtKeysExponentParsedXPath = replaceTemplates(StrJwtKeysExponentXPath);
-               LogMessage(LogLevel.DEBUG,"Exponent XPath Parsed ... : "+StrJwtKeysExponentParsedXPath);            
+               Logger.logProperty(LogLevel.DEBUG,"Exponent XPath Parsed",StrJwtKeysExponentParsedXPath);            
 
                // Estrapola modulo ed esponente
-               StrKeyModulus = getXMLTextValue(ObjJwtKeys,StrJwtKeysModulusParsedXPath);
-               StrKeyExponent = getXMLTextValue(ObjJwtKeys,StrJwtKeysExponentParsedXPath);
+               StrKeyModulus = XMLUtils.getTextValue(ObjJwtKeys,StrJwtKeysModulusParsedXPath);
+               StrKeyExponent = XMLUtils.getTextValue(ObjJwtKeys,StrJwtKeysExponentParsedXPath);
                
                // Se non è stata trovata alcuna chiave genera eccezione
                if (StrKeyModulus.equals("")||StrKeyExponent.equals("")) {
@@ -693,7 +609,7 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
                }               
             } catch (Exception ObjException) {
                String StrError = "Keys retrieving error";
-               LogMessage(LogLevel.ERROR,StrError,ObjException);
+               Logger.logMessage(LogLevel.ERROR,StrError,ObjException);
                throw new IdentityAssertionException(StrError);
             }   
                            
@@ -710,22 +626,22 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
          // ==================================================================================================================================
 
          // Se necessario genera logging di debug
-         LogMessage(LogLevel.DEBUG,"------------------------------------------------------------------------------------------");
-         LogMessage(LogLevel.DEBUG,"TOKEN VALIDATION");
-         LogMessage(LogLevel.DEBUG,"------------------------------------------------------------------------------------------");
+         Logger.logMessage(LogLevel.DEBUG,"------------------------------------------------------------------------------------------");
+         Logger.logMessage(LogLevel.DEBUG,"TOKEN VALIDATION");
+         Logger.logMessage(LogLevel.DEBUG,"------------------------------------------------------------------------------------------");
 
          // Se necessario genera logging di debug
-         LogMessage(LogLevel.DEBUG,"Key ID ............. : "+StrJwtKeyID);
-         LogMessage(LogLevel.TRACE,"Key Modulus ........ : "+StrKeyModulus);
-         LogMessage(LogLevel.TRACE,"Key Exponent ....... : "+StrKeyExponent);            
+         Logger.logMessage(LogLevel.DEBUG,"Key ID .........: "+StrJwtKeyID);
+         Logger.logMessage(LogLevel.TRACE,"Key Modulus ....: "+StrKeyModulus);
+         Logger.logMessage(LogLevel.TRACE,"Key Exponent ...: "+StrKeyExponent);            
 
          try {            
             // Verifica token jwt e genera logging
-            LogMessage(LogLevel.DEBUG,"Token validation ... : "+ObjJwtToken.verify(StrKeyModulus, StrKeyExponent));            
+            Logger.logMessage(LogLevel.DEBUG,"Validation .....: "+ObjJwtToken.verify(StrKeyModulus, StrKeyExponent));            
             
          } catch (Exception ObjException) {
             String StrError = "Token validation error";
-            LogMessage(LogLevel.ERROR,StrError,ObjException);
+            Logger.logMessage(LogLevel.ERROR,StrError,ObjException);
             throw new IdentityAssertionException(StrError);
          }
             
@@ -734,9 +650,9 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
          // ==================================================================================================================================
 
          // Se necessario genera logging di debug
-         LogMessage(LogLevel.DEBUG,"------------------------------------------------------------------------------------------");
-         LogMessage(LogLevel.DEBUG,"IDENTITY ASSERTION");
-         LogMessage(LogLevel.DEBUG,"------------------------------------------------------------------------------------------");
+         Logger.logMessage(LogLevel.DEBUG,"------------------------------------------------------------------------------------------");
+         Logger.logMessage(LogLevel.DEBUG,"IDENTITY ASSERTION");
+         Logger.logMessage(LogLevel.DEBUG,"------------------------------------------------------------------------------------------");
          
          // Se l'asserzione di identità non è definita esegue, altrimenti procede
          if (!StrJwtIdentityAssertion.equals("")) {
@@ -751,13 +667,13 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
                
             } catch (Exception ObjException) {
                String StrError = "Identity assertion error";
-               LogMessage(LogLevel.ERROR,StrError,ObjException);
+               Logger.logMessage(LogLevel.ERROR,StrError,ObjException);
                throw new IdentityAssertionException(StrError);
             }
          }
 
          // Se necessario genera logging di debug
-         LogMessage(LogLevel.DEBUG,"Token Identity .... : " + StrIdentity);
+         Logger.logMessage(LogLevel.DEBUG,"Token Identity ....: " + StrIdentity);
             
          // ==================================================================================================================================
          // Gestisce l'eventuale identity mapping
@@ -776,10 +692,10 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
                StrJwtIdentityMappingPath = replaceTemplates(StrJwtIdentityMappingPath);
                
                // Genera logging di debug
-               LogMessage(LogLevel.DEBUG,"Mapping Account ... : "+StrJwtIdentityMappingPath);
+               Logger.logMessage(LogLevel.DEBUG,"Mapping Account ...: "+StrJwtIdentityMappingPath);
                
                // Prova a mappare l'identità allo username mediante un service account OSB di mapping
-               StrUserName = getOSBMappedUser(StrJwtIdentityMappingPath,StrIdentity);
+               StrUserName = OSBUtils.getMappedUser(StrJwtIdentityMappingPath,StrIdentity);
 
                // Se il mapping è fallito genera eccezione
                if (StrUserName.equals("")) {
@@ -787,13 +703,13 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
                }            
             } catch (Exception ObjException) {
                String StrError = "Identity mapping error";
-               LogMessage(LogLevel.ERROR,StrError,ObjException);
+               Logger.logMessage(LogLevel.ERROR,StrError,ObjException);
                throw new IdentityAssertionException(StrError);
             }
          }
          
          // Se necessario genera logging di debug
-         LogMessage(LogLevel.DEBUG,"Realm UserName .... : " + StrUserName);
+         Logger.logMessage(LogLevel.DEBUG,"Realm UserName ....: " + StrUserName);
       }
       
       // ==================================================================================================================================
@@ -803,21 +719,21 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
       if (!StrValidationAssertion.equals("")) {
 
          // Se necessario genera logging di debug
-         LogMessage(LogLevel.DEBUG,"==========================================================================================");
-         LogMessage(LogLevel.DEBUG,"VALIDATION ASSERTION");
-         LogMessage(LogLevel.DEBUG,"==========================================================================================");
+         Logger.logMessage(LogLevel.DEBUG,"==========================================================================================");
+         Logger.logMessage(LogLevel.DEBUG,"VALIDATION ASSERTION");
+         Logger.logMessage(LogLevel.DEBUG,"==========================================================================================");
          
-         try {
+         try { 
             // Se l'espressione di validazione è positiva genera logging altrimenti eccezione
             if ((Boolean) evaluateScript(StrValidationAssertion,"Boolean"))  {
-               LogMessage(LogLevel.DEBUG,"Result: TRUE");
+               Logger.logMessage(LogLevel.DEBUG,"Result: TRUE");
             } else {
-               LogMessage(LogLevel.DEBUG,"Result: FALSE");
+               Logger.logMessage(LogLevel.DEBUG,"Result: FALSE");
                throw new Exception("evaluate to false");               
             }
          } catch (Exception ObjException) {
             String StrError = "Validation assertion error";
-            LogMessage(LogLevel.ERROR,StrError,ObjException);
+            Logger.logMessage(LogLevel.ERROR,StrError,ObjException);
             throw new IdentityAssertionException(StrError);
          }
       }
@@ -829,25 +745,25 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
       if (ArrDebuggingProperties.length>0) {
 
          // Se necessario genera logging di debug
-         LogMessage(LogLevel.DEBUG,"==========================================================================================");
-         LogMessage(LogLevel.DEBUG,"DEBUGGING PROPERTIES");
-         LogMessage(LogLevel.DEBUG,"==========================================================================================");
+         Logger.logMessage(LogLevel.DEBUG,"==========================================================================================");
+         Logger.logMessage(LogLevel.DEBUG,"DEBUGGING PROPERTIES");
+         Logger.logMessage(LogLevel.DEBUG,"==========================================================================================");
          
          try {
             for (String StrProperty : ArrDebuggingProperties) {
-               LogMessage(LogLevel.DEBUG,StrProperty+" => "+replaceTemplates(StrProperty));
+               Logger.logMessage(LogLevel.DEBUG,StrProperty+" => "+replaceTemplates(StrProperty));
             }  
          } catch (Exception ObjException) {
             String StrError = "Debug properties error";
-            LogMessage(LogLevel.WARN,StrError,ObjException);
+            Logger.logMessage(LogLevel.WARN,StrError,ObjException);
          }
       }
       
       // Genera logging di debug
-      LogMessage(LogLevel.DEBUG,"##########################################################################################");
+      Logger.logMessage(LogLevel.DEBUG,"##########################################################################################");
 
       // Genera logging di info su sintesi autenticazione
-      LogMessage(LogLevel.INFO,"Inbound Assertion ("+StrAuthType+") =>"+
+      Logger.logMessage(LogLevel.INFO,"Inbound Assertion ("+StrAuthType+") =>"+
                                " Proxy:"+StrServiceName+
                                ", User:"+StrUserName+((!StrIdentity.equals("")&&!StrIdentity.equals(StrUserName))?(" ("+StrIdentity+")"):(""))+
                                ", Client:"+StrClientHost+((!StrClientHost.equals(StrClientAddr))?(" ("+StrClientAddr+")"):(""))+
@@ -860,7 +776,7 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
    // ##################################################################################################################################
    // Evaluate script
    // ##################################################################################################################################
-   public Object evaluateScript(String StrScript, String StrClassName) throws Exception {
+   private Object evaluateScript(String StrScript, String StrClassName) throws Exception {
             
       // ==================================================================================================================================
       // Esegue lo script e ne verifica la classe di output
@@ -882,7 +798,8 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
    // ##################################################################################################################################
    // Replace template variables
    // ##################################################################################################################################
-   public String replaceTemplates(String StrText) throws Exception {
+
+   private String replaceTemplates(String StrText) throws Exception {
       
       // ==================================================================================================================================
       // Gestisce variabili di sostituzione
@@ -942,27 +859,37 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
                         case "header": 
                            if (!ArrVariableTokens[2].equals("*")) {
                               StrVariableValue = (String) ObjJwtToken.getHeader().get(ArrVariableTokens[2]);
-                           } else {
-                              Map<Object,Object> ObjPayload = ObjJwtToken.getHeader();                             
+                           } else if (!ObjJwtToken.isReady()) {
+                              StrVariableValue = "''";
+                           } else {                 
+                              Map<String,Object> ObjMapper = ObjJwtToken.getHeader();   
+                              int IntMaxLength = StringUtils.getMaxLength(ObjMapper.keySet().iterator());                                                     
                               
-                              StrVariableValue = "\n"+getLogMessage(LogLevel.DEBUG,"------------------------------------------------------------------------------------------\n");
-                              for (Map.Entry<Object,Object> ObjEntry : ObjPayload.entrySet()) {
-                                 StrVariableValue+= getLogMessage(LogLevel.DEBUG,ObjEntry.getKey()+": "+ObjEntry.getValue()+"\n");
+                              StrVariableValue = "\n"+Logger.formatMessage(LogLevel.DEBUG,"------------------------------------------------------------------------------------------\n");                              
+                              for (Map.Entry<String,Object> ObjEntry : ObjMapper.entrySet()) {
+                                 Object ObjValue = ObjEntry.getValue();
+                                 String StrQuotes = ((ObjValue instanceof String)?("\""):(""));
+                                 StrVariableValue+= Logger.formatMessage(LogLevel.DEBUG,StringUtils.padRight(ObjEntry.getKey()+" ",IntMaxLength+4,".")+": "+StrQuotes+ObjValue+StrQuotes+"\n");
+                              }                              
+                              StrVariableValue+= Logger.formatMessage(LogLevel.DEBUG,"------------------------------------------------------------------------------------------");
                               }
-                              StrVariableValue+= getLogMessage(LogLevel.DEBUG,"------------------------------------------------------------------------------------------");
-                           }
                            break;                     
-                        case "payload": 
+                        case "payload":
                            if (!ArrVariableTokens[2].equals("*")) {
                               StrVariableValue = (String) ObjJwtToken.getPayload().get(ArrVariableTokens[2]);
-                           } else {
-                              Map<Object,Object> ObjHeader = ObjJwtToken.getPayload();                             
+                           } else if (!ObjJwtToken.isReady()) {
+                              StrVariableValue = "''";
+                           } else {     
+                              Map<String,Object> ObjMapper = ObjJwtToken.getPayload();   
+                              int IntMaxLength = StringUtils.getMaxLength(ObjMapper.keySet().iterator());                                                     
                               
-                              StrVariableValue = "\n"+getLogMessage(LogLevel.DEBUG,"------------------------------------------------------------------------------------------\n");
-                              for (Map.Entry<Object,Object> ObjEntry : ObjHeader.entrySet()) {
-                                 StrVariableValue+= getLogMessage(LogLevel.DEBUG,ObjEntry.getKey()+": "+ObjEntry.getValue()+"\n");
-                              }
-                              StrVariableValue+= getLogMessage(LogLevel.DEBUG,"------------------------------------------------------------------------------------------");
+                              StrVariableValue = "\n"+Logger.formatMessage(LogLevel.DEBUG,"------------------------------------------------------------------------------------------\n");                              
+                              for (Map.Entry<String,Object> ObjEntry : ObjMapper.entrySet()) {
+                                 Object ObjValue = ObjEntry.getValue();
+                                 String StrQuotes = ((ObjValue instanceof String)?("\""):(""));
+                                 StrVariableValue+= Logger.formatMessage(LogLevel.DEBUG,StringUtils.padRight(ObjEntry.getKey()+" ",IntMaxLength+4,".")+": "+StrQuotes+ObjValue+StrQuotes+"\n");
+                              }                              
+                              StrVariableValue+= Logger.formatMessage(LogLevel.DEBUG,"------------------------------------------------------------------------------------------");
                            }
                            break;
                      }
@@ -1003,19 +930,23 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
                               StrVariableValue = (String) ObjRequest.getHeader(ArrVariableTokens[2]); 
                            } else {
                               String StrHeaderName;
-                              String StrHeaderValue;                              
-                              Enumeration ObjEnumeration = ObjRequest.getHeaderNames();
+                              String StrHeaderValue;   
                               
-                              // Costruire elenco header ad esclusione di "Authorization" per evitare dati sensibili nei log in caso di basic auth
-                              StrVariableValue = "\n"+getLogMessage(LogLevel.DEBUG,"------------------------------------------------------------------------------------------\n");
-                              while (ObjEnumeration.hasMoreElements()) {
-                                 StrHeaderName = (String) ObjEnumeration.nextElement();
-                                 if (!StrHeaderName.equals("Authorization")) {
+                              List<String> ArrExclusions = Arrays.asList("Authorization");
+                              Enumeration<String> ObjEnumerator = ObjRequest.getHeaderNames();
+                              Iterator<String> ObjIterator = Collections.list(ObjEnumerator).iterator();                                                           
+                              int IntMaxLength = StringUtils.getMaxLength(ObjIterator,ArrExclusions);
+                              ObjEnumerator = ObjRequest.getHeaderNames();
+                              
+                              StrVariableValue = "\n"+Logger.formatMessage(LogLevel.DEBUG,"------------------------------------------------------------------------------------------\n");
+                              while (ObjEnumerator.hasMoreElements()) {
+                                 StrHeaderName = ObjEnumerator.nextElement();
+                                 if (!ArrExclusions.contains(StrHeaderName)) {
                                     StrHeaderValue = ObjRequest.getHeader(StrHeaderName);
-                                    StrVariableValue+= getLogMessage(LogLevel.DEBUG,StrHeaderName+": "+StrHeaderValue+"\n");
+                                    StrVariableValue+= Logger.formatMessage(LogLevel.DEBUG,StringUtils.padRight(StrHeaderName+" ",IntMaxLength+4,".")+": "+StrHeaderValue+"\n");
                                  }
                               }
-                              StrVariableValue+= getLogMessage(LogLevel.DEBUG,"------------------------------------------------------------------------------------------");
+                              StrVariableValue+= Logger.formatMessage(LogLevel.DEBUG,"------------------------------------------------------------------------------------------");
                            }
                            break;
                      }
@@ -1028,9 +959,6 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
             throw new Exception("invalid template variable '"+StrVariableName+"'");
          }
          
-         // Genera logging
-         LogMessage(LogLevel.TRACE,"Template Variable #"+IntIndex+": "+StrTemplate+" => "+((StrVariableValue.equals("null")||StrVariableValue.equals(""))?("empty"):(StrVariableValue)));
-         
          // Esegue sostituzione della variabile template         
          StrText = StrText.replace(StrTemplate,StrVariableValue);
       }
@@ -1038,610 +966,11 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
       // Restituisce stringa con i template sostituiti
       return StrText;
    }
-
-   // ##################################################################################################################################
-   // Networking Utilities
-   // ##################################################################################################################################
-
-   // ==================================================================================================================================
-   // Acquisisce risorva via http
-   // ==================================================================================================================================
-   public String getHttpResource(String StrRequestURL, 
-                                 String StrContentType, 
-                                 String StrAuthMode,String StrAuthPath, 
-                                 String StrProxyMode, String StrProxyPath,
-                                 Boolean BolSSLEnforce, int IntConnectTimeout,int IntRequestTimeout) throws Exception {
-
-      // ==================================================================================================================================
-      // Dichiara variabili
-      // ==================================================================================================================================
-      String StrPayload;
-      HttpResponse ObjHttpResponse;
-      final Map ObjContext = new HashMap();
-      final CloseableHttpClient ObjHttpClient;
-      final HttpGet ObjHttpRequest = new HttpGet(StrRequestURL);
-      ArrayList<Object[]> ArrLoginContext = new ArrayList<Object[]>();
-
- 
-      // ==================================================================================================================================
-      // Prepara la request e la esegue
-      // ==================================================================================================================================
-      ObjHttpClient = buildHttpClient(StrRequestURL, 
-                                      StrAuthMode, StrAuthPath, StrProxyMode, StrProxyPath, 
-                                      BolSSLEnforce, IntConnectTimeout, IntRequestTimeout, ArrLoginContext);
-   
-      // Se non è stato allocato alcun login context kerberos esegue, altrimenti procede
-      if (ArrLoginContext.size() == 0) {
-         
-         // Esegue la request nel contesto ordinario, altimenti procede
-         ObjHttpResponse = ObjHttpClient.execute(ObjHttpRequest);
-                        
-      } else {
-         
-         // Acquisisce i login context kerberos (al momento supportato solo un context)
-         Object[] ArrObject = ArrLoginContext.get(0);
-         LoginModule ObjLoginModule = (LoginModule) ArrObject[0];
-         Subject ObjSubject = (Subject) ArrObject[1];
-         
-         // Racchiude la request in contesto privilegiato
-         PrivilegedAction ObjAction = new PrivilegedAction() {
-            @Override
-            public Object run() {
-               try {
-                  ObjContext.put("response",ObjHttpClient.execute(ObjHttpRequest));
-               } catch (Exception ObjException) {
-                  ObjContext.put("exception",ObjException);
-               }                       
-               
-               return true;
-            }
-         };
-
-         // Esecuzione privilegiata della request
-         Subject.doAs(ObjSubject, ObjAction);
-         
-         // Esegue logout e svuota l'array
-         ObjLoginModule.logout();
-         ArrLoginContext.clear();
-         
-         // Se c'è stata eccezione la genera
-         if (ObjContext.containsKey("exception")) {
-            throw (Exception) ObjContext.get("exception");
-         }
-         
-         // Acquisisce response
-         ObjHttpResponse = (HttpResponse) ObjContext.get("response");
-      }
-
-      // ==================================================================================================================================
-      // Gestisce la response
-      // ==================================================================================================================================
-
-      // Se lo statuscode è diverso da 200 genera eccezione
-      if (ObjHttpResponse.getStatusLine().getStatusCode() != 200) {
-         throw new Exception(ObjHttpResponse.getStatusLine().getReasonPhrase()+" (HTTP "+ObjHttpResponse.getStatusLine().getStatusCode()+")");
-      }
-
-      // Se il content-type non Ã¨ corretto genera eccezione
-      if (!ObjHttpResponse.getEntity().getContentType().getValue().startsWith(StrContentType)) {
-         throw new Exception("Unexpected content-type ("+ObjHttpResponse.getEntity().getContentType().getValue()+")");
-      }
-
-      // Acquisisce payload in formato testo
-      StrPayload = IOUtils.toString(ObjHttpResponse.getEntity().getContent());
-
-      // Restituisce payload al chiamante
-      return StrPayload;
-   }
-
-   // ==================================================================================================================================
-   // Prepara request http
-   // ==================================================================================================================================
-   public CloseableHttpClient buildHttpClient(String StrRequestURL, 
-                                              String StrHostAuthMode, String StrHostAccountPath, 
-                                              String StrProxyAuthMode, String StrProxyServerPath, 
-                                              Boolean BolSSLEnforce, int IntConnectTimeout,int IntRequestTimeout,
-                                              ArrayList<Object[]> ArrLoginContext) throws Exception {
-               
-      // ==================================================================================================================================
-      // Dichiara variabili
-      // ==================================================================================================================================
-      String[] ArrParts;
-      String StrSplitDomain;
-      String StrSplitUserName;
-      ArrayList<String> ArrTargetAuthSchemes = new ArrayList<String>();
-      
-      // ==================================================================================================================================
-      // Prepara configurazione request di base
-      // ==================================================================================================================================
-
-      // Configurazione base
-      RequestConfig.Builder ObjRequestConfigBuilder =
-         RequestConfig.custom().setConnectTimeout(IntConnectTimeout * 1000)
-                               .setConnectionRequestTimeout(IntRequestTimeout * 1000);
-              
-      // ==================================================================================================================================
-      // Prepara configurazione per autenticazione
-      // ==================================================================================================================================
-
-      // Prepara provider delle credenziali
-      BasicCredentialsProvider ObjAuthCredsProvider = new BasicCredentialsProvider();
-
-      // Prepara schemi di autenticazione supportati
-      RegistryBuilder<AuthSchemeProvider> ObjAuthSchemeRegistry = RegistryBuilder.<AuthSchemeProvider>create();         
-      
-      // ==================================================================================================================================
-      // Se richiesto gestisce url con autenticazione
-      // ==================================================================================================================================
-
-      if (!StrHostAuthMode.equals("ANONYMOUS")) {
-         
-         // Se presenti rimpiazza i template nel path osb del service account
-         StrHostAccountPath = replaceTemplates(StrHostAccountPath);
-         
-         // Genera logging di debug
-         LogMessage(LogLevel.DEBUG,"Host Auth Account ....... : "+StrHostAccountPath);                  
-
-         // Acquisisce risorsa service accountin formato XML
-         XmlObject ObjServiceAccount = getOSBResource("ServiceAccount", StrHostAccountPath);
-
-         // Acquisisce credenziali
-         String StrHostUserName = getXMLTextValue(ObjServiceAccount, "//*:username/text()");
-         String StrHostPassword = getXMLTextValue(ObjServiceAccount, "//*:password/text()");
-
-         // Prepara auth scope dell'host
-         URL ObjRequestURL = new URL(StrRequestURL);
-         AuthScope ObjHostAuthScope = new AuthScope(new HttpHost(ObjRequestURL.getHost(), ObjRequestURL.getPort()));
-
-         switch (StrHostAuthMode) {
-
-            // ----------------------------------------------------------------------------------------------------------------------------------
-            // Autenticazione BASIC
-            // ----------------------------------------------------------------------------------------------------------------------------------
-            case "BASIC":
-               
-               // Genera logging di debug
-               LogMessage(LogLevel.DEBUG,"Host Auth UserName ...... : "+StrHostUserName);                  
-
-               // Predispone schema di autenticazione
-               ArrTargetAuthSchemes.add(AuthSchemes.BASIC);
-               ObjAuthSchemeRegistry.register(AuthSchemes.BASIC,new BasicSchemeFactory());
-
-               // Predispone credenziali
-               ObjAuthCredsProvider.setCredentials(ObjHostAuthScope,new UsernamePasswordCredentials(StrHostUserName, StrHostPassword));
-               break;
-            
-            // ----------------------------------------------------------------------------------------------------------------------------------
-            // Autenticazione NTLM
-            // ----------------------------------------------------------------------------------------------------------------------------------
-            case "NTLM":
-               
-               // Prepara credenziali
-               ArrParts = StrHostUserName.split("\\\\", 2);
-               
-               StrSplitDomain = null;
-               StrSplitUserName = null;
-                                       
-               if (ArrParts.length>1) {
-                  StrSplitDomain = ArrParts[0];
-                  StrSplitUserName = ArrParts[1];               
-               } else {
-                  StrSplitUserName = ArrParts[0];               
-               }
-               
-               // Genera logging di debug
-               LogMessage(LogLevel.DEBUG,"Host Auth Domain ........  : "+StrSplitDomain);                  
-               LogMessage(LogLevel.DEBUG,"Host Auth UserName ...... : "+StrSplitUserName);   
-
-               // Predispone schema di autenticazione
-               ArrTargetAuthSchemes.add(AuthSchemes.NTLM);
-               ObjAuthSchemeRegistry.register(AuthSchemes.NTLM,new NTLMSchemeFactory());
-
-               // Predispone credenziali
-               ObjAuthCredsProvider.setCredentials(ObjHostAuthScope,new NTCredentials(StrSplitUserName, StrHostPassword, null, StrSplitDomain));
-               break;
-               
-            // ----------------------------------------------------------------------------------------------------------------------------------
-            // Autenticazione KERBEROS
-            // ----------------------------------------------------------------------------------------------------------------------------------
-            case "KERBEROS":
-               
-               // Genera logging di debug
-               LogMessage(LogLevel.DEBUG,"Host Auth Principal ..... : "+StrHostUserName);   
-               
-               // Esegue login kerberos
-               ArrLoginContext.add(loginKerberos(StrKerberosConfiguration,StrHostUserName,StrHostPassword));
-               
-               // Predispone schema di autenticazione
-               ArrTargetAuthSchemes.add(AuthSchemes.SPNEGO);               
-               ObjAuthSchemeRegistry.register(AuthSchemes.SPNEGO,new SPNegoSchemeFactory());
-
-               // Predispone credenziali
-               ObjAuthCredsProvider.setCredentials(ObjHostAuthScope,
-                  new Credentials() {
-                     public String getPassword() { return null; }
-                     public Principal getUserPrincipal() { return null; } 
-                  });
-               
-               break;        
-            }
-      }
-
-      // ==================================================================================================================================
-      // Se richiesto acquisisce parametri proxy
-      // ==================================================================================================================================
-      if (!StrProxyAuthMode.equals("DIRECT")) {
-         
-         // Se presenti rimpiazza i template nel path osb del service account
-         StrProxyServerPath = replaceTemplates(StrProxyServerPath);
-         
-         // Genera logging di debug
-         LogMessage(LogLevel.DEBUG,"Proxy Server Resource ... : "+StrProxyServerPath);                  
-
-         // Acquisisce risorsa ESB proxy in formato XML
-         XmlObject ObjProxyServer = getOSBResource("ProxyServer", StrProxyServerPath);
-
-         // Esegue parsing dei vari parametri del proxy
-         String StrProxyHost = getXMLTextValue(ObjProxyServer, "//*:server/@host");
-         int IntProxyPort = Integer.valueOf(getXMLTextValue(ObjProxyServer, "//*:server/@port"));
-
-         // Se necessario genera logging di debug
-         LogMessage(LogLevel.DEBUG,"Proxy Server Host ....... : "+StrProxyHost);                  
-         LogMessage(LogLevel.DEBUG,"Proxy Server Port ....... : "+IntProxyPort);                  
-         
-         // Prepara auth scope del proxy
-         HttpHost ObjProxyHost = new HttpHost(StrProxyHost, IntProxyPort);
-         AuthScope ObjProxyAuthScope = new AuthScope(ObjProxyHost);
-
-         // Aggiunge parametro proxy a request client
-         ObjRequestConfigBuilder.setProxy(ObjProxyHost);
-
-         // Gestisce autenticazione proxy
-         if (!StrProxyAuthMode.equals("ANONYMOUS")) {
-
-            // Acquisisce credenziali
-            String StrProxyUserName = getXMLTextValue(ObjProxyServer, "//*:username/text()");
-            String StrProxyPassword = getXMLTextValue(ObjProxyServer, "//*:password/text()");
-            
-            switch (StrProxyAuthMode) {
-
-               // ----------------------------------------------------------------------------------------------------------------------------------
-               // Autenticazione BASIC
-               // ----------------------------------------------------------------------------------------------------------------------------------
-               case "BASIC":
-                  
-                  // Genera logging di debug
-                  LogMessage(LogLevel.DEBUG,"Proxy Server Auth UserName: "+StrProxyUserName);                  
-   
-                  // Se necessario predispone schema di autenticazione
-                  if (!StrHostAuthMode.equals("BASIC")) {
-                     ArrTargetAuthSchemes.add(AuthSchemes.BASIC);                              
-                     ObjAuthSchemeRegistry.register(AuthSchemes.BASIC,new BasicSchemeFactory());
-                  }
-                  
-                  // Predispone credenziali
-                  ObjAuthCredsProvider.setCredentials(ObjProxyAuthScope,new UsernamePasswordCredentials(StrProxyUserName,StrProxyPassword));
-                  break;
-
-               // ----------------------------------------------------------------------------------------------------------------------------------
-               // Autenticazione NTLM
-               // ----------------------------------------------------------------------------------------------------------------------------------
-               case "NTLM":
-                  
-                  // Prepara credenziali
-                  ArrParts = StrProxyUserName.split("\\\\", 2);   
-                  
-                  StrSplitDomain = null;
-                  StrSplitUserName = null;
-                                       
-                  if (ArrParts.length>1) {
-                     StrSplitDomain = ArrParts[0];
-                     StrSplitUserName = ArrParts[1];               
-                  } else {
-                     StrSplitUserName = ArrParts[0];               
-                  }
-
-                  // Genera logging di debug
-                  LogMessage(LogLevel.TRACE,"Proxy Server Auth Domain : "+StrSplitDomain);                  
-                  LogMessage(LogLevel.TRACE,"Proxy Server Auth UserName: "+StrSplitUserName);  
-                  
-                  // Se necessario predispone schema di autenticazione
-                  if (!StrHostAuthMode.equals("NTLM")) {
-                     ArrTargetAuthSchemes.add(AuthSchemes.NTLM); 
-                     ObjAuthSchemeRegistry.register(AuthSchemes.NTLM,new NTLMSchemeFactory());
-                  }
-                  
-                  // Predispone credenziali
-                  ObjAuthCredsProvider.setCredentials(ObjProxyAuthScope,new NTCredentials(StrSplitUserName, StrProxyPassword, null,StrSplitDomain));
-                  break;
-               
-               // ----------------------------------------------------------------------------------------------------------------------------------
-               // Autenticazione KERBEROS
-               // ----------------------------------------------------------------------------------------------------------------------------------
-               case "KERBEROS":
-                  
-                  // Genera logging di debug
-                  LogMessage(LogLevel.DEBUG,"Proxy Server Auth Principal: "+StrProxyUserName);   
-                  
-                  // Esegue login kerberos
-                  ArrLoginContext.add(loginKerberos(StrKerberosConfiguration,StrProxyUserName,StrProxyPassword));                  
-
-                  // Se necessario predispone schema di autenticazione
-                  if (!StrHostAuthMode.equals("KERBEROS")) {
-                     ArrTargetAuthSchemes.add(AuthSchemes.SPNEGO); 
-                     ObjAuthSchemeRegistry.register(AuthSchemes.SPNEGO,new SPNegoSchemeFactory());                     
-                  }
-
-                  // Predispone credenziali
-                  ObjAuthCredsProvider.setCredentials(ObjProxyAuthScope,                     
-                     new Credentials() {
-                        public String getPassword() { return null; }
-                        public Principal getUserPrincipal() { return null; } 
-                     });
-                  
-                  break;        
-            }
-         }         
-      }
-
-      // ==================================================================================================================================
-      // Prepara request client
-      // ==================================================================================================================================
-
-      // Evita il fastidioso logging che avvisa della mancanza di supporto per uno schema proposto dal server
-      ObjRequestConfigBuilder.setTargetPreferredAuthSchemes(ArrTargetAuthSchemes);
-
-      // Request client base
-      HttpClientBuilder ObjHttpClientBuilder = HttpClients.custom()
-         .setDefaultCredentialsProvider(ObjAuthCredsProvider)
-         .setDefaultAuthSchemeRegistry(ObjAuthSchemeRegistry.build())
-         .setDefaultRequestConfig(ObjRequestConfigBuilder.build());
-
-      // Aggiunge eventuale tolleranza errori certificati ssl
-      if (!BolSSLEnforce)
-         ObjHttpClientBuilder.setSSLHostnameVerifier(NoopHostnameVerifier.INSTANCE)
-                             .setSSLContext(new SSLContextBuilder().loadTrustMaterial(null,TrustAllStrategy.INSTANCE).build());
-            
-      // Restituisce client http
-      return ObjHttpClientBuilder.build();
-   }
-      
-   // ##################################################################################################################################
-   // Security Utilities
-   // ##################################################################################################################################
-   
-   // ==================================================================================================================================
-   // Esegue autenticazione kerberos
-   // ==================================================================================================================================
-   private static Object[] loginKerberos(String StrKerberosConfiguration, 
-                                         String StrPrincipal,String StrPassword) throws Exception {
-      
-      // Crea file temporanei per configurazione kerberos
-      File ObjKerberosAuthConfig = File.createTempFile("krb5-", ".conf");
-      ObjKerberosAuthConfig.deleteOnExit();
-      
-      // Ppopla i file temporanei   
-      FileWriter ObjWriter;
-      ObjWriter = new FileWriter(ObjKerberosAuthConfig);
-      IOUtils.write(StrKerberosConfiguration,ObjWriter);         
-      IOUtils.closeQuietly(ObjWriter);
-                             
-      // Imposta proprietà di sistema kerberos
-      System.setProperty("java.security.krb5.conf", ObjKerberosAuthConfig.toURI().toString());
-      System.setProperty("javax.security.auth.useSubjectCredsOnly","false");
-      
-      // Commentato perchè non più supportato sulla 14.1.2. In ogni caso è di dubbia utilità 
-      //sun.security.krb5.Config.refresh();
-
-      // Imposta parametri del LoginModule
-      Map ObjState = new HashMap();
-      Map ObjOptions = new HashMap();
-      Subject ObjSubject = new Subject();
-
-      ObjOptions.put("doNotPrompt", "true");
-      ObjOptions.put("useFirstPass", "true");
-      ObjOptions.put("refreshKrb5Config", "true");
-
-      ObjState.put("javax.security.auth.login.name", StrPrincipal);
-      ObjState.put("javax.security.auth.login.password", StrPassword.toCharArray());
-
-      LoginModule ObjLoginModule = null;
-      try {         
-         // Inizializza loginmodule ed esegue autenticazione
-         ObjLoginModule = (LoginModule) Class.forName("com.sun.security.auth.module.Krb5LoginModule").newInstance();      
-         ObjLoginModule.initialize(ObjSubject, null, ObjState, ObjOptions);
-         ObjLoginModule.login();
-         ObjLoginModule.commit();  
-         
-      } catch (Exception ObjException) {     
-                  
-         // Abortisce il login
-         if (ObjLoginModule!=null) ObjLoginModule.abort();
-         
-         // Rimuove file temporanei
-         ObjKerberosAuthConfig.delete();
-         
-         // Ribalta l'eccezione propagando la causa         
-         throw ObjException;
-      }
-                  
-      // Rimuove file temporanei
-      ObjKerberosAuthConfig.delete();
-
-      // Restituisce LoginModule e Subject
-      return new Object[]{ObjLoginModule,ObjSubject};
-   }
-   
-   // ##################################################################################################################################
-   // OSB Utilities
-   // ##################################################################################################################################
-
-   // ==================================================================================================================================
-   // Esegue credential mapping del client_id sull'utenza del realm
-   // ==================================================================================================================================
-   public static String getOSBMappedUser(String StrServiceAccountPath, String StrRemoteUser) throws Exception {
-      return getXMLTextValue(getOSBResource("ServiceAccount", StrServiceAccountPath),"//*:user-mapping[@remote-user='" + StrRemoteUser + "']/@local-user");
-   }
-
-   // ==================================================================================================================================
-   // Acquisisce risorsa OSB in formato XML
-   // ==================================================================================================================================
-   public static XmlObject getOSBResource(String StrResourceType, String StrResourcePath) throws Exception {
-
-      // Prepara puntamento al service account per il mapping delle utenze
-      Ref ObjResourceRef = getOSBResourceRef(StrResourceType, StrResourcePath);
-
-      // Acquisisce la risorsa con l'interfaccia generale che restituisce l'istanza nella classe specifica
-      Object ObjResourceData =
-         ALSBConfigService.get().getConfigService().getConfigContext().getResourceData(ObjResourceRef, true);
-
-      // Prepara estrazione della risorsa per mezzo della reflection per bypassare gli eventuali controlli di accesso
-      Method ObjMethod = ObjResourceData.getClass().getDeclaredMethod("toExportedForm", PBE_EncryptionService.class);
-      ObjMethod.setAccessible(true);
-
-      // Esegue estrazione e ne riesegue il parsing dell'XML per poter creare un elemento radice appropriato (altrimenti si genera un xml-fragment problematico)
-      XmlObject ObjResourceXML = XmlObject.Factory.parse(XmlObject.class.cast(ObjMethod.invoke(ObjResourceData, new Object[] {null})).xmlText(new XmlOptions().setSaveSyntheticDocumentElement(new QName("root"))));
-
-      // Restituisce service account
-      return ObjResourceXML;
-   }
-
-   // ==================================================================================================================================
-   // Acquisisce puntamento a risorsa OSB
-   // ==================================================================================================================================
-   private static Ref getOSBResourceRef(String StrResourceType, String StrResourcePath) {
-      return new com.bea.wli.config.Ref(StrResourceType, Ref.getNames(StrResourcePath));
-   }
-
-   // ##################################################################################################################################
-   // String Utilities
-   // ##################################################################################################################################
-
-   // ==================================================================================================================================
-   // Fonde array di stringhe
-   // ==================================================================================================================================
-   private static String joinStringArray(String[] ArrStrings, String StrSeparator) {
-            
-      String StrOutput = "";
-      for (int IntIndex=0;IntIndex<ArrStrings.length;IntIndex++){            
-         StrOutput+= ((IntIndex>0)?(StrSeparator):(""))+ArrStrings[IntIndex].trim();   
-      } 
-      
-      return StrOutput;
-   }
-
-   // ##################################################################################################################################
-   // XML Utilities
-   // ##################################################################################################################################
-
-   // ==================================================================================================================================
-   // Estrare valore testuale del primo nodo selzionato dall'espressione xpath
-   // ==================================================================================================================================
-   public static String getXMLTextValue(XmlObject ObjDocument, String StrSelectPath) {
-
-      // Variabli locali
-      XmlCursor ObjCursor;
-      String StrTextValue = "";
-
-      // Seleziona il path richiesto
-      ObjCursor = ObjDocument.newCursor();
-      ObjCursor.selectPath(StrSelectPath);
-
-      // Estrae il valore dell'attributo richiesto
-      if (ObjCursor.toNextSelection())
-         StrTextValue = ObjCursor.getTextValue();
-
-      // Dealloca il cursore
-      ObjCursor.dispose();
-
-      // Restituisce return-code
-      return StrTextValue;
-   }
-
-   // ##################################################################################################################################
-   // Logging Utilities
-   // ##################################################################################################################################
-
-   // ==================================================================================================================================
-   // Formatta lo stack trace
-   // ==================================================================================================================================
-
-   public static String getStackTrace(int IntLines,Exception ObjException) {
-            
-      // Acquisisce lo stacktrace
-      StringWriter ObjStringWriter = new StringWriter();
-      PrintWriter ObjPrintWriter = new PrintWriter(ObjStringWriter);
-      ObjException.printStackTrace(ObjPrintWriter);
-      
-      // Frammenta lo stacktrace in righe
-      String[] ArrStackTrace = ObjStringWriter.toString().split("\n");
-      
-      // Filtra le righe richieste
-      String StrStackTrace = "";            
-      for (int IntIndex=0;IntIndex<Math.min(IntLines,ArrStackTrace.length);IntIndex++) {
-         StrStackTrace+= (StrStackTrace.equals("")?(""):("\n"))+ArrStackTrace[IntIndex].toString();
-      }
-      
-      // Restituisce stacktrace filtrato
-      return StrStackTrace;
-   }
-   
-   // ==================================================================================================================================
-   // Gestione del logging
-   // ==================================================================================================================================
-
-   public void LogMessage(int IntLevel,String StrMessage) {
-      LogMessage(IntLevel,StrMessage,null);
-   }   
-
-   public void LogMessage(int IntLevel,String StrMessage,Object ObjDetails) {
-                  
-      // Se il livello di logging dichiarato è sopra la soglia di filtro esegue
-      if (Math.max(IntLoggingLevel,IntLoggingLevelMin)<=IntLevel) {
-         
-         // Se i dettagli forniti sono una stringa la predispone
-         String StrDetails = (ObjDetails!=null)&&(ObjDetails instanceof String)?((String)ObjDetails):("");
-         
-         // Se i dettagli forniti sono una eccezione la predispone
-         Exception ObjException = (ObjDetails!=null)&&(ObjDetails instanceof Exception)?((Exception)ObjDetails):(null);
-                  
-         // Prova a costruire la stringa di suffisso del messaggio
-         String StrSuffix = StrDetails+(((ObjException!=null)&&(ObjException.getCause()!=null))?(ObjException.getCause()):(""));
-         
-         // Se il suffisso non è stato popolato e c'è una eccezione prova a estrapolare la prima dello stacktrace
-         if (StrSuffix.equals("")&&(ObjException!=null)) {
-            String[] ArrSuffix = getStackTrace(1,ObjException).split(":",2);
-            StrSuffix = ArrSuffix[ArrSuffix.length-1].trim();
-         }
-                                                                                                   
-         // Genera messaggio di log
-         System.out.println(getLogMessage(IntLevel,StrMessage)+
-                            ((!StrSuffix.equals(""))?(": "+StrSuffix):("")));
-         
-         // Se necessario genera marker+stacktrace
-         if ((ObjException!=null)&&(IntLevel==LogLevel.ERROR)&&(Math.max(IntLoggingLevel,IntLoggingLevelMin)==LogLevel.TRACE)&&(IntLoggingLines>0)) {            
-            System.out.println("--- StackTrace ---------------------------------------------------------------------------------------------------------------");
-            System.out.println(getStackTrace(IntLoggingLines,ObjException));
-            System.out.println("------------------------------------------------------------------------------------------------------------------------------");            
-         }
-      }
-   }   
-
-   public static String getLogMessage(int IntLevel,String StrMessage) {
-      return new SimpleDateFormat("'<'yyyy-MM-dd HH:mm:ss'>'").format(new Date(System.currentTimeMillis()))+
-                                  " <CIA> "+
-                                  String.format("%-8s","<" + LogLevel.getDescription(IntLevel)+">")+
-                                  StrMessage;
-   }   
-
-   // ##################################################################################################################################
-   // Other Utilities
-   // ##################################################################################################################################
-   
+    
    // ==================================================================================================================================
    // Verifica se un parametro obbligatorio e valorizzato
    // ==================================================================================================================================
-   public Object checkMandatoryParameter(String StrParameterName,Object ObjParameterValue) throws IdentityAssertionException {
+   private Object validateParameter(String StrParameterName,Object ObjParameterValue) throws IdentityAssertionException {
 
       // Prepara nome della classe del parametro
       String StrClassName = (ObjParameterValue==null)?("null"):(ObjParameterValue.getClass().getSimpleName());
@@ -1652,7 +981,7 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
       }
       
       // Se necessario genera trace
-      LogMessage(LogLevel.TRACE,
+      Logger.logMessage(LogLevel.TRACE,
                  "Checking Parameter "+StrParameterName+": "+
                  ((ObjParameterValue==null)?("is null"):
                   ("class '"+StrClassName+"' "+
@@ -1663,47 +992,11 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
       if ((ObjParameterValue==null)||
           ((StrClassName.equals("String"))&&((String)ObjParameterValue).equals(""))) {
          String StrError = "Configuration error";
-         LogMessage(LogLevel.ERROR,StrError,"mandatory parameter missing '"+StrParameterName+"'");
+         Logger.logMessage(LogLevel.ERROR,StrError,"mandatory parameter missing '"+StrParameterName+"'");
          throw new IdentityAssertionException(StrError);
       }
       
       // Restituisce valore eventualmente corretto con trim
       return ObjParameterValue;
    }   
-   
-   // ==================================================================================================================================
-   // Permette di manipolare un attributo static/private di una classe
-   // ==================================================================================================================================
-   public static void setFinalStatic(Field ObjField, Object ObjValue) throws Exception {
-      ObjField.setAccessible(true);
-      Field ObjModifiersField = Field.class.getDeclaredField("modifiers");
-      ObjModifiersField.setAccessible(true);
-      ObjModifiersField.setInt(ObjField, ObjField.getModifiers() & ~Modifier.FINAL);
-      ObjField.set(null,ObjValue);
-   }
-
-   // ==================================================================================================================================
-   // Converte array di byte in stringa esadecimale
-   // ==================================================================================================================================
-   public static String bytesToHex(byte[] ArrBytes) {
-      StringBuilder ObjResult = new StringBuilder();
-      for (byte ObjByte : ArrBytes) ObjResult.append(String.format("%02X", ObjByte));
-      return ObjResult.toString();
-   }   
-   
-   // ==================================================================================================================================
-   // Acquisisce versione java
-   // ==================================================================================================================================
-   private static int getJavaVersion() {
-      String StrVersion = System.getProperty("java.version");
-      if(StrVersion.startsWith("1.")) {
-          StrVersion = StrVersion.substring(2, 3);
-      } else {
-          int IntDotIndex = StrVersion.indexOf(".");
-          if(IntDotIndex != -1) { 
-             StrVersion = StrVersion.substring(0,IntDotIndex); 
-          }
-      } 
-      return Integer.parseInt(StrVersion);
-   }
 }

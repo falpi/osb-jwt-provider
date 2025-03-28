@@ -1,0 +1,83 @@
+package org.falpi.utils;
+
+import java.io.PrintWriter;
+import java.io.StringWriter;
+
+import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
+
+import javax.script.ScriptEngine;
+
+import javax.script.ScriptEngineFactory;
+import javax.script.ScriptEngineManager;
+
+public class JavaUtils {
+   
+   // ==================================================================================================================================
+   // Inizializza script engine
+   // ==================================================================================================================================
+   
+   public static ScriptEngine getScriptEngine() throws Exception {   
+      
+      // Prova a istanziare lo sript engine built-in
+      ScriptEngine ObjScriptEngine =  new ScriptEngineManager().getEngineByName("JavaScript"); 
+      
+      // Se lo script engine JavaScript non è disponibile prova ad utilizzare lo script engine esterno      
+      if (ObjScriptEngine==null) {
+         ObjScriptEngine = ((ScriptEngineFactory) Class.forName("org.mozilla.javascript.engine.RhinoScriptEngineFactory").newInstance()).getScriptEngine();
+      }
+      
+      return ObjScriptEngine;
+   }
+
+   // ==================================================================================================================================
+   // Formatta lo stack trace
+   // ==================================================================================================================================
+
+   public static String getStackTrace(int IntLines,Exception ObjException) {
+            
+      // Acquisisce lo stacktrace
+      StringWriter ObjStringWriter = new StringWriter();
+      PrintWriter ObjPrintWriter = new PrintWriter(ObjStringWriter);
+      ObjException.printStackTrace(ObjPrintWriter);
+      
+      // Frammenta lo stacktrace in righe
+      String[] ArrStackTrace = ObjStringWriter.toString().split("\n");
+      
+      // Filtra le righe richieste
+      String StrStackTrace = "";            
+      for (int IntIndex=0;IntIndex<Math.min(IntLines,ArrStackTrace.length);IntIndex++) {
+         StrStackTrace+= (StrStackTrace.equals("")?(""):("\n"))+ArrStackTrace[IntIndex].toString();
+      }
+      
+      // Restituisce stacktrace filtrato
+      return StrStackTrace;
+   }
+   
+   // ==================================================================================================================================
+   // Permette di manipolare un attributo static/private di una classe
+   // ==================================================================================================================================
+   public static void setFinalStatic(Field ObjField, Object ObjValue) throws Exception {
+      ObjField.setAccessible(true);
+      Field ObjModifiersField = Field.class.getDeclaredField("modifiers");
+      ObjModifiersField.setAccessible(true);
+      ObjModifiersField.setInt(ObjField, ObjField.getModifiers() & ~Modifier.FINAL);
+      ObjField.set(null,ObjValue);
+   }
+   
+   // ==================================================================================================================================
+   // Acquisisce versione java
+   // ==================================================================================================================================
+   public static int getJavaVersion() {
+      String StrVersion = System.getProperty("java.version");
+      if(StrVersion.startsWith("1.")) {
+          StrVersion = StrVersion.substring(2, 3);
+      } else {
+          int IntDotIndex = StrVersion.indexOf(".");
+          if(IntDotIndex != -1) { 
+             StrVersion = StrVersion.substring(0,IntDotIndex); 
+          }
+      } 
+      return Integer.parseInt(StrVersion);
+   }
+}

@@ -102,7 +102,7 @@
   Name 		= "JWT_KEYS_URL"
   Type 		= "java.lang.String"
   Writeable 	= "true"
-  Description   = "Download URL for public keys used for JWT signature validation"
+  Description   = "Request URL for JWT signature validation keys"
   LegalNull     = "false"
   Dynamic       = "true"
  />
