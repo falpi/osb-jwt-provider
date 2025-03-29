@@ -58,7 +58,6 @@ Parameter                     | Description
 `VALIDATION_ASSERTION`        | May contain a javascript text that must validate or reject the authentication request according to arbitrary criteria defined by the user. If present, it must return a Boolean object.
 `DEBUGGING_ASSERTION`         | May contain a javascript text that is used to filter log messages with TRACE or DEBUG level according to arbitrary criteria defined by the user. This can be useful to reduce log messages and analyze specific requests. If present, it must return a Boolean object.
 `DEBUGGING_PROPERTIES`        | Allows you to send one or more string expressions to the log file. They are printed as log messages with DEBUG level. Any template variables are resolved allowing you to analyze the runtime context. 
-`KERBEROS_CONFIGURATION`      | May contain text that defines the configuration for outgoing Kerberos calls. Must follow the standard "krb5.conf" file format (https://web.mit.edu/kerberos/krb5-1.12/doc/admin/conf_files/krb5_conf.html). Note that at least under the Windows operating system, often no configuration is necessary.<br/>                                                                                                                     
 
 (*) OSB resources path are constructed as follows: `<project-name>/<root-folder>/.../<parent-folder>/<resource-name>`.<br/>
 If a resource is located directly under a project, the path is constructed as follows: `<project-name>/<resource-name>`.<br/>
@@ -172,6 +171,7 @@ In both cases, at the end of the compilation, one or two jar archives are produc
 ... <INFO>  Managed Name ......... : DefaultServer
 ... <INFO>  ------------------------------------------------------------------------------------------
 ... <INFO>  JWT Provider ......... : org.falpi.utils.JWTTokenNimbusShadedImpl
+... <INFO>  Kerberos Config ......: C:\Temp\krb5-2068097684051575684.conf
 ... <INFO>  Scripting Engine ..... : Oracle Nashorn (1.8.0_391)
 ... <INFO>  Scripting Language ... : ECMAScript (ECMA - 262 Edition 5.1)
 ... <INFO>  ##########################################################################################
