@@ -50,6 +50,7 @@ import org.falpi.utils.XMLUtils;
 import org.falpi.utils.JavaUtils;
 import org.falpi.utils.HttpUtils;
 import org.falpi.utils.HttpUtils.HttpMethod;
+import org.falpi.utils.SecurityUtils;
 import org.falpi.utils.StringUtils;
 import org.falpi.utils.jwt.JWTToken;
 import org.falpi.utils.logging.LogLevel;
@@ -186,6 +187,18 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
          Logger.logMessage(LogLevel.ERROR,StrError,ObjException);
          System.exit(0);
       } 
+      
+      // ==================================================================================================================================
+      // Inizializza autenticazione kerberos
+      // ==================================================================================================================================
+
+      try {
+         SecurityUtils.configKerberos(StringUtils.join(ObjProviderMBean.getKERBEROS_CONFIGURATION(),System.lineSeparator()));
+      } catch (Exception ObjException) {
+         String StrError = "Kerberos config error";
+         Logger.logMessage(LogLevel.ERROR,StrError,ObjException);
+         System.exit(0);
+      }
 
       // ==================================================================================================================================
       // Prepara contesto server
@@ -201,7 +214,7 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
       ObjEmbeddedAuthenticator = new EmbeddedLDAPAtnDelegate(ObjMBean, null,StrRealmName, StrDomainName, false);     
 
       // ==================================================================================================================================
-      // Genera logging di inizializzazione
+      // Genera logging 
       // ==================================================================================================================================
     
       Logger.logMessage(LogLevel.INFO,"==========================================================================================");
@@ -212,6 +225,7 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
       Logger.logMessage(LogLevel.INFO,"Managed Name .........: " + StrManagedName);  
       Logger.logMessage(LogLevel.INFO,"------------------------------------------------------------------------------------------");
       Logger.logMessage(LogLevel.INFO,"JWT Provider .........: " + ObjJwtToken.getClass().getCanonicalName());  
+      Logger.logMessage(LogLevel.INFO,"Kerberos Config ......: " + SecurityUtils.getKerberosConfigPath());
       Logger.logMessage(LogLevel.INFO,"Scripting Engine .....: " + ObjScriptEngine.getFactory().getEngineName()+" ("+ObjScriptEngine.getFactory().getEngineVersion()+")");  
       Logger.logMessage(LogLevel.INFO,"Scripting Language ...: " + ObjScriptEngine.getFactory().getLanguageName()+" ("+ObjScriptEngine.getFactory().getLanguageVersion()+")");  
       Logger.logMessage(LogLevel.INFO,"##########################################################################################");      
@@ -286,14 +300,12 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
       String[] ArrValidationAssertion = ObjProviderMBean.getVALIDATION_ASSERTION();
       String[] ArrDebuggingAssertion = ObjProviderMBean.getDEBUGGING_ASSERTION();
       String[] ArrDebuggingProperties = ObjProviderMBean.getDEBUGGING_PROPERTIES();
-      String[] ArrKerberosConfiguration = ObjProviderMBean.getKERBEROS_CONFIGURATION();      
       
       // Comprime gli array multiriga
       String StrJwtIdentityAssertion = StringUtils.join(ArrJwtIdentityAssertion,System.lineSeparator());
       String StrValidationAssertion = StringUtils.join(ArrValidationAssertion,System.lineSeparator());
       String StrDebuggingAssertion = StringUtils.join(ArrDebuggingAssertion,System.lineSeparator());
       String StrDebuggingProperties = StringUtils.join(ArrDebuggingProperties,",");
-      String StrKerberosConfiguration = StringUtils.join(ArrKerberosConfiguration,System.lineSeparator());
             
       // ==================================================================================================================================
       // Prepara contesto
@@ -378,7 +390,6 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
       Logger.logMessage(LogLevel.DEBUG,"VALIDATION_ASSERTION .........: " + StrValidationAssertion.replaceAll("\n",""));
       Logger.logMessage(LogLevel.DEBUG,"DEBUGGING_ASSERTION ..........: " + StrDebuggingAssertion.replaceAll("\n",""));
       Logger.logMessage(LogLevel.DEBUG,"DEBUGGING_PROPERTIES .........: " + StrDebuggingProperties);      
-      Logger.logMessage(LogLevel.DEBUG,"KERBEROS_CONFIGURATION .......: " + StrKerberosConfiguration);       
             
       // Controlli di congruenza configurazione
       Logger.logMessage(LogLevel.TRACE,"------------------------------------------------------------------------------------------");

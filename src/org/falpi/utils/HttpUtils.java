@@ -39,8 +39,9 @@ import org.apache.http.impl.client.HttpClients;
 import org.apache.http.ssl.SSLContextBuilder;
 import org.apache.xmlbeans.XmlObject;
 
-import org.falpi.utils.logging.LogManager;
 import org.falpi.utils.logging.LogLevel;
+import org.falpi.utils.logging.LogManager;
+import org.falpi.utils.SecurityUtils.CustomKrb5LoginModule;
 
 public class HttpUtils {
    
@@ -65,7 +66,7 @@ public class HttpUtils {
       HttpResponse ObjHttpResponse;
       CloseableHttpClient ObjHttpClient;
       HashMap<String,Object> ObjContext = new HashMap<String,Object>();      
-      ArrayList<Object[]> ArrLoginContext = new ArrayList<Object[]>();
+      ArrayList<CustomKrb5LoginModule> ArrLoginContext = new ArrayList<CustomKrb5LoginModule>();
       
       // ==================================================================================================================================
       // Prepara la request e la esegue
@@ -84,14 +85,13 @@ public class HttpUtils {
       } else {
          
          // Acquisisce i login context kerberos (al momento supportato solo un context)
-         Object[] ArrObject = ArrLoginContext.get(0);
-         LoginModule ObjLoginModule = (LoginModule) ArrObject[0];
-         Subject ObjSubject = (Subject) ArrObject[1];
+         CustomKrb5LoginModule ObjLoginModule = ArrLoginContext.get(0);
+         Subject ObjSubject = ObjLoginModule.getSubject();
          
          // Racchiude la request in contesto privilegiato
-         PrivilegedAction ObjAction = new PrivilegedAction() {
+         PrivilegedAction<Boolean> ObjAction = new PrivilegedAction<Boolean>() {
             @Override
-            public Object run() {
+            public Boolean run() {
                try {
                   ObjContext.put("response",ObjHttpClient.execute(buildRequest(ObjHttpMethod,StrRequestURL)));
                } catch (Exception ObjException) {
@@ -164,7 +164,7 @@ public class HttpUtils {
                                                  String StrHostAuthMode, String StrHostAccountPath, 
                                                  String StrProxyAuthMode, String StrProxyServerPath, 
                                                  Boolean BolSSLEnforce, int IntConnectTimeout,int IntRequestTimeout,
-                                                 ArrayList<Object[]> ArrLoginContext,LogManager Logger) throws Exception {
+                                                 ArrayList<CustomKrb5LoginModule> ArrLoginContext,LogManager Logger) throws Exception {
                
       // ==================================================================================================================================
       // Dichiara variabili
@@ -200,7 +200,7 @@ public class HttpUtils {
       if (!StrHostAuthMode.equals("ANONYMOUS")) {
                   
          // Genera logging di debug
-         Logger.logProperty(LogLevel.DEBUG,"Host Auth Account ",StrHostAccountPath);                  
+         Logger.logProperty(LogLevel.DEBUG,"Host Auth Account",StrHostAccountPath);                  
 
          // Acquisisce risorsa service accountin formato XML
          XmlObject ObjServiceAccount = OSBUtils.getResource("ServiceAccount", StrHostAccountPath);
@@ -270,7 +270,7 @@ public class HttpUtils {
                Logger.logProperty(LogLevel.DEBUG,"Host Auth Principal",StrHostUserName);   
                
                // Esegue login kerberos
-               ArrLoginContext.add(SecurityUtils.kerberosLogin(StrHostUserName,StrHostPassword));
+               ArrLoginContext.add(SecurityUtils.loginKerberos(StrHostUserName,StrHostPassword));
                
                // Predispone schema di autenticazione
                ArrTargetAuthSchemes.add(AuthSchemes.SPNEGO);               
@@ -381,7 +381,7 @@ public class HttpUtils {
                   Logger.logProperty(LogLevel.DEBUG,"Proxy Server Auth Principal",StrProxyUserName);   
                   
                   // Esegue login kerberos
-                  ArrLoginContext.add(SecurityUtils.kerberosLogin(StrProxyUserName,StrProxyPassword));                  
+                  ArrLoginContext.add(SecurityUtils.loginKerberos(StrProxyUserName,StrProxyPassword));                  
 
                   // Se necessario predispone schema di autenticazione
                   if (!StrHostAuthMode.equals("KERBEROS")) {
