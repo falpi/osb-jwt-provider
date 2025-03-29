@@ -63,8 +63,8 @@ public class LogManager {
    public String formatMessage(int IntLevel,String StrMessage) {
       return new SimpleDateFormat("'<'yyyy-MM-dd HH:mm:ss.SSS'>'").format(new Date(System.currentTimeMillis()))+
                                   " <"+StrLoggerID+"> "+
-                                  String.format("%-8s","<" + LogLevel.getDescription(IntLevel)+"> "+
-                                  StrMessage);
+                                  StringUtils.padRight("<"+LogLevel.getDescription(IntLevel)+">",8," ")+
+                                  StrMessage;
    } 
    
    // ==================================================================================================================================

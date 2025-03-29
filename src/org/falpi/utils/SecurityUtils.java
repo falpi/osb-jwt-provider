@@ -77,7 +77,7 @@ public class SecurityUtils {
          ObjKerberosAuthConfig.deleteOnExit();
                                 
          // Imposta proprietà di sistema kerberos 
-         System.setProperty("java.security.krb5.conf", ObjKerberosAuthConfig.toURI().toString());
+         System.setProperty("java.security.krb5.conf",ObjKerberosAuthConfig.toURI().toString());
          System.setProperty("javax.security.auth.useSubjectCredsOnly","false");         
       }
       
