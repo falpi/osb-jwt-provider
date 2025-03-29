@@ -93,6 +93,12 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
    // ##################################################################################################################################
 
    // ==================================================================================================================================
+   // Variabili statiche
+   // ==================================================================================================================================
+
+   private static Integer IntThreadCount = 0;
+      
+   // ==================================================================================================================================
    // Variabili di istanza
    // ==================================================================================================================================
 
@@ -146,6 +152,9 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
    @Override
    public void initialize(ProviderMBean ObjMBean, SecurityServices ObjSecurityServices) {
       
+      // Inizializza nome del thread con la rappresentazione esadecimale del contatore di esecuzione
+      setThreadName();
+         
       // Inizializza logger
       Logger = new LogManager("CIA");
                   
@@ -233,6 +242,11 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
 
    @Override
    public void shutdown() {
+
+      // Inizializza nome del thread con la rappresentazione esadecimale del contatore di esecuzione
+      setThreadName();
+
+      // Genera logging      
       Logger.logMessage(LogLevel.INFO,"##########################################################################################");      
       Logger.logMessage(LogLevel.INFO,"SHUTDOWN");
       Logger.logMessage(LogLevel.INFO,"##########################################################################################");      
@@ -269,6 +283,9 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
 
    @Override
    public CallbackHandler assertIdentity(String StrTokenType, Object ObjToken, ContextHandler ObjContext) throws IdentityAssertionException {
+
+      // Inizializza nome del thread con la rappresentazione esadecimale del contatore di esecuzione
+      setThreadName();
       
       // ==================================================================================================================================
       // Acquisisce configurazione
@@ -1010,4 +1027,16 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
       // Restituisce valore eventualmente corretto con trim
       return ObjParameterValue;
    }   
+   
+   // ==================================================================================================================================
+   // Inizializza nome del thread con la rappresentazione esadecimale del contatore di esecuzione
+   // ==================================================================================================================================
+   private void setThreadName()  {
+
+      synchronized (IntThreadCount) {
+         Thread.currentThread().setName("x"+StringUtils.padLeft(Integer.toHexString(IntThreadCount).toUpperCase(),IntThreadCount.BYTES,"0"));
+         IntThreadCount++;
+      }
+   }
+   
 }
