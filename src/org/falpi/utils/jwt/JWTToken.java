@@ -12,17 +12,21 @@ import org.falpi.utils.logging.LogLevel;
 public abstract class JWTToken<T> {
    
    // ==================================================================================================================================
-   // Variabili private
+   // Variabili 
    // ==================================================================================================================================
-   protected T ObjToken = null;
+   
+   // Istanza del token interno
+   protected T ObjToken;
    
    // Flag di inizializzazione avvenuta del token
    private Boolean BolReady = false;
 
    // ==================================================================================================================================
-   // Carica nuovo provider
+   // Crea istanze del token provider
    // ==================================================================================================================================
-   public static JWTToken create(String StrProvider) throws Exception {
+
+   // Crea nuova istanza del token provider specificato
+   public static JWTToken create(String StrProvider) throws Exception {      
       return (JWTToken) Class.forName(JWTToken.class.getCanonicalName()+StrProvider+"Impl").newInstance();
    }
 
