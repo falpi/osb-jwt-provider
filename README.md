@@ -327,6 +327,13 @@ Token              | Format
 ... <DEBUG> ##########################################################################################
 ... <INFO>  Inbound (JWT) => Proxy:Test, User:falpi (<client_id>), Client:<client host> (127.0.0.1)
 ```
+## Running Mode
+<p align="justify">The provider code base was designed and tested to be thread-safe because Identity Asserters in WebLogic can be called in parallel and this is their normal behavior. If multiple requests arrive at the same time the server allocates a different thread for each assertion. Load tests were done with the excellent SoapUI tool reaching up to 1000 threads for parallel requests and the provider code was found to be solid and without memory leaks.</br>
+
+However there may be situations where it is useful to force serialization of requests and this is the purpose of the "RUNNING_MODE" configuration parameter. When "SERIAL" mode is selected a "synchronized" version of the assertion method is used and this causes multiple parallel requests to be queued serially, without overlapping.</br>
+
+This could be useful for example for analyzing debug logs of a specific service in the presence of a large number of requests. In "PARALLEL" mode the log lines of each request/thread would be mixed with those of others. In "SERIAL" mode instead each assertion execution completes atomically with a consistent footprint of its logs.</p>
+
 ## Known Issues
 #### 1. Invalid signature with Azure Entra ID
 ```com.nimbusds.jose.proc.BadJWSException: Signed JWT rejected: Invalid signature```
