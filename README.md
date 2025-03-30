@@ -315,6 +315,13 @@ In both cases, at the end of the compilation, one or two jar archives are produc
 ... <DEBUG> ##########################################################################################
 ... <INFO>  Inbound Assertion (JWT) => Proxy:Test, User:falpi (<client_id>), Client:<client host> (127.0.0.1), Server:DefaultServer
 ```
+## Known Issues
+#### 1. Invalid signature with Azure Entra ID
+```com.nimbusds.jose.proc.BadJWSException: Signed JWT rejected: Invalid signature```
+<p align="justify">The provider uses the excellent Nimbus library for verifying JWT tokens. Please note that using Azure Entra ID as IDP there is a known issue with Microsoft Token API v2. In this case there are some prerequisites to follow when requesting an access token. See the following articles:</p>
+
+- **General :** https://stackoverflow.com/questions/71306470/cant-verify-access-token-signature-from-azure-using-nimbus<br/>
+- **Details :** https://stackoverflow.com/questions/75535497/azure-oauth2-cant-validate-access-token<br/>
 
 ## Credits
 - **JSON-java** (https://github.com/stleary/JSON-java)<br/>
