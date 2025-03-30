@@ -1,6 +1,7 @@
 package org.falpi.utils.jwt;
 
 import java.util.HashMap;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class JWTCache {
 
@@ -26,12 +27,12 @@ public class JWTCache {
    // ==================================================================================================================================
       
    // Istanza della cache
-   private HashMap<String,JWTCacheEntry> ObjCache = new HashMap<String,JWTCacheEntry>();
+   private ConcurrentHashMap<String,JWTCacheEntry> ObjCache = new ConcurrentHashMap<String,JWTCacheEntry>();
    
    // ==================================================================================================================================
    // Inserisce una chiave nella cache
    // ==================================================================================================================================
-   public void putKey(String StrKeyID,String StrModulus,String StrExponent) {    
+   public void putKey(String StrKeyID,String StrModulus,String StrExponent) {
       ObjCache.put(StrKeyID,new JWTCacheEntry(StrModulus,StrExponent));
    }
 
