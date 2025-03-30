@@ -114,7 +114,7 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
    // Variabili statiche
    // ==================================================================================================================================
 
-   private static Long IntThreadCount = new Long(0);
+   private static long IntThreadCount = 0;
 
    // ==================================================================================================================================
    // Variabili locali al thread
@@ -1092,10 +1092,8 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
    // ==================================================================================================================================
    // Inizializza nome del thread con la rappresentazione esadecimale del contatore di esecuzione
    // ==================================================================================================================================
-   private void setThreadName()  {
-      synchronized (IntThreadCount) {
-         Thread.currentThread().setName(StringUtils.padLeft(String.valueOf(IntThreadCount++),10,"0"));
-     }
+   private static synchronized void setThreadName()  {
+      Thread.currentThread().setName(StringUtils.padLeft(String.valueOf(IntThreadCount++),10,"0"));
    }
    
    // ==================================================================================================================================
