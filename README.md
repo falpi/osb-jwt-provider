@@ -323,7 +323,7 @@ Token              | Format
 ... <DEBUG> xms_tdbr ..............: "EU"
 ... <DEBUG> ------------------------------------------------------------------------------------------
 ... <DEBUG> ##########################################################################################
-... <INFO>  Inbound Assertion (JWT) => Proxy:Test, User:falpi (<client_id>), Client:<client host> (127.0.0.1), Server:DefaultServer
+... <INFO>  Inbound (JWT) => Proxy:Test, User:falpi (<client_id>), Client:<client host> (127.0.0.1)
 ```
 ## Known Issues
 #### 1. Invalid signature with Azure Entra ID
