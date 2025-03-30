@@ -571,7 +571,7 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
          // ==================================================================================================================================
          JWTToken ObjJwtToken = null;         
          try {
-            ObjJwtToken = ObjJwtProvider.getClass().newInstance();   
+            ObjJwtToken = ObjJwtProvider.createInstance();   
             ObjRuntimeContext.put("token",ObjJwtToken);            
          } catch (Exception ObjException) {
             String StrError = "Token provider error";

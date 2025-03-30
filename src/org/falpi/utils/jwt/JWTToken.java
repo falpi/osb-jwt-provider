@@ -29,6 +29,10 @@ public abstract class JWTToken<T> {
    public static JWTToken create(String StrProvider) throws Exception {      
       return (JWTToken) Class.forName(JWTToken.class.getCanonicalName()+StrProvider+"Impl").newInstance();
    }
+   // Crea nuova istanza del token provider a partire dalla classe dell'istanza
+   public synchronized JWTToken createInstance() throws Exception {      
+      return this.getClass().newInstance();
+   }
 
    // ==================================================================================================================================
    // Inizializza il token
