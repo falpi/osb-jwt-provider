@@ -12,6 +12,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.Iterator;
 import java.util.Collections;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.security.AccessController;
 
 import javax.script.ScriptEngine;
@@ -64,10 +65,19 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
    // ##################################################################################################################################
 
    // ==================================================================================================================================
-   // Configurazione a runtime
+   // Helper per configurazione di runtime
    // ==================================================================================================================================
   
-   public static class RuntimeContext extends HashMap<String,Object>{}
+   public static class RuntimeContext extends HashMap<String,Object> {
+            
+      public String getString(String StrKey) {
+         return (String) get(StrKey);
+      }
+      
+      public Integer getInteger(String StrKey) {
+         return (Integer) get(StrKey);
+      }      
+   }
    
    // ==================================================================================================================================
    // Tipologie di token supportate
@@ -103,7 +113,7 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
    // Variabili statiche
    // ==================================================================================================================================
 
-   private static Integer IntThreadCount = 0;
+   private static AtomicInteger IntThreadCount = new AtomicInteger(0);
 
    // ==================================================================================================================================
    // Variabili locali al thread
@@ -366,8 +376,9 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
       // Salva contesto runtime                
       ObjRuntimeContext.put("identity","");
       ObjRuntimeContext.put("username","");           
+      ObjRuntimeContext.put("osb.server",StrManagedName);      
       ObjRuntimeContext.put("osb.service",ObjService);      
-      ObjRuntimeContext.put("http.request",ObjRequest);
+      ObjRuntimeContext.put("http.request",ObjRequest);      
       
       // ==================================================================================================================================
       // Imposta livelli di logging (eventuali errori sull'asserzione di debug sono silenziati per non pregiudicare l'autenticazione)
@@ -402,7 +413,7 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
       Logger.logMessage(LogLevel.DEBUG,"==========================================================================================");
       Logger.logMessage(LogLevel.DEBUG,"CONFIGURATION");
       Logger.logMessage(LogLevel.DEBUG,"==========================================================================================");
-       Logger.logMessage(LogLevel.DEBUG,"LOGGING_LEVEL ................: " + StrLoggingLevel);
+      Logger.logMessage(LogLevel.DEBUG,"LOGGING_LEVEL ................: " + StrLoggingLevel);
       Logger.logMessage(LogLevel.DEBUG,"LOGGING_LINES ................: " + IntLoggingLines);
       Logger.logMessage(LogLevel.DEBUG,"BASIC_AUTH ...................: " + StrBasicAuthStatus);
       Logger.logMessage(LogLevel.DEBUG,"JWT_AUTH .....................: " + StrJwtAuthStatus);
@@ -485,15 +496,15 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
       // ==================================================================================================================================
       
       // Verifica se il token in ingresso è un BASIC o un JWT
-      String StrJwtPayload = (String)ObjToken;
+      String StrToken = (String)ObjToken;
       
-      if (StrJwtPayload.startsWith("Basic ")) {
+      if (StrToken.startsWith("Basic ")) {
          StrAuthType = TokenTypes.BASIC_AUTH_ID;         
-         StrJwtPayload = StrJwtPayload.substring("Basic ".length());         
+         StrToken = StrToken.substring("Basic ".length());         
       } else {
          StrAuthType = TokenTypes.JWT_AUTH_ID;
-         if (StrJwtPayload.startsWith("Bearer ")) {
-            StrJwtPayload = StrJwtPayload.substring("Bearer ".length());
+         if (StrToken.startsWith("Bearer ")) {
+            StrToken = StrToken.substring("Bearer ".length());
          }
       }
      
@@ -524,7 +535,7 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
          try {          
                         
             // Dedodifica il token basic
-            String[] ArrCredential = new String(Base64.decode(StrJwtPayload.getBytes())).split(":",2);            
+            String[] ArrCredential = new String(Base64.decode(StrToken.getBytes())).split(":",2);            
             Logger.logMessage(LogLevel.DEBUG,"UserName: "+ArrCredential[0]);   
             
             // Prova ad autenticare le credenziali sul realm weblogic
@@ -574,7 +585,7 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
          try {            
             
             // Esegue il parsing del token
-            ObjJwtToken.parse(StrJwtPayload);                     
+            ObjJwtToken.parse(StrToken);                     
             
             // Acquisisce l'id della chiave di firma del token
             StrJwtKeyID =  ObjJwtToken.getKeyID();        
@@ -593,12 +604,11 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
          String StrKeyModulus;
          String StrKeyExponent;
 
-         // Verifica se la chiave è già in cache         
-         JWTCacheEntry ObjKey = ObjJwtKeysCache.getKey(StrJwtKeyID);
+         // Verifica se la chiave è già in cache e non è scaduta         
+         JWTCacheEntry ObjKey = ObjJwtKeysCache.validKey(StrJwtKeyID,IntJwtKeysCacheTTL);
          
          // Se la chiave è in cache e il suo timestamp non è scaduto esegue altrimenti procede
-         if ((ObjKey!=null)&&
-             ((System.currentTimeMillis()-ObjKey.timeStamp)<(IntJwtKeysCacheTTL*1000))) {
+         if (ObjKey!=null) {
             
             // Acuisisce parametri chiave dalla cache
             StrKeyModulus = ObjKey.modulus;
@@ -824,11 +834,10 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
       Logger.logMessage(LogLevel.DEBUG,"##########################################################################################");
 
       // Genera logging di info su sintesi autenticazione
-      Logger.logMessage(LogLevel.INFO,"Inbound Assertion ("+StrAuthType+") =>"+
+      Logger.logMessage(LogLevel.INFO,"Inbound ("+StrAuthType+") =>"+
                                " Proxy:"+StrServiceName+
                                ", User:"+StrUserName+((!StrIdentity.equals("")&&!StrIdentity.equals(StrUserName))?(" ("+StrIdentity+")"):(""))+
-                               ", Client:"+StrClientHost+((!StrClientHost.equals(StrClientAddr))?(" ("+StrClientAddr+")"):(""))+
-                               ", Server:"+StrManagedName);
+                               ", Client:"+StrClientHost+((!StrClientHost.equals(StrClientAddr))?(" ("+StrClientAddr+")"):("")));
 
       // Restituisce utente autenticato
       return new CustomIdentityAsserterCallbackHandlerImpl(StrUserName);
@@ -902,8 +911,8 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
             
             case 1:
                switch (ArrVariableTokens[0]) { 
-                  case "identity": StrVariableValue = (String) ObjRuntimeContext.get("identity"); break;
-                  case "username": StrVariableValue = (String) ObjRuntimeContext.get("username"); break;
+                  case "identity": StrVariableValue = ObjRuntimeContext.getString("identity"); break;
+                  case "username": StrVariableValue = ObjRuntimeContext.getString("username"); break;
                }
                break;
 
@@ -911,7 +920,7 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
                switch (ArrVariableTokens[0]) {                  
                   case "osb" :
                      switch (ArrVariableTokens[1]) {
-                        case "server": StrVariableValue = ObjRequest.getServerName(); break;
+                        case "server": StrVariableValue = ObjRuntimeContext.getString("osb.server"); break;
                         case "project": StrVariableValue = ObjService.getRef().getProjectName(); break;
                      }
                      break;
@@ -979,7 +988,7 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
                                  StrHeaderName = ObjEnumerator.nextElement();
                                  if (!ArrExclusions.contains(StrHeaderName)) {
                                     StrHeaderValue = ObjRequest.getHeader(StrHeaderName);
-                                    StrVariableValue+= Logger.formatMessage(LogLevel.DEBUG,StringUtils.padRight(StrHeaderName+" ",IntMaxLength+4,".")+": "+StrHeaderValue+"\n");
+                                    StrVariableValue+= Logger.formatProperty(LogLevel.DEBUG,StrHeaderName,StrHeaderValue,IntMaxLength+4)+"\n";
                                  }
                               }
                               StrVariableValue+= Logger.formatMessage(LogLevel.DEBUG,"------------------------------------------------------------------------------------------");
@@ -1002,7 +1011,7 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
                               for (Map.Entry<String,Object> ObjEntry : ObjMapper.entrySet()) {
                                  Object ObjValue = ObjEntry.getValue();
                                  String StrQuotes = ((ObjValue instanceof String)?("\""):(""));
-                                 StrVariableValue+= Logger.formatMessage(LogLevel.DEBUG,StringUtils.padRight(ObjEntry.getKey()+" ",IntMaxLength+4,".")+": "+StrQuotes+ObjValue+StrQuotes+"\n");
+                                 StrVariableValue+= Logger.formatProperty(LogLevel.DEBUG,ObjEntry.getKey(),StrQuotes+ObjValue+StrQuotes,IntMaxLength+4)+"\n";
                               }                              
                               StrVariableValue+= Logger.formatMessage(LogLevel.DEBUG,"------------------------------------------------------------------------------------------");
                               }
@@ -1020,7 +1029,7 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
                               for (Map.Entry<String,Object> ObjEntry : ObjMapper.entrySet()) {
                                  Object ObjValue = ObjEntry.getValue();
                                  String StrQuotes = ((ObjValue instanceof String)?("\""):(""));
-                                 StrVariableValue+= Logger.formatMessage(LogLevel.DEBUG,StringUtils.padRight(ObjEntry.getKey()+" ",IntMaxLength+4,".")+": "+StrQuotes+ObjValue+StrQuotes+"\n");
+                                 StrVariableValue+= Logger.formatProperty(LogLevel.DEBUG,ObjEntry.getKey(),StrQuotes+ObjValue+StrQuotes,IntMaxLength+4)+"\n";
                               }                              
                               StrVariableValue+= Logger.formatMessage(LogLevel.DEBUG,"------------------------------------------------------------------------------------------");
                            }
@@ -1083,10 +1092,7 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
    // Inizializza nome del thread con la rappresentazione esadecimale del contatore di esecuzione
    // ==================================================================================================================================
    private void setThreadName()  {
-      synchronized (IntThreadCount) {
-         Thread.currentThread().setName(StringUtils.padLeft(Integer.toUnsignedString(IntThreadCount),10,"0"));
-         IntThreadCount++;
-      }
+      Thread.currentThread().setName(StringUtils.padLeft(Integer.toUnsignedString(IntThreadCount.getAndIncrement()),10,"0"));
    }
    
    // ==================================================================================================================================

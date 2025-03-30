@@ -58,8 +58,17 @@ public class LogManager {
    } 
    
    // ==================================================================================================================================
-   // Formatta messaggio di log
+   // Formattazione messaggi e proprietà
    // ==================================================================================================================================
+
+   public String formatProperty(int IntLevel,String StrProperty,String StrValue) {
+      return formatProperty(IntLevel,StrProperty,StrValue,IntPadLength);
+   }
+   
+   public String formatProperty(int IntLevel,String StrProperty,String StrValue,int IntPadding) {
+      return formatMessage(IntLevel,StringUtils.padRight(StrProperty+" ",IntPadding,".")+": "+StrValue);
+   }
+
    public String formatMessage(int IntLevel,String StrMessage) {
       return new SimpleDateFormat("'<'yyyy-MM-dd HH:mm:ss.SSS'>'").format(new Date(System.currentTimeMillis()))+
                                   " <"+StrLoggerID+">"+
@@ -69,13 +78,17 @@ public class LogManager {
    } 
    
    // ==================================================================================================================================
-   // Logging di proprietà chiave valore con padding
+   // Logging di proprietà chiave valore
    // ==================================================================================================================================
 
    public void logProperty(int IntLevel,String StrProperty,String StrValue) {
-      logMessage(IntLevel,StringUtils.padRight(StrProperty+" ",IntPadLength,".")+": "+StrValue);
-   }   
+      System.out.println(formatProperty(IntLevel,StrProperty,StrValue,IntPadLength));
+   }
 
+   public void logProperty(int IntLevel,String StrProperty,String StrValue,int IntPadding) {
+      System.out.println(formatProperty(IntLevel,StrProperty,StrValue,IntPadding));
+   }
+   
    // ==================================================================================================================================
    // Logging di messaggi generici
    // ==================================================================================================================================

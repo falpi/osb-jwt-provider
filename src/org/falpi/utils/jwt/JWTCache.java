@@ -24,15 +24,13 @@ public class JWTCache {
    // ==================================================================================================================================
    // Variabili 
    // ==================================================================================================================================
-   
+      
    // Istanza della cache
    private HashMap<String,JWTCacheEntry> ObjCache = new HashMap<String,JWTCacheEntry>();
    
    // ==================================================================================================================================
    // Inserisce una chiave nella cache
    // ==================================================================================================================================
-
-   // Crea nuova istanza del token provider specificato
    public void putKey(String StrKeyID,String StrModulus,String StrExponent) {    
       ObjCache.put(StrKeyID,new JWTCacheEntry(StrModulus,StrExponent));
    }
@@ -40,10 +38,22 @@ public class JWTCache {
    // ==================================================================================================================================
    // Acquisisce chiave dalla cache
    // ==================================================================================================================================
-
-   // Crea nuova istanza del token provider specificato
    public JWTCacheEntry getKey(String StrKeyID) {    
       return ObjCache.get(StrKeyID);
    }
 
+   // ==================================================================================================================================
+   // Acquisisce chiave dalla cache se non è scaduta
+   // ==================================================================================================================================
+   public JWTCacheEntry validKey(String StrKeyID,int IntKeysTTL) {
+      
+      // Cerca chiave in cache
+      JWTCacheEntry ObjEntry = getKey(StrKeyID);
+      
+      // Se la chiave esiste ma è scaduta resetta riferimento
+      if ((ObjEntry!=null)&&((System.currentTimeMillis()-ObjEntry.timeStamp)>(IntKeysTTL*1000))) ObjEntry = null;
+         
+      // Restituisce riferimento
+      return ObjEntry;
+   }
 }
