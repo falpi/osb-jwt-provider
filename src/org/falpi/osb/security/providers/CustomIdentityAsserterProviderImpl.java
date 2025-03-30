@@ -12,7 +12,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.Iterator;
 import java.util.Collections;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.security.AccessController;
 
 import javax.script.ScriptEngine;
@@ -41,6 +40,8 @@ import com.bea.wli.sb.transports.TransportEndPoint;
 import com.bea.xbean.util.Base64;
 
 import java.util.HashMap;
+
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.json.XML;
 import org.json.JSONObject;
@@ -103,7 +104,7 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
                                                                  TokenTypes.JWT_TYPE,  TokenTypes.ALL_TYPE,
                                                                  TokenTypes.JWT_TYPE1, TokenTypes.ALL_TYPE1,
                                                                  TokenTypes.JWT_TYPE2, TokenTypes.ALL_TYPE2);
-   }  
+   } 
    
    // ##################################################################################################################################
    // Dichiara variabili
@@ -113,7 +114,7 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
    // Variabili statiche
    // ==================================================================================================================================
 
-   private static AtomicInteger IntThreadCount = new AtomicInteger(0);
+   private static Long IntThreadCount = new Long(0);
 
    // ==================================================================================================================================
    // Variabili locali al thread
@@ -1092,7 +1093,9 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
    // Inizializza nome del thread con la rappresentazione esadecimale del contatore di esecuzione
    // ==================================================================================================================================
    private void setThreadName()  {
-      Thread.currentThread().setName(StringUtils.padLeft(Integer.toUnsignedString(IntThreadCount.getAndIncrement()),10,"0"));
+      synchronized (IntThreadCount) {
+         Thread.currentThread().setName(StringUtils.padLeft(String.valueOf(IntThreadCount++),10,"0"));
+     }
    }
    
    // ==================================================================================================================================
@@ -1108,5 +1111,4 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
    private RuntimeContext getContext() {
       return CustomIdentityAsserterProviderImpl.ObjThreadContext.get();   
    }
-
 }

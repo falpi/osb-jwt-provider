@@ -53,8 +53,9 @@ public class HttpUtils {
    // ==================================================================================================================================
    // Acquisisce risorsa via http
    // ==================================================================================================================================
-   public static String fetch(HttpMethod ObjHttpMethod,
-                              String StrRequestURL,String StrContentType, 
+   public static String fetch(final HttpMethod ObjHttpMethod,
+                              final String StrRequestURL,
+                              String StrContentType, 
                               String StrAuthMode,String StrAuthPath, 
                               String StrProxyMode,String StrProxyPath,
                               Boolean BolSSLEnforce,int IntConnectTimeout,int IntRequestTimeout,LogManager Logger) throws Exception {
@@ -64,8 +65,8 @@ public class HttpUtils {
       // ==================================================================================================================================
       String StrPayload;
       HttpResponse ObjHttpResponse;
-      CloseableHttpClient ObjHttpClient;
-      HashMap<String,Object> ObjContext = new HashMap<String,Object>();      
+      final CloseableHttpClient ObjHttpClient;
+      final HashMap<String,Object> ObjContext = new HashMap<String,Object>();      
       ArrayList<CustomKrb5LoginModule> ArrLoginContext = new ArrayList<CustomKrb5LoginModule>();
       
       // ==================================================================================================================================
