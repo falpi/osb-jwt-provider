@@ -36,6 +36,7 @@ In the "Authentication Token Type" field you need to select one of the token typ
 
 Parameter                     | Description                                                      
 ----------------------------- | --------------------------------------------------------------- 
+`RUNNING_MODE`                | Enable/Disable requests parallelism.
 `LOGGING_LEVEL`               | Minimum level of log messages printed.
 `LOGGING_LINES`               | Maximum number of stacktrace lines logged.
 `BASIC_AUTH`                  | Allows to control Basic authentication if it is among those actives.
@@ -64,9 +65,9 @@ If a resource is located directly under a project, the path is constructed as fo
 Please note that resources of type "Proxy Server" can only be created in the fixed path `System/Proxy Servers/<resource-name>`.<br/>
 
 For more information on OSB resources follow this [link](https://docs.oracle.com/cd/E23943_01/admin.1111/e15867/project_explorer.htm#OSBAG822)<br/>
- 
+
 Below is a screenshot of the available parameters populated with sample values suitable for Azure Entra ID.<br/>
-<p align="center"><img src="https://github.com/user-attachments/assets/a240e7d0-8435-42a9-9088-c5dead422583" /></p>
+<p align="center"><img src="https://github.com/user-attachments/assets/99f8a729-785d-41e7-8dd1-7a6f4094c707" /></p>
 
 ## Template Variables
 <p align="justify">All string configuration parameters support the use of substitution variables to create configurations that can dynamically adapt to the runtime state. The following is a list of supported variables.</p>
