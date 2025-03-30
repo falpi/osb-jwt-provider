@@ -293,9 +293,25 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
    // ##################################################################################################################################
    // Implementa metodo principale per l'autenticazione
    // ##################################################################################################################################
-
+   
    @Override
    public CallbackHandler assertIdentity(String StrTokenType, Object ObjToken, ContextHandler ObjRequestContext) throws IdentityAssertionException {
+      
+      // Esegue in modo sincrono o asincrono in base a configurazione
+      if (ObjProviderMBean.getRUNNING_MODE().equals("SERIAL")) {
+         return assertIdentitySynchImpl(StrTokenType,ObjToken,ObjRequestContext);
+      } else {      
+         return assertIdentityAsynchImpl(StrTokenType,ObjToken,ObjRequestContext);
+      }
+   }
+
+   // Implementazione sincrona (serializza le richieste consentendo solo un thread alla volta)
+   private synchronized CallbackHandler assertIdentitySynchImpl(String StrTokenType, Object ObjToken, ContextHandler ObjRequestContext) throws IdentityAssertionException {
+      return assertIdentityAsynchImpl(StrTokenType,ObjToken,ObjRequestContext);
+   }                                     
+
+   // Implementazione asincrona (consente esecuzione parallela le richieste)
+   private CallbackHandler assertIdentityAsynchImpl(String StrTokenType, Object ObjToken, ContextHandler ObjRequestContext) throws IdentityAssertionException {
 
       // ==================================================================================================================================
       // Inizializzazioni preliminari
@@ -314,6 +330,8 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
       // Acquisisce configurazione
       // ==================================================================================================================================
                   
+      String StrRunningMode = ObjProviderMBean.getRUNNING_MODE();
+      
       String StrLoggingLevel = ObjProviderMBean.getLOGGING_LEVEL();
       Integer IntLoggingLines = ObjProviderMBean.getLOGGING_LINES();
                      
@@ -414,6 +432,7 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
       Logger.logMessage(LogLevel.DEBUG,"==========================================================================================");
       Logger.logMessage(LogLevel.DEBUG,"CONFIGURATION");
       Logger.logMessage(LogLevel.DEBUG,"==========================================================================================");
+      Logger.logMessage(LogLevel.DEBUG,"RUNNING_MODE .................: " + StrRunningMode);
       Logger.logMessage(LogLevel.DEBUG,"LOGGING_LEVEL ................: " + StrLoggingLevel);
       Logger.logMessage(LogLevel.DEBUG,"LOGGING_LINES ................: " + IntLoggingLines);
       Logger.logMessage(LogLevel.DEBUG,"BASIC_AUTH ...................: " + StrBasicAuthStatus);

@@ -60,6 +60,16 @@
  />
 
     <MBeanAttribute  
+  Name 		= "RUNNING_MODE"
+  Type 		= "java.lang.String"
+  LegalValues   = "SERIAL,PARALLEL" 
+  Writeable 	= "true"
+  Default 	= "&quot;PARALLEL&quot;"
+  Description   = "Enable/Disable requests parallelism"
+  Dynamic       = "true"
+ />
+
+    <MBeanAttribute  
   Name 		= "LOGGING_LEVEL"
   Type 		= "java.lang.String"
   LegalValues   = "TRACE,DEBUG,INFO,WARN,ERROR" 
