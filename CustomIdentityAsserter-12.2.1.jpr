@@ -80,6 +80,7 @@
    <hash n="oracle.ide.model.ResourcePaths">
       <hash n="resourcesContentSet">
          <list n="pattern-filters">
+            <string v="-src/"/>
             <string v="+**"/>
          </list>
          <list n="url-path">
@@ -120,26 +121,13 @@
    </hash>
    <hash n="oracle.jdeveloper.model.PathsConfiguration">
       <hash n="javaContentSet">
-         <list n="constituent-sets">
-            <hash>
-               <url n="content-folder-url" path="org/falpi/utils/"/>
-               <list n="pattern-filters">
-                  <string v="+org/falpi/utils/"/>
-               </list>
-               <list n="url-path">
-                  <url path="."/>
-               </list>
-            </hash>
-            <hash>
-               <list n="pattern-filters">
-                  <string v="+**"/>
-               </list>
-               <list n="url-path">
-                  <url path="src/"/>
-               </list>
-            </hash>
+         <list n="constituent-sets"/>
+         <list n="pattern-filters">
+            <string v="+**"/>
          </list>
-         <list n="url-path"/>
+         <list n="url-path">
+            <url path="src/"/>
+         </list>
       </hash>
    </hash>
    <hash n="oracle.jdeveloper.runner.RunConfigurations">
