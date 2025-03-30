@@ -36,6 +36,7 @@ In the "Authentication Token Type" field you need to select one of the token typ
 
 Parameter                     | Description                                                      
 ----------------------------- | --------------------------------------------------------------- 
+`RUNNING_MODE`                | Enable/Disable requests parallelism.
 `LOGGING_LEVEL`               | Minimum level of log messages printed.
 `LOGGING_LINES`               | Maximum number of stacktrace lines logged.
 `BASIC_AUTH`                  | Allows to control Basic authentication if it is among those actives.
@@ -64,9 +65,9 @@ If a resource is located directly under a project, the path is constructed as fo
 Please note that resources of type "Proxy Server" can only be created in the fixed path `System/Proxy Servers/<resource-name>`.<br/>
 
 For more information on OSB resources follow this [link](https://docs.oracle.com/cd/E23943_01/admin.1111/e15867/project_explorer.htm#OSBAG822)<br/>
- 
+
 Below is a screenshot of the available parameters populated with sample values suitable for Azure Entra ID.<br/>
-<p align="center"><img src="https://github.com/user-attachments/assets/a240e7d0-8435-42a9-9088-c5dead422583" /></p>
+<p align="center"><img src="https://github.com/user-attachments/assets/99f8a729-785d-41e7-8dd1-7a6f4094c707" /></p>
 
 ## Template Variables
 <p align="justify">All string configuration parameters support the use of substitution variables to create configurations that can dynamically adapt to the runtime state. The following is a list of supported variables.</p>
@@ -197,6 +198,7 @@ Token              | Format
 ... <DEBUG> ==========================================================================================
 ... <DEBUG> CONFIGURATION
 ... <DEBUG> ==========================================================================================
+... <DEBUG> RUNNING_MODE .................: PARALLEL
 ... <DEBUG> LOGGING_LEVEL ................: TRACE
 ... <DEBUG> LOGGING_LINES ................: 5
 ... <DEBUG> BASIC_AUTH ...................: ENABLE
@@ -325,6 +327,13 @@ Token              | Format
 ... <DEBUG> ##########################################################################################
 ... <INFO>  Inbound (JWT) => Proxy:Test, User:falpi (<client_id>), Client:<client host> (127.0.0.1)
 ```
+## Running Mode
+<p align="justify">The provider code base was designed and tested to be thread-safe because Identity Asserters in WebLogic can be called in parallel and this is their normal behavior. If multiple requests arrive at the same time the server allocates a different thread for each assertion. Load tests were done with the excellent SoapUI tool reaching up to 1000 threads for parallel requests and the provider code was found to be solid and without memory leaks.</br>
+
+However there may be situations where it is useful to force serialization of requests and this is the purpose of the "RUNNING_MODE" configuration parameter. When "SERIAL" mode is selected a "synchronized" version of the assertion method is used and this causes multiple parallel requests to be queued serially, without overlapping.</br>
+
+This could be useful for example for analyzing debug logs of a specific service in the presence of a large number of requests. In "PARALLEL" mode the log lines of each request/thread would be mixed with those of others. In "SERIAL" mode instead each assertion execution completes atomically with a consistent footprint of its logs.</p>
+
 ## Known Issues
 #### 1. Invalid signature with Azure Entra ID
 ```com.nimbusds.jose.proc.BadJWSException: Signed JWT rejected: Invalid signature```
