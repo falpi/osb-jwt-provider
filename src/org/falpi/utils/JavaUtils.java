@@ -15,8 +15,7 @@ public class JavaUtils {
    
    // ==================================================================================================================================
    // Inizializza script engine
-   // ==================================================================================================================================
-   
+   // ==================================================================================================================================   
    public static ScriptEngine getScriptEngine() throws Exception {   
       
       // Prova a istanziare lo sript engine built-in
@@ -33,7 +32,6 @@ public class JavaUtils {
    // ==================================================================================================================================
    // Formatta lo stack trace
    // ==================================================================================================================================
-
    public static String getStackTrace(int IntLines,Exception ObjException) {
             
       // Acquisisce lo stacktrace
@@ -55,14 +53,24 @@ public class JavaUtils {
    }
    
    // ==================================================================================================================================
-   // Permette di manipolare un attributo static/private di una classe
+   // Imposta un attributo anche se privato/final mediante reflection
    // ==================================================================================================================================
-   public static void setFinalStatic(Field ObjField, Object ObjValue) throws Exception {
+   public static void setField(Object ObjInstance, String StrField, Object ObjValue) throws Exception {      
+      Field ObjField = ObjInstance.getClass().getDeclaredField(StrField);      
       ObjField.setAccessible(true);
-      Field ObjModifiersField = Field.class.getDeclaredField("modifiers");
-      ObjModifiersField.setAccessible(true);
-      ObjModifiersField.setInt(ObjField, ObjField.getModifiers() & ~Modifier.FINAL);
+      Field ObjFieldModifiers = Field.class.getDeclaredField("modifiers");
+      ObjFieldModifiers.setAccessible(true);
+      ObjFieldModifiers.setInt(ObjField, ObjField.getModifiers() & ~Modifier.FINAL);
       ObjField.set(null,ObjValue);
+   }
+   
+   // ==================================================================================================================================
+   // Acquisisce un attributo anche se privato mediante reflection
+   // ==================================================================================================================================
+   public static Object getField(Object ObjInstance, String StrField) throws Exception {      
+      Field ObjHeadersField = ObjInstance.getClass().getDeclaredField(StrField);
+      ObjHeadersField.setAccessible(true);
+      return ObjHeadersField.get(ObjInstance);
    }
    
    // ==================================================================================================================================

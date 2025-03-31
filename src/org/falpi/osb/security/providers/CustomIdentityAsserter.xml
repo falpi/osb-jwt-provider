@@ -255,7 +255,24 @@
   Description   = "Validation assertion script (javascript returning boolean)"
   Dynamic       = "true"
  />
- 
+java.util.Properties 
+
+    <MBeanAttribute  
+  Name 		= "CUSTOM_REQUEST_HEADERS"
+  Type 		= "java.util.Properties"
+  Writeable 	= "true"
+  Description   = "Each line is treated as a custom http request header"
+  Dynamic       = "true"
+ /> 
+
+    <MBeanAttribute  
+  Name 		= "CUSTOM_RESPONSE_HEADERS"
+  Type 		= "java.util.Properties"
+  Writeable 	= "true"
+  Description   = "Each line is treated as a custom http response header"
+  Dynamic       = "true"
+ /> 
+
     <MBeanAttribute  
   Name 		= "DEBUGGING_ASSERTION"
   Type 		= "java.lang.String[]"

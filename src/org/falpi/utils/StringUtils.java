@@ -1,10 +1,36 @@
 package org.falpi.utils;
 
+import java.io.BufferedReader;
+
+import java.io.IOException;
+
 import java.util.List;
 import java.util.Iterator;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Enumeration;
+import java.util.Properties;
+
+import org.apache.commons.io.IOUtils;
 
 public class StringUtils {
+
+   public static String join(Properties ObjProperties, String StrSeparator) {
+      
+      if (ObjProperties==null) return "";
+      
+      StringBuilder StrProperties = new StringBuilder();
+      for (String StrKey : ObjProperties.stringPropertyNames()) {
+         StrProperties.append(StrKey).append("=").append(ObjProperties.getProperty(StrKey)).append(StrSeparator);
+      }
+      
+      // Remove the last comma
+      if (StrProperties.length() > 0) {
+         StrProperties.setLength(StrProperties.length() - 1);
+      }
+      
+      return StrProperties.toString();
+   }
    
    public static String join(String[] ArrStrings, String StrSeparator) {            
       String StrOutput = "";
@@ -46,10 +72,23 @@ public class StringUtils {
       }
       return IntMaxLength;
    }
+
+   public static int getMaxLength(Enumeration<String> ObjEnumerator) {
+      return getMaxLength(ObjEnumerator, new ArrayList());
+   }
    
+   public static int getMaxLength(Enumeration<String> ObjEnumerator, List ArrExclusion) {      
+      return getMaxLength(Collections.list(ObjEnumerator).iterator(),ArrExclusion);
+   }
+    
    public static String bytesToHex(byte[] ArrBytes) {
       StringBuilder ObjResult = new StringBuilder();
       for (byte ObjByte : ArrBytes) ObjResult.append(String.format("%02X", ObjByte));
       return ObjResult.toString();
    } 
+
+
+   public static String toString(BufferedReader ObjReader) throws IOException {
+      return IOUtils.toString(ObjReader);
+   }
 }
