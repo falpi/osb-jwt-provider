@@ -198,9 +198,10 @@ Token              | Format
 ... <DEBUG> ==========================================================================================
 ... <DEBUG> CONFIGURATION
 ... <DEBUG> ==========================================================================================
-... <DEBUG> RUNNING_MODE .................: PARALLEL
 ... <DEBUG> LOGGING_LEVEL ................: TRACE
 ... <DEBUG> LOGGING_LINES ................: 5
+... <DEBUG> LOGGING_INFO .................: Proxy: ${osb.service.name}, User: ${username} (${identity}), Client:  ${http.client.host} (${http.client.addr})
+... <DEBUG> THREADING_MODE ...............: PARALLEL
 ... <DEBUG> BASIC_AUTH ...................: ENABLE
 ... <DEBUG> JWT_AUTH .....................: ENABLE
 ... <DEBUG> JWT_KEYS_URL .................: https://login.microsoftonline.com/common/discovery/keys
@@ -218,6 +219,9 @@ Token              | Format
 ... <DEBUG> JWT_IDENTITY_MAPPING_MODE ....: ACCOUNT
 ... <DEBUG> JWT_IDENTITY_MAPPING_PATH ....: TEST/Mapper
 ... <DEBUG> JWT_IDENTITY_ASSERTION .......: '${token.payload.appid}'
+... <DEBUG> VALIDATION_ASSERTION .........: 
+... <DEBUG> CUSTOM_REQUEST_HEADERS .......: 
+... <DEBUG> CUSTOM_RESPONSE_HEADERS ......: 
 ... <DEBUG> VALIDATION_ASSERTION .........: 
 ... <DEBUG> DEBUGGING_ASSERTION ..........: 
 ... <DEBUG> DEBUGGING_PROPERTIES .........: ${http.header.*},${token.header.*},${token.payload.*}
@@ -325,9 +329,9 @@ Token              | Format
 ... <DEBUG> xms_tdbr ..............: "EU"
 ... <DEBUG> ------------------------------------------------------------------------------------------
 ... <DEBUG> ##########################################################################################
-... <INFO>  Inbound (JWT) => Proxy:Test, User:falpi (<client_id>), Client:<client host> (127.0.0.1)
+... <INFO>  Inbound (JWT) => Proxy: Test, User: falpi (<client_id>), Client: <client host> (127.0.0.1)
 ```
-## Running Mode
+## Threading Mode
 <p align="justify">The provider code base was designed and tested to be thread-safe because Identity Asserters in WebLogic can be called in parallel and this is their normal behavior. If multiple requests arrive at the same time the server allocates a different thread for each assertion. Load tests were done with the excellent SoapUI tool reaching up to 1000 threads for parallel requests and the provider code was found to be solid and without memory leaks.</br>
 
 However there may be situations where it is useful to force serialization of requests and this is the purpose of the "RUNNING_MODE" configuration parameter. When "SERIAL" mode is selected a "synchronized" version of the assertion method is used and this causes multiple parallel requests to be queued serially, without overlapping.</br>
