@@ -31,6 +31,6 @@ public class WLSUtils {
       ArrHeaderNames.add(StrHeaderName);
       ArrHeaderValues.add(StrHeaderValue.getBytes(StandardCharsets.UTF_8)); 
 
-      // Restituisce null in quanto header non esistente
+      // Restituisce null in quanto header non esisteva
       return null;
    }}

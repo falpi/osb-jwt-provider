@@ -60,16 +60,6 @@
  />
 
     <MBeanAttribute  
-  Name 		= "RUNNING_MODE"
-  Type 		= "java.lang.String"
-  LegalValues   = "SERIAL,PARALLEL" 
-  Writeable 	= "true"
-  Default 	= "&quot;PARALLEL&quot;"
-  Description   = "Enable/Disable requests parallelism"
-  Dynamic       = "true"
- />
-
-    <MBeanAttribute  
   Name 		= "LOGGING_LEVEL"
   Type 		= "java.lang.String"
   LegalValues   = "TRACE,DEBUG,INFO,WARN,ERROR" 
@@ -85,6 +75,25 @@
   Writeable 	= "true"
   Default 	= "5"
   Description   = "Maximum stacktrace rows to be logged"
+  Dynamic       = "true"
+ />
+
+    <MBeanAttribute  
+  Name 		= "LOGGING_INFO"
+  Type 		= "java.lang.String"
+  Writeable 	= "true"
+  Default 	= "&quot;Proxy: ${osb.service.name}, User: ${username}, Client:  ${http.client.host} (${http.client.addr})&quot;"
+  Description   = "Details logged at the conclusion of each assertion"
+  Dynamic       = "true"
+ />
+
+    <MBeanAttribute  
+  Name 		= "THREADING_MODE"
+  Type 		= "java.lang.String"
+  LegalValues   = "SERIAL,PARALLEL" 
+  Writeable 	= "true"
+  Default 	= "&quot;PARALLEL&quot;"
+  Description   = "Enable/Disable requests parallelism"
   Dynamic       = "true"
  />
 

@@ -40,6 +40,10 @@ import com.bea.wli.sb.services.ServiceInfo;
 import com.bea.wli.sb.transports.TransportEndPoint;
 import com.bea.xbean.util.Base64;
 
+import java.text.SimpleDateFormat;
+
+import java.util.Date;
+
 import org.json.XML;
 import org.json.JSONObject;
 
@@ -62,26 +66,6 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
    // ##################################################################################################################################
    // Sottoclassi 
    // ##################################################################################################################################
-
-   // ==================================================================================================================================
-   // Helper per functional programming
-   // ==================================================================================================================================  
-   private interface TemplateFunction<T> { String apply(T t) throws Exception; }   
-   private interface RequestTemplateFunction extends TemplateFunction<HttpServletRequest> {};
-
-   // ==================================================================================================================================
-   // Helper per configurazione di runtime
-   // ==================================================================================================================================  
-   private static class RuntimeContext extends HashMap<String,Object> {
-            
-      public String getString(String StrKey) {
-         return (String) get(StrKey);
-      }
-      
-      public Integer getInteger(String StrKey) {
-         return (Integer) get(StrKey);
-      }      
-   }
    
    // ==================================================================================================================================
    // Tipologie di token supportate
@@ -107,16 +91,31 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
                                                                  TokenTypes.JWT_TYPE1, TokenTypes.ALL_TYPE1,
                                                                  TokenTypes.JWT_TYPE2, TokenTypes.ALL_TYPE2);
    } 
+
+   // ==================================================================================================================================
+   // Helper per configurazione di runtime
+   // ==================================================================================================================================  
+   private static class RuntimeContext extends HashMap<String,Object> {
+            
+      public String getString(String StrKey) {
+         return (String) get(StrKey);
+      }
+      
+      public Integer getInteger(String StrKey) {
+         return (Integer) get(StrKey);
+      }      
+   }
+
+   // ==================================================================================================================================
+   // Helper per functional programming
+   // ==================================================================================================================================  
+   private interface TemplateFunction<T> { String apply(T t) throws Exception; }   
+   private interface TokenTemplateFunction extends TemplateFunction<JWTToken> {};
+   private interface RequestTemplateFunction extends TemplateFunction<HttpServletRequest> {};
    
    // ##################################################################################################################################
    // Dichiara variabili
    // ##################################################################################################################################
-
-   // ==================================================================================================================================
-   // Variabili statiche
-   // ==================================================================================================================================
-
-   private static long IntThreadCount = 0;
 
    // ==================================================================================================================================
    // Variabili locali al thread
@@ -135,6 +134,9 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
    // ==================================================================================================================================
    // Variabili di istanza
    // ==================================================================================================================================
+   
+   // Contatore esecuzioni thread (di fatto è il numero di request gestite)
+   private long IntThreadCount = 0;
      
    // Parametri weblogic
    private String StrRealmName;
@@ -300,7 +302,7 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
    public CallbackHandler assertIdentity(String StrTokenType, Object ObjToken, ContextHandler ObjRequestContext) throws IdentityAssertionException {
       
       // Esegue in modo sincrono o asincrono in base a configurazione
-      if (ObjProviderMBean.getRUNNING_MODE().equals("SERIAL")) {
+      if (ObjProviderMBean.getTHREADING_MODE().equals("SERIAL")) {
          return assertIdentitySynchImpl(StrTokenType,ObjToken,ObjRequestContext);
       } else {      
          return assertIdentityAsynchImpl(StrTokenType,ObjToken,ObjRequestContext);
@@ -331,11 +333,12 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
       // ==================================================================================================================================
       // Acquisisce configurazione
       // ==================================================================================================================================
-                  
-      String StrRunningMode = ObjProviderMBean.getRUNNING_MODE();
-      
+                        
       String StrLoggingLevel = ObjProviderMBean.getLOGGING_LEVEL();
       Integer IntLoggingLines = ObjProviderMBean.getLOGGING_LINES();
+      String StrLoggingInfo = ObjProviderMBean.getLOGGING_INFO();
+      
+      String StrThreadingMode = ObjProviderMBean.getTHREADING_MODE();
                      
       String StrBasicAuthStatus = ObjProviderMBean.getBASIC_AUTH();
       String StrJwtAuthStatus = ObjProviderMBean.getJWT_AUTH();
@@ -351,15 +354,15 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
       String StrJwtKeysHostAuthMode = ObjProviderMBean.getJWT_KEYS_HOST_AUTH_MODE();
       String StrJwtKeysHostAccountPath = ObjProviderMBean.getJWT_KEYS_HOST_ACCOUNT_PATH();
       String StrJwtKeysProxyServerMode = ObjProviderMBean.getJWT_KEYS_PROXY_SERVER_MODE();
-      String StrJwtKeysProxyServerPath = ObjProviderMBean.getJWT_KEYS_PROXY_SERVER_PATH(); 
-      
+      String StrJwtKeysProxyServerPath = ObjProviderMBean.getJWT_KEYS_PROXY_SERVER_PATH();      
       String StrJwtIdentityMappingMode = ObjProviderMBean.getJWT_IDENTITY_MAPPING_MODE();
       String StrJwtIdentityMappingPath = ObjProviderMBean.getJWT_IDENTITY_MAPPING_PATH();
-      String[] ArrJwtIdentityAssertion = ObjProviderMBean.getJWT_IDENTITY_ASSERTION();
-      
+      String[] ArrJwtIdentityAssertion = ObjProviderMBean.getJWT_IDENTITY_ASSERTION();      
       String[] ArrValidationAssertion = ObjProviderMBean.getVALIDATION_ASSERTION();
+      
       Properties ObjCustomRequestHeaders = ObjProviderMBean.getCUSTOM_REQUEST_HEADERS();
       Properties ObjCustomResponseHeaders = ObjProviderMBean.getCUSTOM_RESPONSE_HEADERS();
+      
       String[] ArrDebuggingAssertion = ObjProviderMBean.getDEBUGGING_ASSERTION();
       String[] ArrDebuggingProperties = ObjProviderMBean.getDEBUGGING_PROPERTIES();
       
@@ -372,78 +375,39 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
       // ==================================================================================================================================
       // Prepara contesto di runtime
       // ==================================================================================================================================
-
-      // ----------------------------------------------------------------------------------------------------------------------------------
-      // Acquisisce contesto weblogic
-      // ----------------------------------------------------------------------------------------------------------------------------------
-      ServiceInfo ObjService = (ServiceInfo) ObjRequestContext.getValue("com.bea.contextelement.alsb.service-info");
-      //TransportEndPoint ObjEndpoint = (TransportEndPoint) ObjRequestContext.getValue("com.bea.contextelement.alsb.transport.endpoint");
-      HttpServletRequest ObjRequest = (HttpServletRequest) ObjRequestContext.getValue("com.bea.contextelement.alsb.transport.http.http-request");
-      HttpServletResponse ObjResponse = (HttpServletResponse) ObjRequestContext.getValue("com.bea.contextelement.alsb.transport.http.http-response");
-
-      // ----------------------------------------------------------------------------------------------------------------------------------
-      // Acquisisce contesto weblogic
-      // ----------------------------------------------------------------------------------------------------------------------------------
-
-      ObjRuntimeContext.put("token",null); 
-      ObjRuntimeContext.put("request",ObjRequest);      
-      ObjRuntimeContext.put("scriptengine",ObjScriptEngine); 
       
-      // ----------------------------------------------------------------------------------------------------------------------------------
-      // Prepara contesto base                
-      // ----------------------------------------------------------------------------------------------------------------------------------
+      // Inizializza 
       String StrAuthType = "";
       String StrIdentity = "";
-      String StrUserName = ""; 
+      String StrUserName = "";                                                     
       
+      // Contesto generale
+      ObjRuntimeContext.put("token",null); 
       ObjRuntimeContext.put("authtype","");
       ObjRuntimeContext.put("identity","");
-      ObjRuntimeContext.put("username","");            
+      ObjRuntimeContext.put("username","");    
       
+      // Contesto temporale
+      ObjRuntimeContext.put("datetime",new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS").format(new Date(System.currentTimeMillis())));          
+      ObjRuntimeContext.put("timestamp",System.currentTimeMillis());            
+
+      // Contesto java
+      ObjRuntimeContext.put("java.version",JavaUtils.getJavaVersion()); 
+      ObjRuntimeContext.put("java.scriptengine",ObjScriptEngine); 
+
+      // Contesto multithreading
       ObjRuntimeContext.put("thread.counter",Thread.currentThread().getName());   
       ObjRuntimeContext.put("thread.identifier",Thread.currentThread().getId());   
-      
-      // ----------------------------------------------------------------------------------------------------------------------------------
-      // Prepara contesto osb
-      // ----------------------------------------------------------------------------------------------------------------------------------
-      String StrProjectName = ObjService.getRef().getProjectName();
-      String StrServiceName = ObjService.getRef().getLocalName();
-      String StrServicePath = ObjService.getRef().getFullName();
-      
+
+      // Contesto http & weblogic     
       ObjRuntimeContext.put("osb.server",StrManagedName);      
-      ObjRuntimeContext.put("osb.project",StrProjectName);  
-      ObjRuntimeContext.put("osb.service.name",StrServiceName);      
-      ObjRuntimeContext.put("osb.service.path",StrServicePath);
-      
-      // ----------------------------------------------------------------------------------------------------------------------------------
-      // Prepara contesto http
-      // ----------------------------------------------------------------------------------------------------------------------------------
-      String StrClientHost = ObjRequest.getRemoteHost(); 
-      String StrClientAddr = ObjRequest.getRemoteAddr();
-      String StrServerHost = ObjRequest.getLocalName();
-      String StrServerAddr = ObjRequest.getLocalAddr();
-      String StrRequestURL = ObjRequest.getRequestURL().toString();
-      String StrContentType = ObjRequest.getContentType();
+      ObjRuntimeContext.put("osb.service",ObjRequestContext.getValue("com.bea.contextelement.alsb.service-info")); 
+      ObjRuntimeContext.put("osb.endpoint",ObjRequestContext.getValue("com.bea.contextelement.alsb.transport.endpoint")); 
+      ObjRuntimeContext.put("http.request",ObjRequestContext.getValue("com.bea.contextelement.alsb.transport.http.http-request"));      
+      ObjRuntimeContext.put("http.response",ObjRequestContext.getValue("com.bea.contextelement.alsb.transport.http.http-response"));      
 
-      ObjRuntimeContext.put("http.request.url",StrRequestURL);      
-      ObjRuntimeContext.put("http.request.proto",ObjRequest.getProtocol());      
-      ObjRuntimeContext.put("http.request.scheme",ObjRequest.getScheme());      
-      
-      ObjRuntimeContext.put("http.client.host",StrClientHost);      
-      ObjRuntimeContext.put("http.client.addr",StrClientAddr);  
-      
-      ObjRuntimeContext.put("http.server.host",StrServerHost);      
-      ObjRuntimeContext.put("http.server.addr",StrServerAddr);      
-      ObjRuntimeContext.put("http.server.name",ObjRequest.getServerName());      
-      ObjRuntimeContext.put("http.server.port",String.valueOf(ObjRequest.getServerPort()));      
-
-      ObjRuntimeContext.put("http.content.type",StrContentType);      
-      ObjRuntimeContext.put("http.content.length",String.valueOf(ObjRequest.getContentLength()));      
-      ObjRuntimeContext.put("http.content.body",new RequestTemplateFunction() {
-         public String apply(HttpServletRequest ObjRequest) throws Exception {
-            return IOUtils.toString(ObjRequest.getReader());
-         }
-      });                                                                                        
+      // Completa la preparazione del context con i template di dettaglio
+      prepareContext();
       
       // ==================================================================================================================================
       // Imposta livelli di logging (eventuali errori sull'asserzione di debug sono silenziati per non pregiudicare l'autenticazione)
@@ -478,9 +442,10 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
       Logger.logMessage(LogLevel.DEBUG,"==========================================================================================");
       Logger.logMessage(LogLevel.DEBUG,"CONFIGURATION");
       Logger.logMessage(LogLevel.DEBUG,"==========================================================================================");
-      Logger.logMessage(LogLevel.DEBUG,"RUNNING_MODE .................: " + StrRunningMode);
       Logger.logMessage(LogLevel.DEBUG,"LOGGING_LEVEL ................: " + StrLoggingLevel);
       Logger.logMessage(LogLevel.DEBUG,"LOGGING_LINES ................: " + IntLoggingLines);
+      Logger.logMessage(LogLevel.DEBUG,"LOGGING_INFO .................: " + StrLoggingInfo);
+      Logger.logMessage(LogLevel.DEBUG,"THREADING_MODE ...............: " + StrThreadingMode);
       Logger.logMessage(LogLevel.DEBUG,"BASIC_AUTH ...................: " + StrBasicAuthStatus);
       Logger.logMessage(LogLevel.DEBUG,"JWT_AUTH .....................: " + StrJwtAuthStatus);
       Logger.logMessage(LogLevel.DEBUG,"JWT_KEYS_URL .................: " + StrJwtKeysURL);
@@ -524,18 +489,18 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
       Logger.logMessage(LogLevel.DEBUG,"==========================================================================================");
       Logger.logMessage(LogLevel.DEBUG,"CONTEXT");
       Logger.logMessage(LogLevel.DEBUG,"==========================================================================================");
-      Logger.logMessage(LogLevel.DEBUG,"Managed Name .....: "+StrManagedName);
-      Logger.logMessage(LogLevel.DEBUG,"Project Name .....: "+StrProjectName);
-      Logger.logMessage(LogLevel.DEBUG,"Service Name .....: "+StrServiceName);           
+      Logger.logMessage(LogLevel.DEBUG,"Managed Name .....: "+ StrManagedName);
+      Logger.logMessage(LogLevel.DEBUG,"Project Name .....: "+ ObjRuntimeContext.getString("osb.project"));
+      Logger.logMessage(LogLevel.DEBUG,"Service Name .....: "+ ObjRuntimeContext.getString("osb.service.name"));           
       Logger.logMessage(LogLevel.DEBUG,"------------------------------------------------------------------------------------------");
-      Logger.logMessage(LogLevel.DEBUG,"Server Host ......: "+StrServerHost);               
-      Logger.logMessage(LogLevel.DEBUG,"Server Addr ......: "+StrServerAddr);               
+      Logger.logMessage(LogLevel.DEBUG,"Server Host ......: "+ ObjRuntimeContext.getString("http.server.host"));               
+      Logger.logMessage(LogLevel.DEBUG,"Server Addr ......: "+ ObjRuntimeContext.getString("http.server.addr"));               
       Logger.logMessage(LogLevel.DEBUG,"------------------------------------------------------------------------------------------");
-      Logger.logMessage(LogLevel.DEBUG,"Client Host ......: "+StrClientHost);               
-      Logger.logMessage(LogLevel.DEBUG,"Client Addr ......: "+StrClientAddr);               
+      Logger.logMessage(LogLevel.DEBUG,"Client Host ......: "+ ObjRuntimeContext.getString("http.client.host"));        
+      Logger.logMessage(LogLevel.DEBUG,"Client Addr ......: "+ ObjRuntimeContext.getString("http.client.addr")); 
       Logger.logMessage(LogLevel.DEBUG,"------------------------------------------------------------------------------------------");
-      Logger.logMessage(LogLevel.DEBUG,"Request URL ......: "+StrRequestURL);               
-      Logger.logMessage(LogLevel.DEBUG,"Content Type .....: "+StrContentType);               
+      Logger.logMessage(LogLevel.DEBUG,"Request URL ......: "+ ObjRuntimeContext.getString("http.request.url"));        
+      Logger.logMessage(LogLevel.DEBUG,"Content Type .....: "+ ObjRuntimeContext.getString("http.content.type"));        
       Logger.logMessage(LogLevel.DEBUG,"------------------------------------------------------------------------------------------");
       
       // ==================================================================================================================================
@@ -903,6 +868,10 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
          Logger.logMessage(LogLevel.DEBUG,"==========================================================================================");
          Logger.logMessage(LogLevel.DEBUG,"CUSTOM HEADERS");
          Logger.logMessage(LogLevel.DEBUG,"==========================================================================================");
+
+         // Acquisisce il contesto http
+         HttpServletRequest ObjRequest = (HttpServletRequest) ObjRuntimeContext.get("http.request");        
+         HttpServletResponse ObjResponse = (HttpServletResponse) ObjRuntimeContext.get("http.response");        
                   
          try {
             for (String StrKey : ObjCustomRequestHeaders.stringPropertyNames()) {
@@ -959,12 +928,19 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
       // Genera logging di debug
       Logger.logMessage(LogLevel.DEBUG,"##########################################################################################");
 
-      // Genera logging di info su sintesi autenticazione
-      Logger.logMessage(LogLevel.INFO,"Inbound ("+StrAuthType+") =>"+
-                               " Proxy: "+StrServiceName+
-                               ", User: "+StrUserName+((!StrIdentity.equals("")&&!StrIdentity.equals(StrUserName))?(" ("+StrIdentity+")"):(""))+
-                               ", Client: "+StrClientHost+((!StrClientHost.equals(StrClientAddr))?(" ("+StrClientAddr+")"):("")));
+      // ==================================================================================================================================
+      // Gestione logging finale dell'asserzione
+      // ==================================================================================================================================
 
+      try {
+         // Genera logging di sintesi della asserzione
+         Logger.logMessage(LogLevel.INFO,"Inbound ("+StrAuthType+") => "+replaceTemplates(StrLoggingInfo));
+      } catch (Exception ObjException) {
+         String StrError = "Logging details error";
+         Logger.logMessage(LogLevel.WARN,StrError,ObjException);
+      }         
+
+      
       // Restituisce utente autenticato
       return new CustomIdentityAsserterCallbackHandlerImpl(StrUserName);
    }
@@ -972,174 +948,6 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
    // ##################################################################################################################################
    // Metodi privati di supporto
    // ##################################################################################################################################
-   
-   // ==================================================================================================================================
-   // Evaluate script
-   // ==================================================================================================================================
-   private static Object evaluateScript(String StrScript, String StrClassName) throws Exception {
-
-      // Referenzia il context del thread
-      RuntimeContext ObjRuntimeContext = getContext();
-         
-      // ==================================================================================================================================
-      // Esegue lo script e ne verifica la classe di output
-      // ==================================================================================================================================
-      
-      // Esegue lo script fornito
-      Object ObjResult = ((ScriptEngine)ObjRuntimeContext.get("scriptengine")).eval(replaceTemplates(StrScript));
-      String StrResultClassName = ObjResult.getClass().getSimpleName();
-      
-      // Se la tipologia di oggetto restituita non è quella attesa genera eccezione
-      if (!StrResultClassName.equals(StrClassName)) {
-         throw new Exception("expression must return '"+StrClassName+"' instead of '"+StrResultClassName+"'");
-      }
-
-      // Restrituisce l'oggetto risultante
-      return ObjResult;
-   }
-
-   // ==================================================================================================================================
-   // Replace template variables
-   // ==================================================================================================================================
-   private static String replaceTemplates(String StrText) throws Exception {
-         
-      // Referenzia il logger del thread
-      LogManager Logger = getLogger();
-
-      // Referenzia il context del thread
-      RuntimeContext ObjRuntimeContext = getContext();
-      
-      // ==================================================================================================================================
-      // Acquisisce variabili di contesto di tipo oggetto
-      // ==================================================================================================================================
-      JWTToken ObjJwtToken = (JWTToken) ObjRuntimeContext.get("token");
-      HttpServletRequest ObjRequest = (HttpServletRequest) ObjRuntimeContext.get("http.request");
-      
-      // ==================================================================================================================================
-      // Gestisce variabili di sostituzione
-      // ==================================================================================================================================     
-      String StrTemplate;
-      String StrVariableName;
-      String StrVariableValue;
-      Object ObjVariableValue;
-      String[] ArrVariableTokens;
-      
-      Pattern ObjPattern = Pattern.compile("(\\$\\{([a-z|\\.|\\*]*)\\})");
-      Matcher ObjMatcher = ObjPattern.matcher(StrText);
-      
-      while (ObjMatcher.find()) {
-      
-         StrTemplate = ObjMatcher.group(1);
-         StrVariableName = ObjMatcher.group(2);
-         ArrVariableTokens = StrVariableName.split("\\.");
-         StrVariableValue = null;
-
-         // ----------------------------------------------------------------------------------------------------------------------------------
-         // Gestisce variabili speciali
-         // ----------------------------------------------------------------------------------------------------------------------------------         
-         switch (ArrVariableTokens.length) {
-                        
-            case 3:
-               switch (ArrVariableTokens[0]) {
-                  case "http" :
-                     switch (ArrVariableTokens[1]) {
-                        case "header": 
-                           if (!ArrVariableTokens[2].equals("*")) {
-                              StrVariableValue = ObjRequest.getHeader(ArrVariableTokens[2]); 
-                           } else {
-                              String StrHeaderName;
-                              String StrHeaderValue;   
-                              
-                              List<String> ArrExclusions = Arrays.asList("Authorization");
-                              int IntMaxLength = StringUtils.getMaxLength(ObjRequest.getHeaderNames(),ArrExclusions);
-                              Enumeration<String> ObjEnumerator = ObjRequest.getHeaderNames();
-                              
-                              StrVariableValue = "\n"+Logger.formatMessage(LogLevel.DEBUG,"------------------------------------------------------------------------------------------\n");
-                              while (ObjEnumerator.hasMoreElements()) {
-                                 StrHeaderName = ObjEnumerator.nextElement();
-                                 if (!ArrExclusions.contains(StrHeaderName)) {
-                                    StrHeaderValue = ObjRequest.getHeader(StrHeaderName);
-                                    StrVariableValue+= Logger.formatProperty(LogLevel.DEBUG,StrHeaderName,StrHeaderValue,IntMaxLength+4)+"\n";
-                                 }
-                              }
-                              StrVariableValue+= Logger.formatMessage(LogLevel.DEBUG,"------------------------------------------------------------------------------------------");
-                           }
-                           break;
-                     }
-                     break;
-                  case "token" : 
-                     if (ObjJwtToken!=null) {
-                        switch (ArrVariableTokens[1]) {
-                           case "header": 
-                              if (!ArrVariableTokens[2].equals("*")) {
-                                 StrVariableValue = (String) ObjJwtToken.getHeader().get(ArrVariableTokens[2]);
-                              } else if (!ObjJwtToken.isReady()) {
-                                 StrVariableValue = "''";
-                              } else {                 
-                                 Map<String,Object> ObjMapper = ObjJwtToken.getHeader();   
-                                 int IntMaxLength = StringUtils.getMaxLength(ObjMapper.keySet().iterator());                                                     
-                                 
-                                 StrVariableValue = "\n"+Logger.formatMessage(LogLevel.DEBUG,"------------------------------------------------------------------------------------------\n");                              
-                                 for (Map.Entry<String,Object> ObjEntry : ObjMapper.entrySet()) {
-                                    Object ObjValue = ObjEntry.getValue();
-                                    String StrQuotes = ((ObjValue instanceof String)?("\""):(""));
-                                    StrVariableValue+= Logger.formatProperty(LogLevel.DEBUG,ObjEntry.getKey(),StrQuotes+ObjValue+StrQuotes,IntMaxLength+4)+"\n";
-                                 }                              
-                                 StrVariableValue+= Logger.formatMessage(LogLevel.DEBUG,"------------------------------------------------------------------------------------------");
-                              }
-                              break;                     
-                           case "payload":
-                              if (!ArrVariableTokens[2].equals("*")) {
-                                 StrVariableValue = (String) ObjJwtToken.getPayload().get(ArrVariableTokens[2]);
-                              } else if (!ObjJwtToken.isReady()) {
-                                 StrVariableValue = "''";
-                              } else {     
-                                 Map<String,Object> ObjMapper = ObjJwtToken.getPayload();   
-                                 int IntMaxLength = StringUtils.getMaxLength(ObjMapper.keySet().iterator());                                                     
-                                 
-                                 StrVariableValue = "\n"+Logger.formatMessage(LogLevel.DEBUG,"------------------------------------------------------------------------------------------\n");                              
-                                 for (Map.Entry<String,Object> ObjEntry : ObjMapper.entrySet()) {
-                                    Object ObjValue = ObjEntry.getValue();
-                                    String StrQuotes = ((ObjValue instanceof String)?("\""):(""));
-                                    StrVariableValue+= Logger.formatProperty(LogLevel.DEBUG,ObjEntry.getKey(),StrQuotes+ObjValue+StrQuotes,IntMaxLength+4)+"\n";
-                                 }                              
-                                 StrVariableValue+= Logger.formatMessage(LogLevel.DEBUG,"------------------------------------------------------------------------------------------");
-                              }
-                              break;
-                        }
-                        break;
-                     }
-               } 
-               break;                 
-         }
-
-         // ----------------------------------------------------------------------------------------------------------------------------------
-         // Se la variabile non è stata ancora identificata esegue
-         // ----------------------------------------------------------------------------------------------------------------------------------
-         if (StrVariableValue==null) {
-            
-            // Cerca la variabile nel contesto di runtime
-            ObjVariableValue = ObjRuntimeContext.get(StrVariableName);
-         
-            // Se si tratta di una funzione la esegue, altrimeni se è una stringa la converte, altrimenti genera eccezione
-            if (ObjVariableValue instanceof TemplateFunction) {
-               StrVariableValue = ((RequestTemplateFunction) ObjVariableValue).apply(ObjRequest);
-            } else if (ObjVariableValue instanceof String) {
-               StrVariableValue = (String) ObjVariableValue;
-            } else {
-               throw new Exception("invalid template variable '"+StrVariableName+"'");               
-            }
-         }
-         
-         // ----------------------------------------------------------------------------------------------------------------------------------
-         // Esegue sostituzione della variabile template         
-         // ----------------------------------------------------------------------------------------------------------------------------------
-         StrText = StrText.replace(StrTemplate,StrVariableValue);
-      }
-      
-      // Restituisce stringa con i template sostituiti
-      return StrText;
-   }
     
    // ==================================================================================================================================
    // Verifica se un parametro obbligatorio e valorizzato
@@ -1178,9 +986,172 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
    }   
    
    // ==================================================================================================================================
+   // Prepare runtime context
+   // ==================================================================================================================================
+   private static void prepareContext() {
+         
+      // Referenzia il logger del thread
+      LogManager Logger = getLogger();
+
+      // Referenzia il context del thread
+      RuntimeContext ObjRuntimeContext = getContext();
+
+      // Referenzia il contesto osb
+      ServiceInfo ObjService = (ServiceInfo) ObjRuntimeContext.get("osb.service");
+
+      // Referenzia il contesto http
+      HttpServletRequest ObjRequest = (HttpServletRequest) ObjRuntimeContext.get("http.request");
+      
+      // ----------------------------------------------------------------------------------------------------------------------------------
+      // Prepara variabili di contesto statiche
+      // ----------------------------------------------------------------------------------------------------------------------------------
+      ObjRuntimeContext.put("osb.project",ObjService.getRef().getProjectName());  
+      ObjRuntimeContext.put("osb.service.name",ObjService.getRef().getLocalName());      
+      ObjRuntimeContext.put("osb.service.path",ObjService.getRef().getFullName());
+
+      ObjRuntimeContext.put("http.request.url",ObjRequest.getRequestURL().toString());      
+      ObjRuntimeContext.put("http.request.proto",ObjRequest.getProtocol());      
+      ObjRuntimeContext.put("http.request.scheme",ObjRequest.getScheme());      
+            
+      ObjRuntimeContext.put("http.client.host",ObjRequest.getRemoteHost());      
+      ObjRuntimeContext.put("http.client.addr",ObjRequest.getRemoteAddr());  
+      
+      ObjRuntimeContext.put("http.server.host",ObjRequest.getLocalName());      
+      ObjRuntimeContext.put("http.server.addr",ObjRequest.getLocalAddr());      
+      ObjRuntimeContext.put("http.server.name",ObjRequest.getServerName());      
+      ObjRuntimeContext.put("http.server.port",String.valueOf(ObjRequest.getServerPort()));      
+
+      ObjRuntimeContext.put("http.content.type",ObjRequest.getContentType());      
+      ObjRuntimeContext.put("http.content.length",String.valueOf(ObjRequest.getContentLength()));    
+      
+      // ----------------------------------------------------------------------------------------------------------------------------------
+      // Prepara variabili di contesto dinamiche
+      // ----------------------------------------------------------------------------------------------------------------------------------
+      ObjRuntimeContext.put("http.content.body",new RequestTemplateFunction() {
+         public String apply(HttpServletRequest ObjRequest) throws Exception {
+            return IOUtils.toString(ObjRequest.getReader());
+         }
+      });       
+      
+      ObjRuntimeContext.put("http.header.*",new RequestTemplateFunction() {
+         public String apply(HttpServletRequest ObjRequest) throws Exception {
+            return Logger.formatProperties(LogLevel.DEBUG,HttpUtils.getHeaders(ObjRequest, Arrays.asList("Authorization")),StringUtils.repeat(90,"-"),false);
+         }
+      });                                                   
+
+      ObjRuntimeContext.put("token.header.*",new TokenTemplateFunction() {
+         public String apply(JWTToken ObjJwtToken) throws Exception {
+            return (ObjJwtToken!=null)?(Logger.formatProperties(LogLevel.DEBUG,ObjJwtToken.getHeader(),StringUtils.repeat(90,"-"),true)):("");
+         }
+      });                                                   
+      
+      ObjRuntimeContext.put("token.payload.*",new TokenTemplateFunction() {
+         public String apply(JWTToken ObjJwtToken) throws Exception {
+            return (ObjJwtToken!=null)?(Logger.formatProperties(LogLevel.DEBUG,ObjJwtToken.getPayload(),StringUtils.repeat(90,"-"),true)):("");
+         }
+      }); 
+   }
+
+   // ==================================================================================================================================
+   // Replace template variables
+   // ==================================================================================================================================
+   private static String replaceTemplates(String StrText) throws Exception {
+         
+      // Referenzia il logger del thread
+      LogManager Logger = getLogger();
+
+      // Referenzia il context del thread
+      RuntimeContext ObjRuntimeContext = getContext();
+      
+      // Acquisisce variabili di contesto
+      JWTToken ObjJwtToken = (JWTToken) ObjRuntimeContext.get("token");
+      HttpServletRequest ObjRequest = (HttpServletRequest) ObjRuntimeContext.get("http.request");
+      
+      // ----------------------------------------------------------------------------------------------------------------------------------
+      // Gestisce variabili di sostituzione
+      // ----------------------------------------------------------------------------------------------------------------------------------
+      String StrTemplate;
+      String StrVariableName;
+      String StrVariableValue;
+      Object ObjVariableValue;
+      String[] ArrVariableTokens;
+      
+      Pattern ObjPattern = Pattern.compile("(\\$\\{([a-z|\\.|\\*]*)\\})");
+      Matcher ObjMatcher = ObjPattern.matcher(StrText);
+      
+      while (ObjMatcher.find()) {
+      
+         StrTemplate = ObjMatcher.group(1);
+         StrVariableName = ObjMatcher.group(2);
+         ArrVariableTokens = StrVariableName.split("\\.");
+         StrVariableValue = null;
+         
+         // Cerca la variabile nel contesto di runtime
+         ObjVariableValue = ObjRuntimeContext.get(StrVariableName);
+      
+         // Se sono funzioni le esegue, se è una stringa la converte, altrimenti procede sulla gestione di casi specifici
+         if (ObjVariableValue instanceof TokenTemplateFunction) {
+            StrVariableValue = ((TokenTemplateFunction) ObjVariableValue).apply(ObjJwtToken);
+         } else if (ObjVariableValue instanceof RequestTemplateFunction) {
+            StrVariableValue = ((RequestTemplateFunction) ObjVariableValue).apply(ObjRequest);
+         } else if (ObjVariableValue instanceof String) {
+            StrVariableValue = (String) ObjVariableValue;
+         } else {            
+            if (ArrVariableTokens.length==3) {
+               switch ((ArrVariableTokens[0]+"."+ArrVariableTokens[1])) {
+                  case "http.header": StrVariableValue = ObjRequest.getHeader(ArrVariableTokens[2]); break;
+                  case "token.header": StrVariableValue = ((ObjJwtToken!=null)&&(ObjJwtToken.isReady()))?((String) ObjJwtToken.getHeader().get(ArrVariableTokens[2])):(""); break;
+                  case "token.payload": StrVariableValue = ((ObjJwtToken!=null)&&(ObjJwtToken.isReady()))?((String) ObjJwtToken.getPayload().get(ArrVariableTokens[2])):(""); break;
+               }               
+            }
+         }
+         
+         // ----------------------------------------------------------------------------------------------------------------------------------
+         // Se la variabile non è stata ancora identificata genera eccezione
+         // ----------------------------------------------------------------------------------------------------------------------------------
+         if (StrVariableValue==null) {            
+               throw new Exception("invalid template variable '"+StrVariableName+"'");               
+         }
+         
+         // ----------------------------------------------------------------------------------------------------------------------------------
+         // Esegue sostituzione della variabile template         
+         // ----------------------------------------------------------------------------------------------------------------------------------
+         StrText = StrText.replace(StrTemplate,StrVariableValue);
+      }
+      
+      // Restituisce stringa con i template sostituiti
+      return StrText;
+   }
+   
+   // ==================================================================================================================================
+   // Evaluate script
+   // ==================================================================================================================================
+   private static Object evaluateScript(String StrScript, String StrClassName) throws Exception {
+
+      // Referenzia il context del thread
+      RuntimeContext ObjRuntimeContext = getContext();
+         
+      // ==================================================================================================================================
+      // Esegue lo script e ne verifica la classe di output
+      // ==================================================================================================================================
+      
+      // Esegue lo script fornito
+      Object ObjResult = ((ScriptEngine)ObjRuntimeContext.get("java.scriptengine")).eval(replaceTemplates(StrScript));
+      String StrResultClassName = ObjResult.getClass().getSimpleName();
+      
+      // Se la tipologia di oggetto restituita non è quella attesa genera eccezione
+      if (!StrResultClassName.equals(StrClassName)) {
+         throw new Exception("expression must return '"+StrClassName+"' instead of '"+StrResultClassName+"'");
+      }
+
+      // Restrituisce l'oggetto risultante
+      return ObjResult;
+   }
+   
+   // ==================================================================================================================================
    // Inizializza nome del thread con la rappresentazione esadecimale del contatore di esecuzione
    // ==================================================================================================================================
-   private static synchronized void setThreadName()  {
+   private synchronized void setThreadName()  {
       Thread.currentThread().setName(StringUtils.padLeft(String.valueOf(IntThreadCount++),10,"0"));
    }
    

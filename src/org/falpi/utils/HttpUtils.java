@@ -1,13 +1,21 @@
 package org.falpi.utils;
 
+import com.bea.core.repackaged.springframework.util.LinkedMultiValueMap;
+
 import java.net.URL;
 import java.util.HashMap;
 import java.util.ArrayList;
 import java.security.Principal;
 import java.security.PrivilegedAction;
 
+import java.util.List;
+import java.util.Enumeration;
+import java.util.Collections;
+
 import javax.security.auth.Subject;
 import javax.security.auth.spi.LoginModule;
+
+import javax.servlet.http.HttpServletRequest;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.http.HttpHost;
@@ -44,7 +52,7 @@ import org.falpi.utils.logging.LogManager;
 import org.falpi.utils.SecurityUtils.CustomKrb5LoginModule;
 
 public class HttpUtils {
-   
+      
    // ==================================================================================================================================
    // Metodi http
    // ==================================================================================================================================
@@ -423,4 +431,23 @@ public class HttpUtils {
       // Restituisce client http
       return ObjHttpClientBuilder.build();
    }
+   
+   // ==================================================================================================================================
+   // Acquisisce headers in formato mappa
+   // ==================================================================================================================================
+   public static LinkedMultiValueMap getHeaders(HttpServletRequest ObjRequest,List<String> ArrExclusions) throws Exception {
+      
+      String StrHeaderName;
+      LinkedMultiValueMap<String,String> ObjMap = new LinkedMultiValueMap<String,String>();
+      Enumeration<String> ObjEnumerator = ObjRequest.getHeaderNames();
+      
+      while (ObjEnumerator.hasMoreElements()) {
+         StrHeaderName = ObjEnumerator.nextElement();
+         if (!ArrExclusions.contains(StrHeaderName)) {
+            ObjMap.put(StrHeaderName,Collections.list(ObjRequest.getHeaders(StrHeaderName)));
+         }         
+      }
+      
+      return ObjMap;
+   }   
 }

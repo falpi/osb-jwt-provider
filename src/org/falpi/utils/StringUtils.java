@@ -15,6 +15,9 @@ import org.apache.commons.io.IOUtils;
 
 public class StringUtils {
 
+   // ==================================================================================================================================
+   // Fonde le proprietà in un unica stringa
+   // ==================================================================================================================================
    public static String join(Properties ObjProperties, String StrSeparator) {
       
       if (ObjProperties==null) return "";
@@ -40,10 +43,16 @@ public class StringUtils {
       return StrOutput;
    }
    
+   // ==================================================================================================================================
+   // Genera una sequenza di caratteri
+   // ==================================================================================================================================
    public static String repeat(int IntLength, String StrFiller) {
       return new String(new char[IntLength]).replace("\0", StrFiller);
    }
 
+   // ==================================================================================================================================
+   // Esegue padding di stringhe
+   // ==================================================================================================================================
    public static String padRight(String StrTarget, int IntLength, String StrFiller) {
       if (IntLength > StrTarget.length()) {
          StrTarget = StrTarget + repeat(IntLength-StrTarget.length(), StrFiller);
@@ -58,6 +67,9 @@ public class StringUtils {
       return StrTarget;
    }
  
+   // ==================================================================================================================================
+   // Calcola dimensione massima di un insieme di stringhe
+   // ==================================================================================================================================
    public static int getMaxLength(Iterator<String> ObjIterator) {
       return getMaxLength(ObjIterator, new ArrayList());
    }
@@ -81,13 +93,18 @@ public class StringUtils {
       return getMaxLength(Collections.list(ObjEnumerator).iterator(),ArrExclusion);
    }
     
+   // ==================================================================================================================================
+   // Converte stringa di byte in esadecimale
+   // ==================================================================================================================================
    public static String bytesToHex(byte[] ArrBytes) {
       StringBuilder ObjResult = new StringBuilder();
       for (byte ObjByte : ArrBytes) ObjResult.append(String.format("%02X", ObjByte));
       return ObjResult.toString();
    } 
 
-
+   // ==================================================================================================================================
+   // Wrapper di metodi di conversione stringa in via di deprecazione
+   // ==================================================================================================================================
    public static String toString(BufferedReader ObjReader) throws IOException {
       return IOUtils.toString(ObjReader);
    }

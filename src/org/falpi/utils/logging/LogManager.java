@@ -1,8 +1,10 @@
 package org.falpi.utils.logging;
 
-import java.text.SimpleDateFormat;
-
+import java.util.Map;
 import java.util.Date;
+import java.util.List;
+import java.util.Iterator;
+import java.text.SimpleDateFormat;
 
 import org.falpi.utils.JavaUtils;
 import org.falpi.utils.StringUtils;
@@ -14,7 +16,7 @@ public class LogManager {
    // ==================================================================================================================================
    
    // Identificativo univoco del contesto di messaggi di log generati
-   private String StrLoggerID;
+   private String StrModuleID;
    
    // Lughezza di padding per il logging delle proprietà
    private int IntPadLength = 0;
@@ -28,8 +30,8 @@ public class LogManager {
    // ==================================================================================================================================
    // Costruttore
    // ==================================================================================================================================
-   public LogManager(String StrLoggerID) {      
-      this.StrLoggerID = StrLoggerID;
+   public LogManager(String StrModuleID) {      
+      this.StrModuleID = StrModuleID;
    }   
    
    // ==================================================================================================================================
@@ -56,31 +58,10 @@ public class LogManager {
    public void setPadLength(int IntLength) {
       IntPadLength = IntLength;
    } 
-   
-   // ==================================================================================================================================
-   // Formattazione messaggi e proprietà
-   // ==================================================================================================================================
-
-   public String formatProperty(int IntLevel,String StrProperty,String StrValue) {
-      return formatProperty(IntLevel,StrProperty,StrValue,IntPadLength);
-   }
-   
-   public String formatProperty(int IntLevel,String StrProperty,String StrValue,int IntPadding) {
-      return formatMessage(IntLevel,StringUtils.padRight(StrProperty+" ",IntPadding,".")+": "+StrValue);
-   }
-
-   public String formatMessage(int IntLevel,String StrMessage) {
-      return new SimpleDateFormat("'<'yyyy-MM-dd HH:mm:ss.SSS'>'").format(new Date(System.currentTimeMillis()))+
-                                  " <"+StrLoggerID+">"+
-                                  " <"+Thread.currentThread().getName()+"> "+
-                                  StringUtils.padRight("<"+LogLevel.getDescription(IntLevel)+">",8," ")+
-                                  StrMessage;
-   } 
-   
+      
    // ==================================================================================================================================
    // Logging di proprietà chiave valore
    // ==================================================================================================================================
-
    public void logProperty(int IntLevel,String StrProperty,String StrValue) {
       System.out.println(formatProperty(IntLevel,StrProperty,StrValue,IntPadLength));
    }
@@ -89,10 +70,43 @@ public class LogManager {
       System.out.println(formatProperty(IntLevel,StrProperty,StrValue,IntPadding));
    }
    
+   public String formatProperty(int IntLevel,String StrProperty,String StrValue) {
+      return formatProperty(IntLevel,StrProperty,StrValue,IntPadLength);
+   }
+   
+   public String formatProperty(int IntLevel,String StrProperty,String StrValue,int IntPadding) {
+      return formatMessage(IntLevel,StringUtils.padRight(StrProperty+" ",IntPadding,".")+": "+StrValue);
+   }
+   
+   public String formatProperties(int IntLevel,Map<String,Object> ObjProperties,String StrSeparator,Boolean BolQuoteStringValues) {
+      
+      String StrReturn = "\n";
+      int IntMaxLength = StringUtils.getMaxLength(ObjProperties.keySet().iterator());                                                     
+            
+      if (!StrSeparator.equals("")) StrReturn+= formatMessage(IntLevel,StrSeparator)+"\n";
+      for (Map.Entry<String,Object> ObjEntry : ObjProperties.entrySet()) {
+         Object ObjValue = ObjEntry.getValue();
+         
+         if (ObjValue instanceof List) {
+            Iterator<String> ObjIterator = ((List<String>)ObjValue).iterator();
+            while (ObjIterator.hasNext()) {
+               Object ObjListValue = ObjIterator.next();
+               String StrQuotes = ((BolQuoteStringValues)&&(ObjListValue instanceof String))?("\""):("");
+               StrReturn+= formatProperty(IntLevel,ObjEntry.getKey(),StrQuotes+ObjListValue+StrQuotes,IntMaxLength+4)+"\n";
+            }
+         } else {         
+            String StrQuotes = ((BolQuoteStringValues)&&(ObjValue instanceof String))?("\""):("");
+            StrReturn+= formatProperty(IntLevel,ObjEntry.getKey(),StrQuotes+ObjValue+StrQuotes,IntMaxLength+4)+"\n";
+         }
+      } 
+      if (!StrSeparator.equals("")) StrReturn+= formatMessage(IntLevel,StrSeparator);
+            
+      return StrReturn;
+   }
+   
    // ==================================================================================================================================
    // Logging di messaggi generici
    // ==================================================================================================================================
-
    public void logMessage(int IntLevel,String StrMessage) {
       logMessage(IntLevel,StrMessage,null);
    }   
@@ -128,4 +142,12 @@ public class LogManager {
          }
       }
    }   
+
+   public String formatMessage(int IntLevel,String StrMessage) {
+      return new SimpleDateFormat("'<'yyyy-MM-dd HH:mm:ss.SSS'>'").format(new Date(System.currentTimeMillis()))+
+                                  " <"+StrModuleID+">"+
+                                  " <"+Thread.currentThread().getName()+"> "+
+                                  StringUtils.padRight("<"+LogLevel.getDescription(IntLevel)+">",8," ")+
+                                  StrMessage;
+   }    
 }
