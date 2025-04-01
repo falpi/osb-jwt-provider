@@ -82,7 +82,7 @@
   Name 		= "LOGGING_INFO"
   Type 		= "java.lang.String"
   Writeable 	= "true"
-  Default 	= "&quot;Proxy: ${osb.service.name}, User: ${username}, Client:  ${http.client.host} (${http.client.addr})&quot;"
+  Default 	= "&quot;Proxy: ${osb.service.name}, User: ${username} (${identity}), Client:  ${http.client.host} (${http.client.addr})&quot;"
   Description   = "Details logged at the conclusion of each assertion"
   Dynamic       = "true"
  />

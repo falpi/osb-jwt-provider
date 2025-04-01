@@ -936,7 +936,7 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
          // Genera logging di sintesi della asserzione
          Logger.logMessage(LogLevel.INFO,"Inbound ("+StrAuthType+") => "+replaceTemplates(StrLoggingInfo));
       } catch (Exception ObjException) {
-         String StrError = "Logging details error";
+         String StrError = "Logging info error";
          Logger.logMessage(LogLevel.WARN,StrError,ObjException);
       }         
 
