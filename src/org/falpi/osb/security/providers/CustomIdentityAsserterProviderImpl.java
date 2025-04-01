@@ -862,7 +862,7 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
       // Se sono presenti custom headers li gestisce
       // ==================================================================================================================================
                               
-      if ((ObjCustomRequestHeaders!=null)&&(ObjCustomResponseHeaders!=null)) {
+      if ((ObjCustomRequestHeaders!=null)||(ObjCustomResponseHeaders!=null)) {
 
          // Se necessario genera logging di debug
          Logger.logMessage(LogLevel.DEBUG,"==========================================================================================");
