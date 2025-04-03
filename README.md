@@ -36,9 +36,10 @@ In the "Authentication Token Type" field you need to select one of the token typ
 
 Parameter                     | Description                                                      
 ----------------------------- | --------------------------------------------------------------- 
-`RUNNING_MODE`                | Enable/Disable requests parallelism.
 `LOGGING_LEVEL`               | Minimum level of log messages printed.
 `LOGGING_LINES`               | Maximum number of stacktrace lines logged.
+`LOGGING_INFO`                | tbd
+`THREADING_MODE`              | Multithreading strategy.
 `BASIC_AUTH`                  | Allows to control Basic authentication if it is among those actives.
 `JWT_AUTH`                    | Allows to control JWT authentication if it is among those actives.
 `JWT_KEYS_URL`                | Download URL for public keys used for JWT signature validation.
@@ -57,8 +58,11 @@ Parameter                     | Description
 `JWT_IDENTITY_MAPPING_PATH`   | OSB resource path (\*) of the "Service Account" used for mapping user identity to realm username.
 `JWT_IDENTITY_ASSERTION`      | Must contain a javascript text that returns the identity of the jwt token according to the specifications of the IDP used. It must return a String object.
 `VALIDATION_ASSERTION`        | May contain a javascript text that must validate or reject the authentication request according to arbitrary criteria defined by the user. If present, it must return a Boolean object.
+`CUSTOM_REQUEST_HEADERS`      | tbd
+`CUSTOM_RESPONSE_HEADERS`     | tbd
 `DEBUGGING_ASSERTION`         | May contain a javascript text that is used to filter log messages with TRACE or DEBUG level according to arbitrary criteria defined by the user. This can be useful to reduce log messages and analyze specific requests. If present, it must return a Boolean object.
 `DEBUGGING_PROPERTIES`        | Allows you to send one or more string expressions to the log file. They are printed as log messages with DEBUG level. Any template variables are resolved allowing you to analyze the runtime context. 
+`KERBEROS_CONFIGURATION`      | tbd
 
 (*) OSB resources path are constructed as follows: `<project-name>/<root-folder>/.../<parent-folder>/<resource-name>`.<br/>
 If a resource is located directly under a project, the path is constructed as follows: `<project-name>/<resource-name>`.<br/>
@@ -74,6 +78,8 @@ Below is a screenshot of the available parameters populated with sample values s
 
 Variable                      | Replaced by                                                    
 ----------------------------- | ------------------------------------------------------------------------------------
+`${identity}`                 | Asserted JWT token identity.
+`${username}`                 | Asserted UserName. In the case of Basic Auth it coincides with the authenticated user while in the case of JWT Auth, if mapping is not required it coincides with the token identity otherwise it is the user mapped by the OSB mapping service account. Must exist in the WebLogic realm. <br/>
 `${osb.server}`               | The name of the WebLogic Managed Server that took charge of the request. 
 `${osb.project}`              | The name of the Osb Project that the endpoint that received the request is part of.
 `${osb.service.name}`         | The name of the Osb Proxy Service that took charge of the request.
@@ -95,8 +101,6 @@ Variable                      | Replaced by
 `${token.header.*}`           | Enumerate all attributes of JWT token header. If token is not initialized return blank.
 `${token.payload.<attr>}`     | The value of the payload \<attr\> element in the JWT token. If token is not initialized return blank.
 `${token.payload.*}`          | Enumerate all attributes of JWT token payload. If token is not initialized return blank.
-`${identity}`                 | Asserted JWT token identity.
-`${username}`                 | Asserted UserName. In the case of Basic Auth it coincides with the authenticated user while in the case of JWT Auth, if mapping is not required it coincides with the token identity otherwise it is the user mapped by the OSB mapping service account. Must exist in the WebLogic realm. <br/>
 
 ## Identity mapping strategies
 <p align="justify">It is possible to implement different strategies to establish the identities of the JWT token and eventually map this identity to the users of the weblogic realm. Let's see some possible scenarios below.</p>
@@ -212,8 +216,8 @@ Token              | Format
 ... <DEBUG> JWT_KEYS_CONN_TIMEOUT ........: 5
 ... <DEBUG> JWT_KEYS_READ_TIMEOUT ........: 5
 ... <DEBUG> JWT_KEYS_SSL_VERIFY ..........: DISABLE
-... <DEBUG> JWT_KEYS_HOST_AUTH_MODE ......: BASIC
-... <DEBUG> JWT_KEYS_HOST_ACCOUNT_PATH ...: TEST/Mapper
+... <DEBUG> JWT_KEYS_HOST_AUTH_MODE ......: ANONYMOYS
+... <DEBUG> JWT_KEYS_HOST_ACCOUNT_PATH ...: 
 ... <DEBUG> JWT_KEYS_PROXY_SERVER_MODE ...: ANONYMOUS
 ... <DEBUG> JWT_KEYS_PROXY_SERVER_PATH ...: System/Proxy Servers/PROXY_Default
 ... <DEBUG> JWT_IDENTITY_MAPPING_MODE ....: ACCOUNT
@@ -221,7 +225,7 @@ Token              | Format
 ... <DEBUG> JWT_IDENTITY_ASSERTION .......: '${token.payload.appid}'
 ... <DEBUG> VALIDATION_ASSERTION .........: 
 ... <DEBUG> CUSTOM_REQUEST_HEADERS .......: 
-... <DEBUG> CUSTOM_RESPONSE_HEADERS ......: 
+... <DEBUG> CUSTOM_RESPONSE_HEADERS ......: requests-counter=${thread.counter}
 ... <DEBUG> VALIDATION_ASSERTION .........: 
 ... <DEBUG> DEBUGGING_ASSERTION ..........: 
 ... <DEBUG> DEBUGGING_PROPERTIES .........: ${http.header.*},${token.header.*},${token.payload.*}
@@ -334,7 +338,7 @@ Token              | Format
 ## Threading Mode
 <p align="justify">The provider code base was designed and tested to be thread-safe because Identity Asserters in WebLogic can be called in parallel and this is their normal behavior. If multiple requests arrive at the same time the server allocates a different thread for each assertion. Load tests were done with the excellent SoapUI tool reaching up to 1000 threads for parallel requests and the provider code was found to be solid and without memory leaks.</br>
 
-However there may be situations where it is useful to force serialization of requests and this is the purpose of the "RUNNING_MODE" configuration parameter. When "SERIAL" mode is selected a "synchronized" version of the assertion method is used and this causes multiple parallel requests to be queued serially, without overlapping.</br>
+However there may be situations where it is useful to force serialization of requests and this is the purpose of the "THREADING_MODE" configuration parameter. When "SERIAL" mode is selected a "synchronized" version of the assertion method is used and this causes multiple parallel requests to be queued serially, without overlapping.</br>
 
 This could be useful for example for analyzing debug logs of a specific service in the presence of a large number of requests. In "PARALLEL" mode the log lines of each request/thread would be mixed with those of others. In "SERIAL" mode instead each assertion execution completes atomically with a consistent footprint of its logs.</p>
 
