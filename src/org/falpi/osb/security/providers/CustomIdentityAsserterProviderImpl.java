@@ -4,17 +4,14 @@ package org.falpi.osb.security.providers;
 // Referenze
 // ##################################################################################################################################
 
-import java.util.Map;
+import java.util.Date;
 import java.util.List;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.Properties;
-import java.util.Enumeration;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.Iterator;
-import java.util.Collections;
-import java.security.AccessController;
+import java.text.SimpleDateFormat;
+
 import javax.script.ScriptEngine;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -27,26 +24,19 @@ import weblogic.security.spi.IdentityAsserterV2;
 import weblogic.security.spi.IdentityAssertionException;
 import weblogic.security.spi.PrincipalValidator;
 import weblogic.security.spi.SecurityServices;
-import weblogic.security.acl.internal.AuthenticatedSubject;
-import weblogic.security.providers.authentication.EmbeddedLDAPAtnDelegate;
-import weblogic.security.service.PrivilegedActions;
 import weblogic.management.security.ProviderMBean;
-import weblogic.management.provider.ManagementService;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.xmlbeans.XmlObject;
 
+import com.bea.xbean.util.Base64;
 import com.bea.wli.sb.services.ServiceInfo;
 import com.bea.wli.sb.transports.TransportEndPoint;
-import com.bea.xbean.util.Base64;
-
-import java.text.SimpleDateFormat;
-
-import java.util.Date;
 
 import org.json.XML;
 import org.json.JSONObject;
 
+import org.falpi.classes.SuperMap;
 import org.falpi.utils.OSBUtils;
 import org.falpi.utils.XMLUtils;
 import org.falpi.utils.JavaUtils;
@@ -55,6 +45,7 @@ import org.falpi.utils.HttpUtils.*;
 import org.falpi.utils.SecurityUtils;
 import org.falpi.utils.StringUtils;
 import org.falpi.utils.WLSUtils;
+import org.falpi.utils.WLSUtils.*;
 import org.falpi.utils.jwt.JWTToken;
 import org.falpi.utils.jwt.JWTCache;
 import org.falpi.utils.jwt.JWTCache.*;
@@ -93,24 +84,10 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
    } 
 
    // ==================================================================================================================================
-   // Helper per configurazione di runtime
-   // ==================================================================================================================================  
-   private static class RuntimeContext extends HashMap<String,Object> {
-            
-      public String getString(String StrKey) {
-         return (String) get(StrKey);
-      }
-      
-      public Integer getInteger(String StrKey) {
-         return (Integer) get(StrKey);
-      }      
-   }
-
-   // ==================================================================================================================================
    // Helper per functional programming
    // ==================================================================================================================================  
-   private interface TemplateFunction<T> { String apply(T t) throws Exception; }   
-   private interface TokenTemplateFunction extends TemplateFunction<JWTToken> {};
+   private interface TemplateFunction<T> { String apply(String StrVariable,T t) throws Exception; }   
+   private interface TokenTemplateFunction extends TemplateFunction<JWTToken> {}  
    private interface RequestTemplateFunction extends TemplateFunction<HttpServletRequest> {};
    
    // ##################################################################################################################################
@@ -125,14 +102,9 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
    private static final ThreadLocal<LogManager> ObjThreadLogger = new ThreadLocal<LogManager>() {
       @Override protected LogManager initialValue() { return new LogManager("CIA"); }
    };
-
-   // Istanzia un context per ciascun thread
-   private static final ThreadLocal<RuntimeContext> ObjThreadContext = new ThreadLocal<RuntimeContext>() {
-      @Override protected RuntimeContext initialValue() { return new RuntimeContext(); }
-   };
       
    // ==================================================================================================================================
-   // Variabili di istanza
+   // Variabili di istanza (aggiornate solo all'inizializzazione)
    // ==================================================================================================================================
    
    // Contatore esecuzioni thread (di fatto è il numero di request gestite)
@@ -149,8 +121,7 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
            
    // Altre variabili di supporto
    private ScriptEngine ObjScriptEngine;   
-   private AuthenticatedSubject ObjKernelId;
-   private EmbeddedLDAPAtnDelegate ObjEmbeddedAuthenticator;
+   private Authenticator ObjAuthenticator;
 
    // Gestione del mbean
    private String StrProviderDescr;   
@@ -173,16 +144,23 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
       // Referenzia il logger del thread
       LogManager Logger = getLogger();
 
-      // Inizializza variabili mbean
+      // Inizializza contesto mbean
       ObjProviderMBean = (CustomIdentityAsserterMBean) ObjMBean;
       StrProviderDescr = ObjMBean.getDescription() + "n" + ObjMBean.getVersion();
                
-      // ==================================================================================================================================
       // Genera logging 
-      // ==================================================================================================================================
       Logger.logMessage(LogLevel.INFO,"##########################################################################################");
       Logger.logMessage(LogLevel.INFO,"INITIALIZE");
       Logger.logMessage(LogLevel.INFO,"##########################################################################################");     
+
+      // ==================================================================================================================================
+      // Prepara contesto weblogic
+      // ==================================================================================================================================
+            
+      StrRealmName = ObjProviderMBean.getRealm().getName();
+      StrDomainName = WLSUtils.getDomainName();
+      StrManagedName = WLSUtils.getManagedName();      
+      ObjAuthenticator = WLSUtils.getAuthenticator(ObjMBean,StrRealmName,StrDomainName);     
 
       // ==================================================================================================================================
       // Inizializza script engine
@@ -223,19 +201,6 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
          Logger.logMessage(LogLevel.ERROR,StrError,ObjException);
          System.exit(0);
       }
-
-      // ==================================================================================================================================
-      // Prepara contesto weblogic
-      // ==================================================================================================================================
-      
-      // Inizializza provider di autenticazione di default per supporto alla basic authentication
-      ObjKernelId = (AuthenticatedSubject) AccessController.doPrivileged(PrivilegedActions.getKernelIdentityAction());
-      
-      StrRealmName = ObjProviderMBean.getRealm().getName();
-      StrDomainName = ManagementService.getRuntimeAccess(ObjKernelId).getDomainName();
-      StrManagedName = ManagementService.getRuntimeAccess(ObjKernelId). getServerName();
-      
-      ObjEmbeddedAuthenticator = new EmbeddedLDAPAtnDelegate(ObjMBean, null,StrRealmName, StrDomainName, false);     
 
       // ==================================================================================================================================
       // Genera logging 
@@ -327,11 +292,11 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
       // Referenzia il logger del thread
       LogManager Logger = getLogger();
 
-      // Referenzia il context del thread
-      RuntimeContext ObjRuntimeContext = getContext();
+      // Prepara il context di runtime
+      SuperMap<Object> ObjRuntimeContext = new SuperMap<Object>();
 
       // ==================================================================================================================================
-      // Acquisisce configurazione
+      // Prepara configurazione
       // ==================================================================================================================================
                         
       String StrLoggingLevel = ObjProviderMBean.getLOGGING_LEVEL();
@@ -386,29 +351,26 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
       ObjRuntimeContext.put("authtype","");
       ObjRuntimeContext.put("identity","");
       ObjRuntimeContext.put("username","");    
-      
-      // Contesto temporale
+
+      ObjRuntimeContext.put("thread",Thread.currentThread().getId());   
+      ObjRuntimeContext.put("counter",Thread.currentThread().getName());   
       ObjRuntimeContext.put("datetime",new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS").format(new Date(System.currentTimeMillis())));          
       ObjRuntimeContext.put("timestamp",System.currentTimeMillis());            
 
       // Contesto java
       ObjRuntimeContext.put("java.version",JavaUtils.getJavaVersion()); 
-      ObjRuntimeContext.put("java.scriptengine",ObjScriptEngine); 
-
-      // Contesto multithreading
-      ObjRuntimeContext.put("thread.counter",Thread.currentThread().getName());   
-      ObjRuntimeContext.put("thread.identifier",Thread.currentThread().getId());   
+      ObjRuntimeContext.put("java.scripting",ObjScriptEngine); 
 
       // Contesto http & weblogic     
-      ObjRuntimeContext.put("osb.server",StrManagedName);      
+      ObjRuntimeContext.put("wls.managed",StrManagedName);      
       ObjRuntimeContext.put("osb.service",ObjRequestContext.getValue("com.bea.contextelement.alsb.service-info")); 
       ObjRuntimeContext.put("osb.endpoint",ObjRequestContext.getValue("com.bea.contextelement.alsb.transport.endpoint")); 
       ObjRuntimeContext.put("http.request",ObjRequestContext.getValue("com.bea.contextelement.alsb.transport.http.http-request"));      
       ObjRuntimeContext.put("http.response",ObjRequestContext.getValue("com.bea.contextelement.alsb.transport.http.http-response"));      
 
       // Completa la preparazione del context con i template di dettaglio
-      prepareContext();
-      
+      prepareContext(ObjRuntimeContext);
+
       // ==================================================================================================================================
       // Imposta livelli di logging (eventuali errori sull'asserzione di debug sono silenziati per non pregiudicare l'autenticazione)
       // ==================================================================================================================================   
@@ -420,7 +382,7 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
       // Se ecessario verifica del filtro per i messaggi di log di livello più basso
       if (!StrDebuggingAssertion.equals("")) {
          try {
-            if (!((Boolean) evaluateScript(StrDebuggingAssertion,"Boolean"))) {
+            if (!((Boolean) evaluateScript(ObjRuntimeContext,StrDebuggingAssertion,"Boolean"))) {
                Logger.setLogLevel(LogLevel.INFO);
             }
          } catch (Exception ObjException) {
@@ -575,7 +537,7 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
             Logger.logMessage(LogLevel.DEBUG,"UserName: "+ArrCredential[0]);   
             
             // Prova ad autenticare le credenziali sul realm weblogic
-            StrUserName = ObjEmbeddedAuthenticator.authenticate(ArrCredential[0], ArrCredential[1]);
+            StrUserName = ObjAuthenticator.authenticate(ArrCredential[0], ArrCredential[1]);
 
             // Aggiorna il contesto di runtime
             ObjRuntimeContext.put("username",StrUserName);
@@ -618,7 +580,7 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
          } catch (Exception ObjException) {
             String StrError = "Token provider error";
             Logger.logMessage(LogLevel.ERROR,StrError,ObjException);
-            System.exit(0);
+            throw new IdentityAssertionException(StrError); 
          } 
            
          // ==================================================================================================================================
@@ -708,10 +670,10 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
                }
 
                // Prepara espressioni xpath ed eventuale logging
-               String StrJwtKeysModulusParsedXPath = replaceTemplates(StrJwtKeysModulusXPath);
+               String StrJwtKeysModulusParsedXPath = replaceTemplates(ObjRuntimeContext,StrJwtKeysModulusXPath);
                Logger.logProperty(LogLevel.DEBUG,"Modulus XPath Parsed",StrJwtKeysModulusParsedXPath);
 
-               String StrJwtKeysExponentParsedXPath = replaceTemplates(StrJwtKeysExponentXPath);
+               String StrJwtKeysExponentParsedXPath = replaceTemplates(ObjRuntimeContext,StrJwtKeysExponentXPath);
                Logger.logProperty(LogLevel.DEBUG,"Exponent XPath Parsed",StrJwtKeysExponentParsedXPath);            
 
                // Estrapola modulo ed esponente
@@ -770,7 +732,7 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
             
             try {
                // Estrapola l'identità dallo script di asserzione
-               StrIdentity = (String) evaluateScript(StrJwtIdentityAssertion,"String");     
+               StrIdentity = (String) evaluateScript(ObjRuntimeContext,StrJwtIdentityAssertion,"String");     
 
                // Aggiorna il contesto di runtime
                ObjRuntimeContext.put("identity",StrIdentity);
@@ -806,7 +768,7 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
             try {               
                
                // Se presenti rimpiazza i template nel path della risorsa osb
-               StrJwtIdentityMappingPath = replaceTemplates(StrJwtIdentityMappingPath);
+               StrJwtIdentityMappingPath = replaceTemplates(ObjRuntimeContext,StrJwtIdentityMappingPath);
                
                // Genera logging di debug
                Logger.logMessage(LogLevel.DEBUG,"Mapping Account ...: "+StrJwtIdentityMappingPath);
@@ -845,7 +807,7 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
          
          try { 
             // Se l'espressione di validazione è positiva genera logging altrimenti eccezione
-            if ((Boolean) evaluateScript(StrValidationAssertion,"Boolean"))  {
+            if ((Boolean) evaluateScript(ObjRuntimeContext,StrValidationAssertion,"Boolean"))  {
                Logger.logMessage(LogLevel.DEBUG,"Result: TRUE");
             } else {
                Logger.logMessage(LogLevel.DEBUG,"Result: FALSE");
@@ -869,59 +831,60 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
          Logger.logMessage(LogLevel.DEBUG,"CUSTOM HEADERS");
          Logger.logMessage(LogLevel.DEBUG,"==========================================================================================");
 
-         // Acquisisce il contesto http
-         HttpServletRequest ObjRequest = (HttpServletRequest) ObjRuntimeContext.get("http.request");        
-         HttpServletResponse ObjResponse = (HttpServletResponse) ObjRuntimeContext.get("http.response");        
+         // Gestisce cutom request headers              
+         if (ObjCustomRequestHeaders!=null) {    
+            HttpServletRequest ObjRequest = (HttpServletRequest) ObjRuntimeContext.get("http.request");        
+            for (String StrHeaderName : ObjCustomRequestHeaders.stringPropertyNames()) {
+               try {
+                  String StrHeaderValue = replaceTemplates(ObjRuntimeContext,ObjCustomRequestHeaders.getProperty(StrHeaderName));
                   
-         try {
-            for (String StrKey : ObjCustomRequestHeaders.stringPropertyNames()) {
-               String StrHeaderName = StrKey;
-               String StrHeaderValue = replaceTemplates(ObjCustomRequestHeaders.getProperty(StrKey));
-               
-               if (StrHeaderValue!="") {
-                  Logger.logMessage(LogLevel.DEBUG,"Request: "+StrHeaderName+"="+StrHeaderValue);
-                  WLSUtils.addHeader(ObjRequest,StrHeaderName,StrHeaderValue);
+                  if (StrHeaderValue!="") {
+                     Logger.logMessage(LogLevel.DEBUG,"Request: "+StrHeaderName+"="+StrHeaderValue);
+                     WLSUtils.addHeader(ObjRequest,StrHeaderName,StrHeaderValue);
+                  }
+               } catch (Exception ObjException) {
+                  String StrError = "Custom request header error ("+StrHeaderName+")";
+                  Logger.logMessage(LogLevel.WARN,StrError,ObjException);
                }
             }
-         } catch (Exception ObjException) {
-            String StrError = "Custom request headers error";
-            Logger.logMessage(LogLevel.WARN,StrError,ObjException);
          }
          
-         try {
-            for (String StrKey : ObjCustomResponseHeaders.stringPropertyNames()) {
-               String StrHeaderName = StrKey;
-               String StrHeaderValue = replaceTemplates(ObjCustomResponseHeaders.getProperty(StrKey));
-               
-               if (StrHeaderValue!="") {
-                  Logger.logMessage(LogLevel.DEBUG,"Response: "+StrHeaderName+"="+StrHeaderValue);
-                  ObjResponse.addHeader(StrHeaderName,StrHeaderValue);
-               }
+         // Gestisce cutom response headers              
+         if (ObjCustomResponseHeaders!=null) {    
+            HttpServletResponse ObjResponse = (HttpServletResponse) ObjRuntimeContext.get("http.response");        
+            for (String StrHeaderName : ObjCustomResponseHeaders.stringPropertyNames()) {
+               try {
+                  String StrHeaderValue = replaceTemplates(ObjRuntimeContext,ObjCustomResponseHeaders.getProperty(StrHeaderName));
+                  
+                  if (StrHeaderValue!="") {
+                     Logger.logMessage(LogLevel.DEBUG,"Response: "+StrHeaderName+"="+StrHeaderValue);
+                     ObjResponse.addHeader(StrHeaderName,StrHeaderValue);
+                  }
+               } catch (Exception ObjException) {
+                  String StrError = "Custom response header error ("+StrHeaderName+")";
+                  Logger.logMessage(LogLevel.WARN,StrError,ObjException);
+               }  
             }
-         } catch (Exception ObjException) {
-            String StrError = "Custom response headers error";
-            Logger.logMessage(LogLevel.WARN,StrError,ObjException);
-         }         
+         }
       }
       
       // ==================================================================================================================================
       // Se sono presenti proprietà da mandare in debug le gestisce
       // ==================================================================================================================================
-
       if (ArrDebuggingProperties.length>0) {
 
-         // Se necessario genera logging di debug
+         // Genera logging di debug
          Logger.logMessage(LogLevel.DEBUG,"==========================================================================================");
          Logger.logMessage(LogLevel.DEBUG,"DEBUGGING PROPERTIES");
          Logger.logMessage(LogLevel.DEBUG,"==========================================================================================");
          
-         try {
-            for (String StrProperty : ArrDebuggingProperties) {
-               Logger.logMessage(LogLevel.DEBUG,StrProperty+" => "+replaceTemplates(StrProperty));
-            }  
-         } catch (Exception ObjException) {
-            String StrError = "Debug properties error";
-            Logger.logMessage(LogLevel.WARN,StrError,ObjException);
+         for (String StrProperty : ArrDebuggingProperties) {
+            try {
+               Logger.logMessage(LogLevel.DEBUG,StrProperty+" => "+replaceTemplates(ObjRuntimeContext,StrProperty));
+            } catch (Exception ObjException) {
+               String StrError = "Debug property error ("+StrProperty+")";
+               Logger.logMessage(LogLevel.WARN,StrError,ObjException);
+            }
          }
       }
       
@@ -929,17 +892,15 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
       Logger.logMessage(LogLevel.DEBUG,"##########################################################################################");
 
       // ==================================================================================================================================
-      // Gestione logging finale dell'asserzione
+      // Gestione logging informativo finale dell'asserzione
       // ==================================================================================================================================
-
       try {
          // Genera logging di sintesi della asserzione
-         Logger.logMessage(LogLevel.INFO,"Inbound ("+StrAuthType+") => "+replaceTemplates(StrLoggingInfo));
+         Logger.logMessage(LogLevel.INFO,"Inbound ("+StrAuthType+") => "+replaceTemplates(ObjRuntimeContext,StrLoggingInfo));
       } catch (Exception ObjException) {
          String StrError = "Logging info error";
          Logger.logMessage(LogLevel.WARN,StrError,ObjException);
       }         
-
       
       // Restituisce utente autenticato
       return new CustomIdentityAsserterCallbackHandlerImpl(StrUserName);
@@ -988,13 +949,10 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
    // ==================================================================================================================================
    // Prepare runtime context
    // ==================================================================================================================================
-   private static void prepareContext() {
+   private static void prepareContext(SuperMap<Object> ObjRuntimeContext) {
          
       // Referenzia il logger del thread
       LogManager Logger = getLogger();
-
-      // Referenzia il context del thread
-      RuntimeContext ObjRuntimeContext = getContext();
 
       // Referenzia il contesto osb
       ServiceInfo ObjService = (ServiceInfo) ObjRuntimeContext.get("osb.service");
@@ -1025,43 +983,56 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
       ObjRuntimeContext.put("http.content.length",String.valueOf(ObjRequest.getContentLength()));    
       
       // ----------------------------------------------------------------------------------------------------------------------------------
-      // Prepara variabili di contesto dinamiche
+      // Prepara variabili di contesto dinamiche semplici
       // ----------------------------------------------------------------------------------------------------------------------------------
       ObjRuntimeContext.put("http.content.body",new RequestTemplateFunction() {
-         public String apply(HttpServletRequest ObjRequest) throws Exception {
+         public String apply(String StrVariable,HttpServletRequest ObjRequest) throws Exception {
             return IOUtils.toString(ObjRequest.getReader());
          }
-      });       
-      
+      });             
       ObjRuntimeContext.put("http.header.*",new RequestTemplateFunction() {
-         public String apply(HttpServletRequest ObjRequest) throws Exception {
+         public String apply(String StrVariable,HttpServletRequest ObjRequest) throws Exception {
             return Logger.formatProperties(LogLevel.DEBUG,HttpUtils.getHeaders(ObjRequest, Arrays.asList("Authorization")),StringUtils.repeat(90,"-"),false);
          }
-      });                                                   
-
+      });        
       ObjRuntimeContext.put("token.header.*",new TokenTemplateFunction() {
-         public String apply(JWTToken ObjJwtToken) throws Exception {
-            return (ObjJwtToken!=null)?(Logger.formatProperties(LogLevel.DEBUG,ObjJwtToken.getHeader(),StringUtils.repeat(90,"-"),true)):("");
+         public String apply(String StrVariable,JWTToken ObjJwtToken) throws Exception {
+            return ((ObjJwtToken!=null)&&(ObjJwtToken.isReady()))?(Logger.formatProperties(LogLevel.DEBUG,ObjJwtToken.getHeader(),StringUtils.repeat(90,"-"),true)):("");
          }
-      });                                                   
-      
+      });                                                         
       ObjRuntimeContext.put("token.payload.*",new TokenTemplateFunction() {
-         public String apply(JWTToken ObjJwtToken) throws Exception {
-            return (ObjJwtToken!=null)?(Logger.formatProperties(LogLevel.DEBUG,ObjJwtToken.getPayload(),StringUtils.repeat(90,"-"),true)):("");
+         public String apply(String StrVariable,JWTToken ObjJwtToken) throws Exception {
+            return ((ObjJwtToken!=null)&&(ObjJwtToken.isReady()))?(Logger.formatProperties(LogLevel.DEBUG,ObjJwtToken.getPayload(),StringUtils.repeat(90,"-"),true)):("");
          }
       }); 
+      
+      // ----------------------------------------------------------------------------------------------------------------------------------
+      // Prepara variabili di contesto dinamiche regex
+      // ----------------------------------------------------------------------------------------------------------------------------------
+      ObjRuntimeContext.putRegex("^http\\.header\\.[^\\.]*$",new RequestTemplateFunction() {
+         public String apply(String StrVariable,HttpServletRequest ObjRequest) throws Exception {
+            return StringUtils.join(ObjRequest.getHeaders(StrVariable.split("\\.")[2]),"|") ; 
+         }
+      }); 
+      ObjRuntimeContext.putRegex("^token\\.header\\.[^\\.]*$",new TokenTemplateFunction() {
+         public String apply(String StrVariable,JWTToken ObjJwtToken) throws Exception {
+            return ((ObjJwtToken!=null)&&(ObjJwtToken.isReady()))?((String) ObjJwtToken.getHeader().get(StrVariable.split("\\.")[2])):("");
+         }
+      });       
+      ObjRuntimeContext.putRegex("^token\\.payload\\.[^\\.]*$",new TokenTemplateFunction() {
+         public String apply(String StrVariable,JWTToken ObjJwtToken) throws Exception {
+            return (ObjJwtToken!=null)?((String) ObjJwtToken.getPayload().get(StrVariable.split("\\.")[2])):("");
+         }
+      });
    }
 
    // ==================================================================================================================================
    // Replace template variables
    // ==================================================================================================================================
-   private static String replaceTemplates(String StrText) throws Exception {
+   private static String replaceTemplates(SuperMap<Object> ObjRuntimeContext,String StrText) throws Exception {
          
       // Referenzia il logger del thread
       LogManager Logger = getLogger();
-
-      // Referenzia il context del thread
-      RuntimeContext ObjRuntimeContext = getContext();
       
       // Acquisisce variabili di contesto
       JWTToken ObjJwtToken = (JWTToken) ObjRuntimeContext.get("token");
@@ -1074,7 +1045,6 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
       String StrVariableName;
       String StrVariableValue;
       Object ObjVariableValue;
-      String[] ArrVariableTokens;
       
       Pattern ObjPattern = Pattern.compile("(\\$\\{([a-z|\\.|\\*]*)\\})");
       Matcher ObjMatcher = ObjPattern.matcher(StrText);
@@ -1083,39 +1053,28 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
       
          StrTemplate = ObjMatcher.group(1);
          StrVariableName = ObjMatcher.group(2);
-         ArrVariableTokens = StrVariableName.split("\\.");
          StrVariableValue = null;
          
-         // Cerca la variabile nel contesto di runtime
+         // Cerca la variabile tra le chiavi di contesto semplici
          ObjVariableValue = ObjRuntimeContext.get(StrVariableName);
-      
-         // Se sono funzioni le esegue, se è una stringa la converte, altrimenti procede sulla gestione di casi specifici
-         if (ObjVariableValue instanceof TokenTemplateFunction) {
-            StrVariableValue = ((TokenTemplateFunction) ObjVariableValue).apply(ObjJwtToken);
-         } else if (ObjVariableValue instanceof RequestTemplateFunction) {
-            StrVariableValue = ((RequestTemplateFunction) ObjVariableValue).apply(ObjRequest);
-         } else if (ObjVariableValue instanceof String) {
+         
+         // Se non è stato trovato alcun match cerca la prima variabile tra le chiavi di contesto regex
+         if (ObjVariableValue==null) {
+            ObjVariableValue = ObjRuntimeContext.getRegex(StrVariableName,true).get(0);
+         }
+         
+         // Se sono funzioni le esegue, se è una stringa la converte, altrimenti genera eccezione
+         if (ObjVariableValue instanceof String) {
             StrVariableValue = (String) ObjVariableValue;
-         } else {            
-            if (ArrVariableTokens.length==3) {
-               switch ((ArrVariableTokens[0]+"."+ArrVariableTokens[1])) {
-                  case "http.header": StrVariableValue = ObjRequest.getHeader(ArrVariableTokens[2]); break;
-                  case "token.header": StrVariableValue = ((ObjJwtToken!=null)&&(ObjJwtToken.isReady()))?((String) ObjJwtToken.getHeader().get(ArrVariableTokens[2])):(""); break;
-                  case "token.payload": StrVariableValue = ((ObjJwtToken!=null)&&(ObjJwtToken.isReady()))?((String) ObjJwtToken.getPayload().get(ArrVariableTokens[2])):(""); break;
-               }               
-            }
+         } else if (ObjVariableValue instanceof TokenTemplateFunction) {
+            StrVariableValue = ((TokenTemplateFunction) ObjVariableValue).apply(StrVariableName,ObjJwtToken);
+         } else if (ObjVariableValue instanceof RequestTemplateFunction) {
+            StrVariableValue = ((RequestTemplateFunction) ObjVariableValue).apply(StrVariableName,ObjRequest);
+         } else {
+            throw new Exception("invalid template variable '"+StrVariableName+"'");               
          }
          
-         // ----------------------------------------------------------------------------------------------------------------------------------
-         // Se la variabile non è stata ancora identificata genera eccezione
-         // ----------------------------------------------------------------------------------------------------------------------------------
-         if (StrVariableValue==null) {            
-               throw new Exception("invalid template variable '"+StrVariableName+"'");               
-         }
-         
-         // ----------------------------------------------------------------------------------------------------------------------------------
          // Esegue sostituzione della variabile template         
-         // ----------------------------------------------------------------------------------------------------------------------------------
          StrText = StrText.replace(StrTemplate,StrVariableValue);
       }
       
@@ -1126,17 +1085,14 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
    // ==================================================================================================================================
    // Evaluate script
    // ==================================================================================================================================
-   private static Object evaluateScript(String StrScript, String StrClassName) throws Exception {
-
-      // Referenzia il context del thread
-      RuntimeContext ObjRuntimeContext = getContext();
+   private static Object evaluateScript(SuperMap<Object> ObjRuntimeContext,String StrScript, String StrClassName) throws Exception {
          
       // ==================================================================================================================================
       // Esegue lo script e ne verifica la classe di output
       // ==================================================================================================================================
       
       // Esegue lo script fornito
-      Object ObjResult = ((ScriptEngine)ObjRuntimeContext.get("java.scriptengine")).eval(replaceTemplates(StrScript));
+      Object ObjResult = ((ScriptEngine)ObjRuntimeContext.get("java.scripting")).eval(replaceTemplates(ObjRuntimeContext,StrScript));
       String StrResultClassName = ObjResult.getClass().getSimpleName();
       
       // Se la tipologia di oggetto restituita non è quella attesa genera eccezione
@@ -1160,12 +1116,5 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
    // ==================================================================================================================================   
    private static LogManager getLogger() {
       return CustomIdentityAsserterProviderImpl.ObjThreadLogger.get();   
-   }
-   
-   // ==================================================================================================================================
-   // Acquisisce riferimento a context di thread
-   // ==================================================================================================================================   
-   private static RuntimeContext getContext() {
-      return CustomIdentityAsserterProviderImpl.ObjThreadContext.get();   
    }
 }

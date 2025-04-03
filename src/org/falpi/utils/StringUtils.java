@@ -11,6 +11,8 @@ import java.util.Collections;
 import java.util.Enumeration;
 import java.util.Properties;
 
+import java.util.stream.Collectors;
+
 import org.apache.commons.io.IOUtils;
 
 public class StringUtils {
@@ -42,6 +44,14 @@ public class StringUtils {
       }       
       return StrOutput;
    }
+   
+   public static String join(Enumeration<String> ObjStrings, String StrSeparator) {            
+      String StrOutput = "";
+      while (ObjStrings.hasMoreElements()) {
+         StrOutput+= ((!StrOutput.equals(""))?(StrSeparator):(""))+ObjStrings.nextElement();
+      }
+      return StrOutput;
+   } 
    
    // ==================================================================================================================================
    // Genera una sequenza di caratteri

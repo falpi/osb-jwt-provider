@@ -1,7 +1,5 @@
 package org.falpi.utils;
 
-import com.bea.core.repackaged.springframework.util.LinkedMultiValueMap;
-
 import java.net.URL;
 import java.util.HashMap;
 import java.util.ArrayList;
@@ -13,8 +11,6 @@ import java.util.Enumeration;
 import java.util.Collections;
 
 import javax.security.auth.Subject;
-import javax.security.auth.spi.LoginModule;
-
 import javax.servlet.http.HttpServletRequest;
 
 import org.apache.commons.io.IOUtils;
@@ -46,6 +42,8 @@ import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.ssl.SSLContextBuilder;
 import org.apache.xmlbeans.XmlObject;
+
+import com.bea.core.repackaged.springframework.util.LinkedMultiValueMap;
 
 import org.falpi.utils.logging.LogLevel;
 import org.falpi.utils.logging.LogManager;
