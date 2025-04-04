@@ -36,21 +36,13 @@ import com.bea.wli.sb.transports.TransportEndPoint;
 import org.json.XML;
 import org.json.JSONObject;
 
-import org.falpi.SuperMap;
-import org.falpi.utils.OSBUtils;
-import org.falpi.utils.XMLUtils;
-import org.falpi.utils.JavaUtils;
-import org.falpi.utils.HttpUtils;
-import org.falpi.utils.HttpUtils.*;
-import org.falpi.utils.SecurityUtils;
-import org.falpi.utils.StringUtils;
-import org.falpi.utils.WLSUtils;
+import org.falpi.*;
+import org.falpi.utils.*;
 import org.falpi.utils.WLSUtils.*;
-import org.falpi.utils.jwt.JWTToken;
-import org.falpi.utils.jwt.JWTCache;
+import org.falpi.utils.HttpUtils.*;
+import org.falpi.utils.jwt.*;
 import org.falpi.utils.jwt.JWTCache.*;
-import org.falpi.utils.logging.LogLevel;
-import org.falpi.utils.logging.LogManager;
+import org.falpi.utils.logging.*;
 
 public final class CustomIdentityAsserterProviderImpl implements AuthenticationProviderV2, IdentityAsserterV2 {
    
@@ -121,7 +113,7 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
            
    // Altre variabili di supporto
    private ScriptEngine ObjScriptEngine;   
-   private Authenticator ObjAuthenticator;
+   private Authenticator ObjWlsAuthenticator;
 
    // Gestione del mbean
    private String StrProviderDescr;   
@@ -133,10 +125,6 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
 
    @Override
    public void initialize(ProviderMBean ObjMBean, SecurityServices ObjSecurityServices) {
-
-      // ==================================================================================================================================
-      // Inizializzazioni preliminari
-      // ==================================================================================================================================
       
       // Inizializza nome del thread con la rappresentazione esadecimale del contatore di esecuzione
       setThreadName();
@@ -148,7 +136,9 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
       ObjProviderMBean = (CustomIdentityAsserterMBean) ObjMBean;
       StrProviderDescr = ObjMBean.getDescription() + "n" + ObjMBean.getVersion();
                
-      // Genera logging 
+      // ==================================================================================================================================
+      // Genera logging      
+      // ==================================================================================================================================
       Logger.logMessage(LogLevel.INFO,"##########################################################################################");
       Logger.logMessage(LogLevel.INFO,"INITIALIZE");
       Logger.logMessage(LogLevel.INFO,"##########################################################################################");     
@@ -160,7 +150,7 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
       StrRealmName = ObjProviderMBean.getRealm().getName();
       StrDomainName = WLSUtils.getDomainName();
       StrManagedName = WLSUtils.getManagedName();      
-      ObjAuthenticator = WLSUtils.getAuthenticator(ObjMBean,StrRealmName,StrDomainName);     
+      ObjWlsAuthenticator = WLSUtils.getAuthenticator(ObjMBean,StrRealmName,StrDomainName);     
 
       // ==================================================================================================================================
       // Inizializza script engine
@@ -222,13 +212,15 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
    @Override
    public void shutdown() {
       
-      // Inizializza nome del thread con la rappresentazione esadecimale del contatore di esecuzione
+      // Inizializza nome del thread (contatore di esecuzione)
       setThreadName();
          
       // Referenzia il logger del thread
       LogManager Logger = getLogger();
 
+      // ==================================================================================================================================
       // Genera logging      
+      // ==================================================================================================================================
       Logger.logMessage(LogLevel.INFO,"##########################################################################################");      
       Logger.logMessage(LogLevel.INFO,"SHUTDOWN");
       Logger.logMessage(LogLevel.INFO,"##########################################################################################");      
@@ -282,11 +274,7 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
    // Implementazione asincrona (consente esecuzione parallela le richieste)
    private CallbackHandler assertIdentityAsynchImpl(String StrTokenType, Object ObjToken, ContextHandler ObjRequestContext) throws IdentityAssertionException {
 
-      // ==================================================================================================================================
-      // Inizializzazioni preliminari
-      // ==================================================================================================================================
-
-      // Inizializza nome del thread con la rappresentazione esadecimale del contatore di esecuzione
+      // Inizializza nome del thread (contatore di esecuzione)
       setThreadName();
          
       // Referenzia il logger del thread
@@ -341,7 +329,7 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
       // Prepara contesto di runtime
       // ==================================================================================================================================
       
-      // Inizializza 
+      // Inizializza variabili
       String StrAuthType = "";
       String StrIdentity = "";
       String StrUserName = "";                                                     
@@ -392,15 +380,13 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
       }
 
       // ==================================================================================================================================
-      // Genera logging di debug per dump configurazione
+      // Dump configurazione e verifica parametri
       // ==================================================================================================================================
 
       // Genera logging 
       Logger.logMessage(LogLevel.DEBUG,"##########################################################################################");
       Logger.logMessage(LogLevel.DEBUG,"ASSERT IDENTITY");
       Logger.logMessage(LogLevel.DEBUG,"##########################################################################################");
-
-      // Genera logging
       Logger.logMessage(LogLevel.DEBUG,"==========================================================================================");
       Logger.logMessage(LogLevel.DEBUG,"CONFIGURATION");
       Logger.logMessage(LogLevel.DEBUG,"==========================================================================================");
@@ -445,9 +431,10 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
       StrJwtIdentityAssertion = (String) validateParameter("JWT_IDENTITY_ASSERTION", StrJwtIdentityAssertion);
 
       // ==================================================================================================================================
-      // Genera logging di debug per dump contesto
+      // Dump contesto
       // ==================================================================================================================================
       
+      // Genera logging            
       Logger.logMessage(LogLevel.DEBUG,"==========================================================================================");
       Logger.logMessage(LogLevel.DEBUG,"CONTEXT");
       Logger.logMessage(LogLevel.DEBUG,"==========================================================================================");
@@ -466,7 +453,7 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
       Logger.logMessage(LogLevel.DEBUG,"------------------------------------------------------------------------------------------");
       
       // ==================================================================================================================================
-      // Verifica che le informazioni sul token ricevuto sono corrette e coerenti con i tipi attivi
+      // Verifica che le informazioni sul token ricevuto sono corrette e coerenti con i tipi attesi
       // ==================================================================================================================================
 
       // Verifica la tipologia del token
@@ -487,7 +474,7 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
       Logger.logMessage(LogLevel.DEBUG,"Selected Token ...: "+StrTokenType);
       
       // ==================================================================================================================================
-      // Esegue parsing del token e verifica la modalità di autenticazione
+      // Esegue parsing del token e rileva la modalità di autenticazione
       // ==================================================================================================================================
       
       // Verifica se il token in ingresso è un BASIC o un JWT
@@ -506,7 +493,7 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
       // Aggiorna il contesto di runtime
       ObjRuntimeContext.put("authtype",StrAuthType);
      
-      // Se necessario genera logging di debug
+      // Genera logging      
       Logger.logMessage(LogLevel.DEBUG,"Detected Auth ....: "+StrAuthType);
 
       // Verifica la ammissibilità dell'autenticazione rilevata rispetto al token selezionato e ai flag di disattivazione
@@ -522,10 +509,10 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
       // Gestisce l'autenticazione BASIC
       // ==================================================================================================================================
       
-      // Se si tratta di una basic authentication prova ad autenticare l'utenza con le credenziali fornite      
+      // Se si tratta di una basic authentication esegue
       if (StrAuthType.equals(TokenTypes.BASIC_AUTH_ID)) {
          
-         // Se necessario genera logging di debug
+         // Genera logging
          Logger.logMessage(LogLevel.DEBUG,"==========================================================================================");
          Logger.logMessage(LogLevel.DEBUG,"BASIC AUTH");
          Logger.logMessage(LogLevel.DEBUG,"==========================================================================================");  
@@ -537,7 +524,7 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
             Logger.logMessage(LogLevel.DEBUG,"UserName: "+ArrCredential[0]);   
             
             // Prova ad autenticare le credenziali sul realm weblogic
-            StrUserName = ObjAuthenticator.authenticate(ArrCredential[0], ArrCredential[1]);
+            StrUserName = ObjWlsAuthenticator.authenticate(ArrCredential[0], ArrCredential[1]);
 
             // Aggiorna il contesto di runtime
             ObjRuntimeContext.put("username",StrUserName);
@@ -558,9 +545,10 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
       // Gestisce l'autenticazione JWT
       // ==================================================================================================================================
 
+      // Se si tratta di una jwt authentication esegue
       if (StrAuthType.equals(TokenTypes.JWT_AUTH_ID)) {   
          
-         // Se necessario genera logging di debug
+         // Genera logging
          Logger.logMessage(LogLevel.DEBUG,"==========================================================================================");
          Logger.logMessage(LogLevel.DEBUG,"JWT AUTH");
          Logger.logMessage(LogLevel.DEBUG,"==========================================================================================");
@@ -620,11 +608,9 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
             StrKeyExponent = ObjKey.exponent;            
             
          } else {
-                           
-            // Acquisisce elenco chiavi di firma via http
             try {
                
-               // Se necessario genera logging di debug
+               // Genera logging
                Logger.logMessage(LogLevel.DEBUG,"------------------------------------------------------------------------------------------");
                Logger.logMessage(LogLevel.DEBUG,"KEYS RETRIEVE");
                Logger.logMessage(LogLevel.DEBUG,"------------------------------------------------------------------------------------------");
@@ -639,13 +625,13 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
                                                    StrJwtKeysSSLVerify.equals("ENABLE"), 
                                                    IntJwtKeysConnTimeout, IntJwtKeysReadTimeout, Logger);
 
-               // Inizializza
+               // Inizializza variabile
                XmlObject ObjJwtKeys;
                         
                   // Gestisce parsing json o xml
                if (StrJwtKeysFormat.equals("XML")) {
 
-                  // Se necessario genera logging di debug
+                  // Genera logging
                   Logger.logProperty(LogLevel.TRACE,"Payload (XML)",StrJwtKeys);
 
                   // Acquisisce chiavi in formato xml
@@ -656,20 +642,20 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
                   // Acquisisce payload in formato json
                   JSONObject ObjJSON = new JSONObject(StrJwtKeys);
 
-                  // Se necessario genera logging di debug
+                  // Genera logging
                   Logger.logProperty(LogLevel.TRACE,"Payload (JSON)",ObjJSON.toString());
 
                   // Converte da JSON a XML
                   StrJwtKeys = "<root>"+XML.toString(ObjJSON)+"</root>";
                                                    
-                  // Se necessario genera logging di debug
+                  // Genera logging
                   Logger.logProperty(LogLevel.TRACE,"Payload (XML)",StrJwtKeys);
 
                   // Acquisisce chiavi dal formato xml
                   ObjJwtKeys = XmlObject.Factory.parse(StrJwtKeys);
                }
 
-               // Prepara espressioni xpath ed eventuale logging
+               // Prepara espressioni xpath e logging
                String StrJwtKeysModulusParsedXPath = replaceTemplates(ObjRuntimeContext,StrJwtKeysModulusXPath);
                Logger.logProperty(LogLevel.DEBUG,"Modulus XPath Parsed",StrJwtKeysModulusParsedXPath);
 
@@ -698,12 +684,10 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
          // Verifica la firma del token
          // ==================================================================================================================================
 
-         // Se necessario genera logging di debug
+         // Genera logging
          Logger.logMessage(LogLevel.DEBUG,"------------------------------------------------------------------------------------------");
          Logger.logMessage(LogLevel.DEBUG,"TOKEN VALIDATION");
          Logger.logMessage(LogLevel.DEBUG,"------------------------------------------------------------------------------------------");
-
-         // Se necessario genera logging di debug
          Logger.logMessage(LogLevel.DEBUG,"Key ID .........: "+StrJwtKeyID);
          Logger.logMessage(LogLevel.TRACE,"Key Modulus ....: "+StrKeyModulus);
          Logger.logMessage(LogLevel.TRACE,"Key Exponent ...: "+StrKeyExponent);            
@@ -722,7 +706,7 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
          // Determina l'identità
          // ==================================================================================================================================
 
-         // Se necessario genera logging di debug
+         // Genera logging
          Logger.logMessage(LogLevel.DEBUG,"------------------------------------------------------------------------------------------");
          Logger.logMessage(LogLevel.DEBUG,"IDENTITY ASSERTION");
          Logger.logMessage(LogLevel.DEBUG,"------------------------------------------------------------------------------------------");
@@ -748,14 +732,12 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
             }
          }
 
-         // Se necessario genera logging di debug
+         // Genera logging
          Logger.logMessage(LogLevel.DEBUG,"Token Identity ....: " + StrIdentity);
             
          // ==================================================================================================================================
          // Gestisce l'eventuale identity mapping
-         // ==================================================================================================================================
-         
-         // Se non è richiesto il mapping esegue, altrimenti procede
+         // ==================================================================================================================================         
          if (StrJwtIdentityMappingMode.equals("DISABLE")) {
             
             // Pone lo username pari all'identità 
@@ -770,7 +752,7 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
                // Se presenti rimpiazza i template nel path della risorsa osb
                StrJwtIdentityMappingPath = replaceTemplates(ObjRuntimeContext,StrJwtIdentityMappingPath);
                
-               // Genera logging di debug
+               // Genera logging
                Logger.logMessage(LogLevel.DEBUG,"Mapping Account ...: "+StrJwtIdentityMappingPath);
                
                // Prova a mappare l'identità allo username mediante un service account OSB di mapping
@@ -790,17 +772,16 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
             }
          }
          
-         // Se necessario genera logging di debug
+         // Genera logging
          Logger.logMessage(LogLevel.DEBUG,"Realm UserName ....: " + StrUserName);
       }
       
       // ==================================================================================================================================
       // Valuta l'eventuale script di validazione
       // ==================================================================================================================================
-
       if (!StrValidationAssertion.equals("")) {
 
-         // Se necessario genera logging di debug
+         // Genera logging
          Logger.logMessage(LogLevel.DEBUG,"==========================================================================================");
          Logger.logMessage(LogLevel.DEBUG,"VALIDATION ASSERTION");
          Logger.logMessage(LogLevel.DEBUG,"==========================================================================================");
@@ -822,11 +803,10 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
       
       // ==================================================================================================================================
       // Se sono presenti custom headers li gestisce
-      // ==================================================================================================================================
-                              
+      // ==================================================================================================================================                            
       if ((ObjCustomRequestHeaders!=null)||(ObjCustomResponseHeaders!=null)) {
 
-         // Se necessario genera logging di debug
+         // Genera logging
          Logger.logMessage(LogLevel.DEBUG,"==========================================================================================");
          Logger.logMessage(LogLevel.DEBUG,"CUSTOM HEADERS");
          Logger.logMessage(LogLevel.DEBUG,"==========================================================================================");
@@ -843,7 +823,7 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
                      WLSUtils.addHeader(ObjRequest,StrHeaderName,StrHeaderValue);
                   }
                } catch (Exception ObjException) {
-                  String StrError = "Custom request header error ("+StrHeaderName+")";
+                  String StrError = "Custom request header error '"+StrHeaderName+"'";
                   Logger.logMessage(LogLevel.WARN,StrError,ObjException);
                }
             }
@@ -861,7 +841,7 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
                      ObjResponse.addHeader(StrHeaderName,StrHeaderValue);
                   }
                } catch (Exception ObjException) {
-                  String StrError = "Custom response header error ("+StrHeaderName+")";
+                  String StrError = "Custom response header error '"+StrHeaderName+"'";
                   Logger.logMessage(LogLevel.WARN,StrError,ObjException);
                }  
             }
@@ -873,7 +853,7 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
       // ==================================================================================================================================
       if (ArrDebuggingProperties.length>0) {
 
-         // Genera logging di debug
+         // Genera logging
          Logger.logMessage(LogLevel.DEBUG,"==========================================================================================");
          Logger.logMessage(LogLevel.DEBUG,"DEBUGGING PROPERTIES");
          Logger.logMessage(LogLevel.DEBUG,"==========================================================================================");
@@ -882,13 +862,13 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
             try {
                Logger.logMessage(LogLevel.DEBUG,StrProperty+" => "+replaceTemplates(ObjRuntimeContext,StrProperty));
             } catch (Exception ObjException) {
-               String StrError = "Debug property error ("+StrProperty+")";
+               String StrError = "Debug property error '"+StrProperty+"'";
                Logger.logMessage(LogLevel.WARN,StrError,ObjException);
             }
          }
       }
       
-      // Genera logging di debug
+      // Genera logging
       Logger.logMessage(LogLevel.DEBUG,"##########################################################################################");
 
       // ==================================================================================================================================
@@ -927,16 +907,14 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
       }
       
       // Se necessario genera trace
-      Logger.logMessage(LogLevel.TRACE,
-                 "Checking Parameter "+StrParameterName+": "+
-                 ((ObjParameterValue==null)?("is null"):
-                  ("class '"+StrClassName+"' "+
-                   ((!StrClassName.equals("String"))?(""):
-                    (ObjParameterValue.equals("")?("is empty"):("")))))); 
+      Logger.logMessage(LogLevel.TRACE,"Checking Parameter "+StrParameterName+": "+
+                                       ((ObjParameterValue==null)?("is null"):
+                                        ("class '"+StrClassName+"' "+
+                                         ((!StrClassName.equals("String"))?(""):
+                                          (ObjParameterValue.equals("")?("is empty"):("")))))); 
       
-      // Verifica se il parametro
-      if ((ObjParameterValue==null)||
-          ((StrClassName.equals("String"))&&((String)ObjParameterValue).equals(""))) {
+      // Verifica se il parametro è null o blank
+      if ((ObjParameterValue==null)||((StrClassName.equals("String"))&&((String)ObjParameterValue).equals(""))) {
          String StrError = "Configuration error";
          Logger.logMessage(LogLevel.ERROR,StrError,"mandatory parameter missing '"+StrParameterName+"'");
          throw new IdentityAssertionException(StrError);
@@ -1086,11 +1064,7 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
    // Evaluate script
    // ==================================================================================================================================
    private static Object evaluateScript(SuperMap<Object> ObjRuntimeContext,String StrScript, String StrClassName) throws Exception {
-         
-      // ==================================================================================================================================
-      // Esegue lo script e ne verifica la classe di output
-      // ==================================================================================================================================
-      
+               
       // Esegue lo script fornito
       Object ObjResult = ((ScriptEngine)ObjRuntimeContext.get("java.scripting")).eval(replaceTemplates(ObjRuntimeContext,StrScript));
       String StrResultClassName = ObjResult.getClass().getSimpleName();
@@ -1105,7 +1079,7 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
    }
    
    // ==================================================================================================================================
-   // Inizializza nome del thread con la rappresentazione esadecimale del contatore di esecuzione
+   // Inizializza nome del thread (contatore di esecuzione)
    // ==================================================================================================================================
    private synchronized void setThreadName()  {
       Thread.currentThread().setName(StringUtils.padLeft(String.valueOf(IntThreadCount++),10,"0"));

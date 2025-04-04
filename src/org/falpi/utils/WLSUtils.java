@@ -23,10 +23,12 @@ public class WLSUtils {
       // Prepara handle per autenticatore embedded di wls
       private EmbeddedLDAPAtnDelegate ObjAuthenticator;
 
+      // Costruttore
       Authenticator(ProviderMBean ObjMBean, String StrRealmName,String StrDomainName) { 
          ObjAuthenticator = new EmbeddedLDAPAtnDelegate(ObjMBean, null,StrRealmName, StrDomainName, false);
       }     
       
+      // Autentica uno username e password sul realm weblogic
       public String authenticate(String StrUserName,String  StrPassword) {
          return ObjAuthenticator.authenticate(StrUserName,StrPassword);  
       }
