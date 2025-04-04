@@ -1,7 +1,8 @@
-package org.falpi.classes;
+package org.falpi;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
+
 
 public class SuperMap<T>  extends LinkedHashMap<String,T> {
    

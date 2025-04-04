@@ -36,7 +36,7 @@ import com.bea.wli.sb.transports.TransportEndPoint;
 import org.json.XML;
 import org.json.JSONObject;
 
-import org.falpi.classes.SuperMap;
+import org.falpi.SuperMap;
 import org.falpi.utils.OSBUtils;
 import org.falpi.utils.XMLUtils;
 import org.falpi.utils.JavaUtils;

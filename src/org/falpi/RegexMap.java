@@ -1,4 +1,4 @@
-package org.falpi.classes;
+package org.falpi;
 
 import java.util.Map;
 import java.util.ArrayList;
