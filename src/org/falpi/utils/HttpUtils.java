@@ -60,11 +60,11 @@ public class HttpUtils {
    // Acquisisce risorsa via http
    // ==================================================================================================================================
    public static String fetch(final HttpMethod ObjHttpMethod,
-                              final String StrRequestURL,
-                              String StrContentType, 
-                              String StrAuthMode,String StrAuthPath, 
-                              String StrProxyMode,String StrProxyPath,
-                              Boolean BolSSLEnforce,int IntConnectTimeout,int IntRequestTimeout,LogManager Logger) throws Exception {
+                              final String StrRequestURL, String StrContentType, 
+                              String StrHostAuthMode,String StrHostUserName,String StrHostPassword,  
+                              String StrProxyServerMode,String StrProxyUserName,String StrProxyPassword,
+                              String StrProxyHost,int IntProxyPort,Boolean BolSSLEnforce,                         
+                              int IntConnectTimeout,int IntRequestTimeout,LogManager Logger) throws Exception {
 
       // ==================================================================================================================================
       // Dichiara variabili
@@ -78,11 +78,13 @@ public class HttpUtils {
       // ==================================================================================================================================
       // Prepara la request e la esegue
       // ==================================================================================================================================
-      ObjHttpClient = HttpUtils.buildClient(StrRequestURL, 
-                                            StrAuthMode, StrAuthPath, 
-                                            StrProxyMode, StrProxyPath, 
-                                            BolSSLEnforce, IntConnectTimeout, IntRequestTimeout, ArrLoginContext, Logger);
-   
+      ObjHttpClient = HttpUtils.buildClient(StrRequestURL,
+                                            StrHostAuthMode,StrHostUserName,StrHostPassword,  
+                                            StrProxyServerMode,StrProxyUserName,StrProxyPassword,
+                                            StrProxyHost,IntProxyPort,BolSSLEnforce,                              
+                                            IntConnectTimeout,IntRequestTimeout,
+                                            ArrLoginContext,Logger);
+                                          
       // Se non è stato allocato alcun login context kerberos esegue, altrimenti procede
       if (ArrLoginContext.size() == 0) {
          
@@ -167,10 +169,11 @@ public class HttpUtils {
    // ==================================================================================================================================
    // Prepara request http
    // ==================================================================================================================================
-   public static CloseableHttpClient buildClient(String StrRequestURL,
-                                                 String StrHostAuthMode, String StrHostAccountPath, 
-                                                 String StrProxyAuthMode, String StrProxyServerPath, 
-                                                 Boolean BolSSLEnforce, int IntConnectTimeout,int IntRequestTimeout,
+   public static CloseableHttpClient buildClient(String StrRequestURL, 
+                                                 String StrHostAuthMode,String StrHostUserName,String StrHostPassword,  
+                                                 String StrProxyServerMode,String StrProxyUserName,String StrProxyPassword,
+                                                 String StrProxyHost,int IntProxyPort,Boolean BolSSLEnforce,                              
+                                                 int IntConnectTimeout,int IntRequestTimeout,
                                                  ArrayList<CustomKrb5LoginModule> ArrLoginContext,LogManager Logger) throws Exception {
                
       // ==================================================================================================================================
@@ -203,19 +206,8 @@ public class HttpUtils {
       // ==================================================================================================================================
       // Se richiesto gestisce url con autenticazione
       // ==================================================================================================================================
-
       if (!StrHostAuthMode.equals("ANONYMOUS")) {
-                  
-         // Genera logging di debug
-         Logger.logProperty(LogLevel.DEBUG,"Host Auth Account",StrHostAccountPath);                  
-
-         // Acquisisce risorsa service accountin formato XML
-         XmlObject ObjServiceAccount = OSBUtils.getResource("ServiceAccount", StrHostAccountPath);
-
-         // Acquisisce credenziali
-         String StrHostUserName = XMLUtils.getTextValue(ObjServiceAccount, "//*:username/text()");
-         String StrHostPassword = XMLUtils.getTextValue(ObjServiceAccount, "//*:password/text()");
-
+                           
          // Prepara auth scope dell'host
          URL ObjRequestURL = new URL(StrRequestURL);
          AuthScope ObjHostAuthScope = new AuthScope(new HttpHost(ObjRequestURL.getHost(), ObjRequestURL.getPort()));
@@ -225,9 +217,9 @@ public class HttpUtils {
             // ----------------------------------------------------------------------------------------------------------------------------------
             // Autenticazione BASIC
             // ----------------------------------------------------------------------------------------------------------------------------------
-            case "BASIC":
-               
-               // Genera logging di debug
+            case "BASIC":        
+            
+               // Genera logging
                Logger.logProperty(LogLevel.DEBUG,"Host Auth UserName",StrHostUserName);                  
 
                // Predispone schema di autenticazione
@@ -256,7 +248,7 @@ public class HttpUtils {
                   StrSplitUserName = ArrParts[0];               
                }
                
-               // Genera logging di debug
+               // Genera logging
                Logger.logProperty(LogLevel.DEBUG,"Host Auth Domain",StrSplitDomain);                  
                Logger.logProperty(LogLevel.DEBUG,"Host Auth UserName",StrSplitUserName);   
 
@@ -272,9 +264,9 @@ public class HttpUtils {
             // Autenticazione KERBEROS
             // ----------------------------------------------------------------------------------------------------------------------------------
             case "KERBEROS":
-               
-               // Genera logging di debug
-               Logger.logProperty(LogLevel.DEBUG,"Host Auth Principal",StrHostUserName);   
+            
+               // Genera logging
+               Logger.logProperty(LogLevel.DEBUG,"Host Auth Principal",StrHostUserName);               
                
                // Esegue login kerberos
                ArrLoginContext.add(SecurityUtils.loginKerberos(StrHostUserName,StrHostPassword));
@@ -297,19 +289,9 @@ public class HttpUtils {
       // ==================================================================================================================================
       // Se richiesto acquisisce parametri proxy
       // ==================================================================================================================================
-      if (!StrProxyAuthMode.equals("DIRECT")) {
-                  
-         // Genera logging di debug
-         Logger.logProperty(LogLevel.DEBUG,"Proxy Server Resource",StrProxyServerPath);                  
+      if (!StrProxyServerMode.equals("DIRECT")) {
 
-         // Acquisisce risorsa ESB proxy in formato XML
-         XmlObject ObjProxyServer = OSBUtils.getResource("ProxyServer", StrProxyServerPath);
-
-         // Esegue parsing dei vari parametri del proxy
-         String StrProxyHost = XMLUtils.getTextValue(ObjProxyServer, "//*:server/@host");
-         int IntProxyPort = Integer.valueOf(XMLUtils.getTextValue(ObjProxyServer, "//*:server/@port"));
-
-         // Se necessario genera logging di debug
+         // Genera logging
          Logger.logProperty(LogLevel.DEBUG,"Proxy Server Host",StrProxyHost);                  
          Logger.logProperty(LogLevel.DEBUG,"Proxy Server Port",String.valueOf(IntProxyPort));                  
 
@@ -320,92 +302,85 @@ public class HttpUtils {
          // Aggiunge parametro proxy a request client
          ObjRequestConfigBuilder.setProxy(ObjProxyHost);
 
-         // Gestisce autenticazione proxy
-         if (!StrProxyAuthMode.equals("ANONYMOUS")) {
+         // Gestisce autenticazione proxy            
+         switch (StrProxyServerMode) {
 
-            // Acquisisce credenziali
-            String StrProxyUserName = XMLUtils.getTextValue(ObjProxyServer, "//*:username/text()");
-            String StrProxyPassword = XMLUtils.getTextValue(ObjProxyServer, "//*:password/text()");
-            
-            switch (StrProxyAuthMode) {
-
-               // ----------------------------------------------------------------------------------------------------------------------------------
-               // Autenticazione BASIC
-               // ----------------------------------------------------------------------------------------------------------------------------------
-               case "BASIC":
-                  
-                  // Genera logging di debug
-                  Logger.logProperty(LogLevel.DEBUG,"Proxy Server Auth UserName",StrProxyUserName);                  
-   
-                  // Se necessario predispone schema di autenticazione
-                  if (!StrHostAuthMode.equals("BASIC")) {
-                     ArrTargetAuthSchemes.add(AuthSchemes.BASIC);                              
-                     ObjAuthSchemeRegistry.register(AuthSchemes.BASIC,new BasicSchemeFactory());
-                  }
-                  
-                  // Predispone credenziali
-                  ObjAuthCredsProvider.setCredentials(ObjProxyAuthScope,new UsernamePasswordCredentials(StrProxyUserName,StrProxyPassword));
-                  break;
-
-               // ----------------------------------------------------------------------------------------------------------------------------------
-               // Autenticazione NTLM
-               // ----------------------------------------------------------------------------------------------------------------------------------
-               case "NTLM":
-                  
-                  // Prepara credenziali
-                  ArrParts = StrProxyUserName.split("\\\\", 2);   
-                  
-                  StrSplitDomain = null;
-                  StrSplitUserName = null;
-                                       
-                  if (ArrParts.length>1) {
-                     StrSplitDomain = ArrParts[0];
-                     StrSplitUserName = ArrParts[1];               
-                  } else {
-                     StrSplitUserName = ArrParts[0];               
-                  }
-
-                  // Genera logging di debug
-                  Logger.logProperty(LogLevel.DEBUG,"Proxy Server Auth Domain",StrSplitDomain);                  
-                  Logger.logProperty(LogLevel.DEBUG,"Proxy Server Auth UserName",StrSplitUserName);  
-                  
-                  // Se necessario predispone schema di autenticazione
-                  if (!StrHostAuthMode.equals("NTLM")) {
-                     ArrTargetAuthSchemes.add(AuthSchemes.NTLM); 
-                     ObjAuthSchemeRegistry.register(AuthSchemes.NTLM,new NTLMSchemeFactory());
-                  }
-                  
-                  // Predispone credenziali
-                  ObjAuthCredsProvider.setCredentials(ObjProxyAuthScope,new NTCredentials(StrSplitUserName, StrProxyPassword, null,StrSplitDomain));
-                  break;
+            // ----------------------------------------------------------------------------------------------------------------------------------
+            // Autenticazione BASIC
+            // ----------------------------------------------------------------------------------------------------------------------------------
+            case "BASIC":
                
-               // ----------------------------------------------------------------------------------------------------------------------------------
-               // Autenticazione KERBEROS
-               // ----------------------------------------------------------------------------------------------------------------------------------
-               case "KERBEROS":
-                  
-                  // Genera logging di debug
-                  Logger.logProperty(LogLevel.DEBUG,"Proxy Server Auth Principal",StrProxyUserName);   
-                  
-                  // Esegue login kerberos
-                  ArrLoginContext.add(SecurityUtils.loginKerberos(StrProxyUserName,StrProxyPassword));                  
+               // Genera logging
+               Logger.logProperty(LogLevel.DEBUG,"Proxy Server Auth UserName",StrProxyUserName);                  
 
-                  // Se necessario predispone schema di autenticazione
-                  if (!StrHostAuthMode.equals("KERBEROS")) {
-                     ArrTargetAuthSchemes.add(AuthSchemes.SPNEGO); 
-                     ObjAuthSchemeRegistry.register(AuthSchemes.SPNEGO,new SPNegoSchemeFactory());                     
-                  }
+               // Se necessario predispone schema di autenticazione
+               if (!StrHostAuthMode.equals("BASIC")) {
+                  ArrTargetAuthSchemes.add(AuthSchemes.BASIC);                              
+                  ObjAuthSchemeRegistry.register(AuthSchemes.BASIC,new BasicSchemeFactory());
+               }
+               
+               // Predispone credenziali
+               ObjAuthCredsProvider.setCredentials(ObjProxyAuthScope,new UsernamePasswordCredentials(StrProxyUserName,StrProxyPassword));
+               break;
 
-                  // Predispone credenziali
-                  ObjAuthCredsProvider.setCredentials(ObjProxyAuthScope,                     
-                     new Credentials() {
-                        public String getPassword() { return null; }
-                        public Principal getUserPrincipal() { return null; } 
-                     });
-                  
-                  break;        
-            }
-         }         
+            // ----------------------------------------------------------------------------------------------------------------------------------
+            // Autenticazione NTLM
+            // ----------------------------------------------------------------------------------------------------------------------------------
+            case "NTLM":
+               
+               // Prepara credenziali
+               ArrParts = StrProxyUserName.split("\\\\", 2);   
+               
+               StrSplitDomain = null;
+               StrSplitUserName = null;
+                                    
+               if (ArrParts.length>1) {
+                  StrSplitDomain = ArrParts[0];
+                  StrSplitUserName = ArrParts[1];               
+               } else {
+                  StrSplitUserName = ArrParts[0];               
+               }
+
+               // Genera logging
+               Logger.logProperty(LogLevel.DEBUG,"Proxy Server Auth Domain",StrSplitDomain);                  
+               Logger.logProperty(LogLevel.DEBUG,"Proxy Server Auth UserName",StrSplitUserName);  
+               
+               // Se necessario predispone schema di autenticazione
+               if (!StrHostAuthMode.equals("NTLM")) {
+                  ArrTargetAuthSchemes.add(AuthSchemes.NTLM); 
+                  ObjAuthSchemeRegistry.register(AuthSchemes.NTLM,new NTLMSchemeFactory());
+               }
+               
+               // Predispone credenziali
+               ObjAuthCredsProvider.setCredentials(ObjProxyAuthScope,new NTCredentials(StrSplitUserName, StrProxyPassword, null,StrSplitDomain));
+               break;
+            
+            // ----------------------------------------------------------------------------------------------------------------------------------
+            // Autenticazione KERBEROS
+            // ----------------------------------------------------------------------------------------------------------------------------------
+            case "KERBEROS":
+               
+               // Genera logging
+               Logger.logProperty(LogLevel.DEBUG,"Proxy Server Auth Principal",StrProxyUserName);   
+               
+               // Esegue login kerberos
+               ArrLoginContext.add(SecurityUtils.loginKerberos(StrProxyUserName,StrProxyPassword));                  
+
+               // Se necessario predispone schema di autenticazione
+               if (!StrHostAuthMode.equals("KERBEROS")) {
+                  ArrTargetAuthSchemes.add(AuthSchemes.SPNEGO); 
+                  ObjAuthSchemeRegistry.register(AuthSchemes.SPNEGO,new SPNegoSchemeFactory());                     
+               }
+
+               // Predispone credenziali
+               ObjAuthCredsProvider.setCredentials(ObjProxyAuthScope,                     
+                  new Credentials() {
+                     public String getPassword() { return null; }
+                     public Principal getUserPrincipal() { return null; } 
+                  });
+               
+               break;        
+         }
       }
 
       // ==================================================================================================================================
@@ -422,9 +397,10 @@ public class HttpUtils {
          .setDefaultRequestConfig(ObjRequestConfigBuilder.build());
 
       // Aggiunge eventuale tolleranza errori certificati ssl
-      if (!BolSSLEnforce)
+      if (!BolSSLEnforce) {
          ObjHttpClientBuilder.setSSLHostnameVerifier(NoopHostnameVerifier.INSTANCE)
                              .setSSLContext(new SSLContextBuilder().loadTrustMaterial(null,TrustAllStrategy.INSTANCE).build());
+      }
             
       // Restituisce client http
       return ObjHttpClientBuilder.build();

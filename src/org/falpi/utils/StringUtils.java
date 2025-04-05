@@ -1,8 +1,7 @@
 package org.falpi.utils;
 
-import java.io.BufferedReader;
-
 import java.io.IOException;
+import java.io.BufferedReader;
 
 import java.util.List;
 import java.util.Iterator;
@@ -11,11 +10,19 @@ import java.util.Collections;
 import java.util.Enumeration;
 import java.util.Properties;
 
-import java.util.stream.Collectors;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.apache.commons.io.IOUtils;
 
+import org.falpi.SuperMap;
+
 public class StringUtils {
+
+   // ==================================================================================================================================
+   // Helper per functional programming
+   // ==================================================================================================================================  
+   public interface TemplateFunction { String apply(String StrVariable,SuperMap ObjContext) throws Exception; }   
 
    // ==================================================================================================================================
    // Fonde le proprietà in un unica stringa
@@ -118,4 +125,51 @@ public class StringUtils {
    public static String toString(BufferedReader ObjReader) throws IOException {
       return IOUtils.toString(ObjReader);
    }
+
+   // ==================================================================================================================================
+   // Replace template variables
+   // ==================================================================================================================================
+   public static String replaceTemplates(SuperMap ObjContext,String StrText) throws Exception {
+                  
+      // ----------------------------------------------------------------------------------------------------------------------------------
+      // Gestisce variabili di sostituzione
+      // ----------------------------------------------------------------------------------------------------------------------------------
+      String StrTemplate;
+      String StrVariableName;
+      String StrVariableValue;
+      Object ObjVariableValue;
+      
+      Pattern ObjPattern = Pattern.compile("(\\$\\{([a-z|\\.|\\*]*)\\})");
+      Matcher ObjMatcher = ObjPattern.matcher(StrText);
+      
+      while (ObjMatcher.find()) {
+      
+         StrTemplate = ObjMatcher.group(1);
+         StrVariableName = ObjMatcher.group(2);
+         StrVariableValue = null;
+         
+         // Cerca la variabile tra le chiavi di contesto semplici
+         ObjVariableValue = ObjContext.get(StrVariableName);
+         
+         // Se non è stato trovato alcun match cerca la prima variabile tra le chiavi di contesto regex
+         if (ObjVariableValue==null) {
+            ObjVariableValue = ObjContext.getRegex(StrVariableName,true).get(0);
+         }
+         
+         // Se sono funzioni le esegue, se è una stringa la converte, altrimenti genera eccezione
+         if (ObjVariableValue instanceof String) {
+            StrVariableValue = (String) ObjVariableValue;
+         } else if (ObjVariableValue instanceof TemplateFunction) {
+            StrVariableValue = ((TemplateFunction) ObjVariableValue).apply(StrVariableName,ObjContext);
+         } else {
+            throw new Exception("invalid template variable '"+StrVariableName+"'");               
+         }
+         
+         // Esegue sostituzione della variabile template         
+         StrText = StrText.replace(StrTemplate,StrVariableValue);
+      }
+      
+      // Restituisce stringa con i template sostituiti
+      return StrText;
+   }   
 }

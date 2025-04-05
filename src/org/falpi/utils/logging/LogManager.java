@@ -16,7 +16,7 @@ public class LogManager {
    // ==================================================================================================================================
    
    // Identificativo univoco del contesto di messaggi di log generati
-   private String StrModuleID;
+   private String StrModuleId;
    
    // Lughezza di padding per il logging delle proprietà
    private int IntPadLength = 0;
@@ -30,8 +30,8 @@ public class LogManager {
    // ==================================================================================================================================
    // Costruttore
    // ==================================================================================================================================
-   public LogManager(String StrModuleID) {      
-      this.StrModuleID = StrModuleID;
+   public LogManager(String StrModuleId) {      
+      this.StrModuleId = StrModuleId;
    }   
    
    // ==================================================================================================================================
@@ -63,11 +63,13 @@ public class LogManager {
    // Logging di proprietà chiave valore
    // ==================================================================================================================================
    public void logProperty(int IntLevel,String StrProperty,String StrValue) {
-      System.out.println(formatProperty(IntLevel,StrProperty,StrValue,IntPadLength));
+      logProperty(IntLevel,StrProperty,StrValue,IntPadLength);
    }
 
    public void logProperty(int IntLevel,String StrProperty,String StrValue,int IntPadding) {
-      System.out.println(formatProperty(IntLevel,StrProperty,StrValue,IntPadding));
+      if (IntLevel>=IntLoggingLevel) {
+         System.out.println(formatProperty(IntLevel,StrProperty,StrValue,IntPadding));
+      }
    }
    
    public String formatProperty(int IntLevel,String StrProperty,String StrValue) {
@@ -145,7 +147,7 @@ public class LogManager {
 
    public String formatMessage(int IntLevel,String StrMessage) {
       return new SimpleDateFormat("'<'yyyy-MM-dd HH:mm:ss.SSS'>'").format(new Date(System.currentTimeMillis()))+
-                                  " <"+StrModuleID+">"+
+                                  " <"+StrModuleId+">"+
                                   " <"+Thread.currentThread().getName()+"> "+
                                   StringUtils.padRight("<"+LogLevel.getDescription(IntLevel)+">",8," ")+
                                   StrMessage;

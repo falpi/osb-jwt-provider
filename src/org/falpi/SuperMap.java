@@ -3,8 +3,7 @@ package org.falpi;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 
-
-public class SuperMap<T>  extends LinkedHashMap<String,T> {
+public class SuperMap<T> extends LinkedHashMap<String,T> {
    
    @SuppressWarnings("compatibility")
    private static final long serialVersionUID = -8475373322215521291L;
