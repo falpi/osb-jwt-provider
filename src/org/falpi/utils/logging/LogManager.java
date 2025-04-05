@@ -71,6 +71,12 @@ public class LogManager {
          System.out.println(formatProperty(IntLevel,StrProperty,StrValue,IntPadding));
       }
    }
+
+   public void logProperties(int IntLevel,Map<String,Object> ObjProperties,String StrSeparator,Boolean BolQuoteStringValues) {
+      if (IntLevel>=IntLoggingLevel) {
+         System.out.println(formatProperties(IntLevel,ObjProperties,StrSeparator,BolQuoteStringValues));
+      }
+   }
    
    public String formatProperty(int IntLevel,String StrProperty,String StrValue) {
       return formatProperty(IntLevel,StrProperty,StrValue,IntPadLength);

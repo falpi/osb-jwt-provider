@@ -13,7 +13,6 @@ import java.util.Collections;
 import javax.security.auth.Subject;
 import javax.servlet.http.HttpServletRequest;
 
-import org.apache.commons.io.IOUtils;
 import org.apache.http.HttpHost;
 import org.apache.http.HttpResponse;
 import org.apache.http.auth.AuthSchemeProvider;
@@ -41,7 +40,6 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.ssl.SSLContextBuilder;
-import org.apache.xmlbeans.XmlObject;
 
 import com.bea.core.repackaged.springframework.util.LinkedMultiValueMap;
 
@@ -141,7 +139,7 @@ public class HttpUtils {
       }
 
       // Acquisisce payload in formato testo
-      StrPayload = IOUtils.toString(ObjHttpResponse.getEntity().getContent());
+      StrPayload = StringUtils.toString(ObjHttpResponse.getEntity().getContent());
 
       // Restituisce payload al chiamante
       return StrPayload;

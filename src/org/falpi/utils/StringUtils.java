@@ -3,6 +3,8 @@ package org.falpi.utils;
 import java.io.IOException;
 import java.io.BufferedReader;
 
+import java.io.InputStream;
+
 import java.util.List;
 import java.util.Iterator;
 import java.util.ArrayList;
@@ -124,6 +126,10 @@ public class StringUtils {
    // ==================================================================================================================================
    public static String toString(BufferedReader ObjReader) throws IOException {
       return IOUtils.toString(ObjReader);
+   }
+   
+   public static String toString(InputStream ObjInputStream) throws IOException {
+      return new String(IOUtils.toByteArray(ObjInputStream));
    }
 
    // ==================================================================================================================================

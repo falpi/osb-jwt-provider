@@ -1,35 +1,49 @@
 package org.falpi;
 
 import java.util.ArrayList;
+import java.util.Properties;
 import java.util.LinkedHashMap;
 
 public class SuperMap<T> extends LinkedHashMap<String,T> {
-   
-   @SuppressWarnings("compatibility")
-   private static final long serialVersionUID = -8475373322215521291L;
 
+   @SuppressWarnings("compatibility")
+   private static final long serialVersionUID = 1L;
+
+   // ==================================================================================================================================
+   // Variabili istanza
+   // ==================================================================================================================================
+   
    // Elemento speciale per espressioni regolari
-   private transient RegexMap<T> ObjRegExMap = new RegexMap<T>();
+   private transient RegexMap<T> ObjRegExMap = new RegexMap<T>();   
       
-   // Ricerca tutti i match con il contesto speciale per le espressioni regolari
+   // ==================================================================================================================================
+   // Motodi per accesso a mappa regex
+   // ==================================================================================================================================
    public ArrayList<T> getRegex(String StrKey,Boolean BolFirst) {
-               
-      // Se l'elemento regex non esiste restituisce insieme vuoto, altrimenti se non è della classe attesa genera eccezione         
       return ObjRegExMap.getRegex(StrKey,BolFirst);
    }
 
-   // aggiunge una entry nel contesto speciale per le espressioni regolari
    public T putRegex(String StrRegexKey,T Value) {
-                        
-      // Aggiunge la regex all'elemento speciale
       return ObjRegExMap.put(StrRegexKey,Value);
    }
-   
-   public String getString(String StrKey) {
-      return (String) get(StrKey);
-   }
-   
+
+   // ==================================================================================================================================
+   // Motodi per estrazione tipizzata da mappa principale
+   // ==================================================================================================================================      
    public Integer getInteger(String StrKey) {
       return (Integer) get(StrKey);
-   }        
+   }  
+
+   public String getString(String StrKey) {
+      Object ObjKey = get(StrKey);
+      return (ObjKey instanceof Integer)?(Integer.toString((Integer)ObjKey)):(ObjKey.toString());
+   }
+
+   public String[] getStringArray(String StrKey) {
+      return (String[]) get(StrKey);
+   }
+   
+   public Properties getProperties(String StrKey) {
+      return (Properties) get(StrKey);
+   }   
 }

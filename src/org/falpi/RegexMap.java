@@ -7,8 +7,8 @@ import java.util.LinkedHashMap;
 public class RegexMap<T> extends LinkedHashMap<String,T> {
    
    @SuppressWarnings("compatibility")
-   private static final long serialVersionUID = 8264272464644480142L;
-
+   private static final long serialVersionUID = 1L;
+   
    // Ricerca il match su base espressione regolare
    public ArrayList<T> getRegex(String StrKey,Boolean BolFirst) {
       
