@@ -75,8 +75,9 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
    } 
 
    // ==================================================================================================================================
-   // Gestore del contesto di runtime
+   // Gestore della configurazione e  contesto di runtime
    // ==================================================================================================================================
+   private static class RuntimeConfig extends SuperMap<Object> {}
    private static class RuntimeContext extends SuperMap<Object> {
       
       // Meotodi shortcut per variabili più utilizzate
@@ -104,10 +105,9 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
    // Variabili globali di thread
    // ==================================================================================================================================
 
-   // Logger di thread
+   // Logger, config e context di thread
    private static final ThreadLocal<LogManager> ObjThreadLogger = new ThreadLocal<LogManager>();
-   
-   // Context di thread
+   private static final ThreadLocal<RuntimeConfig> ObjThreadConfig = new ThreadLocal<RuntimeConfig>();
    private static final ThreadLocal<RuntimeContext> ObjThreadContext = new ThreadLocal<RuntimeContext>();
       
    // ==================================================================================================================================
@@ -299,7 +299,8 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
          
       // Prepara logger e context
       LogManager Logger = createLogger();
-      RuntimeContext Context = createContext();
+      RuntimeConfig Config = createConfig();      
+      RuntimeContext Context = createContext(ObjRequestContext);      
 
       // ==================================================================================================================================
       // Prepara configurazione
@@ -342,13 +343,6 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
       String StrValidationAssertion = StringUtils.join(ArrValidationAssertion,System.lineSeparator());
       String StrDebuggingAssertion = StringUtils.join(ArrDebuggingAssertion,System.lineSeparator());
       String StrDebuggingProperties = StringUtils.join(ArrDebuggingProperties,",");
-                              
-      // ==================================================================================================================================
-      // Prepara contesto di runtime
-      // ==================================================================================================================================  
-
-      // Completa la preparazione del context con i template di dettaglio
-      prepareContext(ObjRequestContext);
 
       // ==================================================================================================================================
       // Imposta livelli di logging (eventuali errori sull'asserzione di debug sono silenziati per non pregiudicare l'autenticazione)
@@ -882,41 +876,6 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
    // ##################################################################################################################################
    // Metodi privati di supporto
    // ##################################################################################################################################
-    
-   // ==================================================================================================================================
-   // Verifica se un parametro obbligatorio e valorizzato
-   // ==================================================================================================================================
-   private static Object validateParameter(String StrParameterName,Object ObjParameterValue) throws IdentityAssertionException {
-         
-      // Prepara logger & context
-      LogManager Logger = getLogger();
-      RuntimeContext Context = getContext();
-      
-      // Prepara nome della classe del parametro
-      String StrClassName = (ObjParameterValue==null)?("null"):(ObjParameterValue.getClass().getSimpleName());
-
-      // Se si tratta di un parametro stringa esegue trim
-      if (StrClassName.equals("String")) {
-         ObjParameterValue = ((String)ObjParameterValue).trim();
-      }
-      
-      // Se necessario genera trace
-      Logger.logMessage(LogLevel.TRACE,"Checking Parameter "+StrParameterName+": "+
-                                       ((ObjParameterValue==null)?("is null"):
-                                        ("class '"+StrClassName+"' "+
-                                         ((!StrClassName.equals("String"))?(""):
-                                          (ObjParameterValue.equals("")?("is empty"):("")))))); 
-      
-      // Verifica se il parametro è null o blank
-      if ((ObjParameterValue==null)||((StrClassName.equals("String"))&&((String)ObjParameterValue).equals(""))) {
-         String StrError = "Configuration error";
-         Logger.logMessage(LogLevel.ERROR,StrError,"mandatory parameter missing '"+StrParameterName+"'");
-         throw new IdentityAssertionException(StrError);
-      }
-      
-      // Restituisce valore eventualmente corretto con trim
-      return ObjParameterValue;
-   }   
    
    // ==================================================================================================================================
    // Esegue parsing del token e rileva la modalità di autenticazione
@@ -965,13 +924,107 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
    }     
    
    // ==================================================================================================================================
-   // Prepare runtime context
+   // Evaluate script
    // ==================================================================================================================================
-   private void prepareContext(ContextHandler ObjRequestContext) {
+   private static Object evaluateScript(String StrScript, String StrClassName) throws Exception {
+      
+      // Prepara logger & context
+      RuntimeContext Context = getContext();               
+      
+      // Esegue lo script fornito
+      Object ObjResult = ((ScriptEngine)Context.get("java.scripting")).eval(StringUtils.replaceTemplates(Context,StrScript));
+      String StrResultClassName = ObjResult.getClass().getSimpleName();
+      
+      // Se la tipologia di oggetto restituita non è quella attesa genera eccezione
+      if (!StrResultClassName.equals(StrClassName)) {
+         throw new Exception("expression must return '"+StrClassName+"' instead of '"+StrResultClassName+"'");
+      }
+
+      // Restrituisce l'oggetto risultante
+      return ObjResult;
+   }
+    
+   // ==================================================================================================================================
+   // Verifica se un parametro obbligatorio e valorizzato
+   // ==================================================================================================================================
+   private static Object validateParameter(String StrParameterName,Object ObjParameterValue) throws IdentityAssertionException {
          
       // Prepara logger & context
       LogManager Logger = getLogger();
       RuntimeContext Context = getContext();
+      
+      // Prepara nome della classe del parametro
+      String StrClassName = (ObjParameterValue==null)?("null"):(ObjParameterValue.getClass().getSimpleName());
+
+      // Se si tratta di un parametro stringa esegue trim
+      if (StrClassName.equals("String")) {
+         ObjParameterValue = ((String)ObjParameterValue).trim();
+      }
+      
+      // Se necessario genera trace
+      Logger.logMessage(LogLevel.TRACE,"Checking Parameter "+StrParameterName+": "+
+                                       ((ObjParameterValue==null)?("is null"):
+                                        ("class '"+StrClassName+"' "+
+                                         ((!StrClassName.equals("String"))?(""):
+                                          (ObjParameterValue.equals("")?("is empty"):("")))))); 
+      
+      // Verifica se il parametro è null o blank
+      if ((ObjParameterValue==null)||((StrClassName.equals("String"))&&((String)ObjParameterValue).equals(""))) {
+         String StrError = "Configuration error";
+         Logger.logMessage(LogLevel.ERROR,StrError,"mandatory parameter missing '"+StrParameterName+"'");
+         throw new IdentityAssertionException(StrError);
+      }
+      
+      // Restituisce valore eventualmente corretto con trim
+      return ObjParameterValue;
+   }   
+
+   // ==================================================================================================================================
+   // Acquisisce logger di thread
+   // ==================================================================================================================================    
+   private static LogManager getLogger() {      
+      return ObjThreadLogger.get();   
+   }    
+   
+   // ==================================================================================================================================
+   // Crea logger di thread
+   // ==================================================================================================================================    
+   private LogManager createLogger() {      
+      LogManager ObjLogger = new LogManager(StrInstanceName);      
+      ObjThreadLogger.set(ObjLogger);
+      return ObjLogger;   
+   }   
+
+   // ==================================================================================================================================
+   // Acquisisce config di thread
+   // ==================================================================================================================================    
+   private static RuntimeConfig getConfig() {      
+      return ObjThreadConfig.get();   
+   }    
+
+   // ==================================================================================================================================
+   // Crea nuovo context di thread
+   // ==================================================================================================================================    
+   private static RuntimeConfig createConfig() {   
+      RuntimeConfig ObjConfig = new RuntimeConfig();      
+      ObjThreadConfig.set(ObjConfig);
+      return ObjConfig;   
+   } 
+   
+   // ==================================================================================================================================
+   // Acquisisce context di thread
+   // ==================================================================================================================================    
+   private static RuntimeContext getContext() {      
+      return ObjThreadContext.get();   
+   }    
+
+   // ==================================================================================================================================
+   // Crea nuovo context di thread
+   // ==================================================================================================================================    
+   private RuntimeContext createContext(ContextHandler ObjRequestContext) {   
+
+      // Prepara nuovo context
+      RuntimeContext Context = new RuntimeContext();     
          
       // Estrapola il contesto di request
       ServiceInfo ObjService = (ServiceInfo) ObjRequestContext.getValue("com.bea.contextelement.alsb.service-info");
@@ -1041,18 +1094,21 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
       });             
       Context.put("http.header.*",new TemplateFunction() {
          public String apply(String StrVariableName,SuperMap ObjContext) throws Exception {
+            LogManager Logger = getLogger();
             HttpServletRequest ObjRequest = (HttpServletRequest) ObjContext.get("http.request");
             return Logger.formatProperties(LogLevel.DEBUG,HttpUtils.getHeaders(ObjRequest, Arrays.asList("Authorization")),StringUtils.repeat(90,"-"),false);
          }
       });        
       Context.put("token.header.*",new TemplateFunction() {
          public String apply(String StrVariableName,SuperMap ObjContext) throws Exception {
+            LogManager Logger = getLogger();
             JWTToken ObjJwtToken = (JWTToken) ObjContext.get("token"); 
             return ((ObjJwtToken!=null)&&(ObjJwtToken.isReady()))?(Logger.formatProperties(LogLevel.DEBUG,ObjJwtToken.getHeader(),StringUtils.repeat(90,"-"),true)):("");
          }
       });                                                         
       Context.put("token.payload.*",new TemplateFunction() {
          public String apply(String StrVariableName,SuperMap ObjContext) throws Exception {
+            LogManager Logger = getLogger();
             JWTToken ObjJwtToken = (JWTToken) ObjContext.get("token"); 
             return ((ObjJwtToken!=null)&&(ObjJwtToken.isReady()))?(Logger.formatProperties(LogLevel.DEBUG,ObjJwtToken.getPayload(),StringUtils.repeat(90,"-"),true)):("");
          }
@@ -1079,28 +1135,12 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
             return (ObjJwtToken!=null)?((String) ObjJwtToken.getPayload().get(StrVariableName.split("\\.")[2])):("");
          }
       });
-   }
-   
-   // ==================================================================================================================================
-   // Evaluate script
-   // ==================================================================================================================================
-   private static Object evaluateScript(String StrScript, String StrClassName) throws Exception {
-      
-      // Prepara logger & context
-      RuntimeContext Context = getContext();               
-      
-      // Esegue lo script fornito
-      Object ObjResult = ((ScriptEngine)Context.get("java.scripting")).eval(StringUtils.replaceTemplates(Context,StrScript));
-      String StrResultClassName = ObjResult.getClass().getSimpleName();
-      
-      // Se la tipologia di oggetto restituita non è quella attesa genera eccezione
-      if (!StrResultClassName.equals(StrClassName)) {
-         throw new Exception("expression must return '"+StrClassName+"' instead of '"+StrResultClassName+"'");
-      }
 
-      // Restrituisce l'oggetto risultante
-      return ObjResult;
-   }
+      // ----------------------------------------------------------------------------------------------------------------------------------
+      
+      ObjThreadContext.set(Context);
+      return Context;   
+   }    
    
    // ==================================================================================================================================
    // Inizializza nome del thread (contatore di esecuzione)
@@ -1108,36 +1148,4 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
    private synchronized void setThreadName()  {
       Thread.currentThread().setName(StringUtils.padLeft(String.valueOf(IntThreadCount++),7,"0"));
    }
-
-   // ==================================================================================================================================
-   // Acquisisce logger di thread
-   // ==================================================================================================================================    
-   private static LogManager getLogger() {      
-      return ObjThreadLogger.get();   
-   }    
-   
-   // ==================================================================================================================================
-   // Crea logger di thread
-   // ==================================================================================================================================    
-   private LogManager createLogger() {      
-      LogManager ObjLogger = new LogManager(StrInstanceName);      
-      ObjThreadLogger.set(ObjLogger);
-      return ObjLogger;   
-   }   
-
-   // ==================================================================================================================================
-   // Acquisisce context di thread
-   // ==================================================================================================================================    
-   private static RuntimeContext getContext() {      
-      return ObjThreadContext.get();   
-   }    
-
-   // ==================================================================================================================================
-   // Crea nuovo context di thread
-   // ==================================================================================================================================    
-   private RuntimeContext createContext() {   
-      RuntimeContext ObjContext = new RuntimeContext();      
-      ObjThreadContext.set(ObjContext);
-      return ObjContext;   
-   }    
 }
