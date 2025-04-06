@@ -375,7 +375,7 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
       }
 
       // ==================================================================================================================================
-      // Logging configurazione e controlli congruenza
+      // Logging configurazione
       // ==================================================================================================================================
       if (Logger.checkLogLevel(LogLevel.DEBUG)) {
          Logger.logMessage(LogLevel.DEBUG,"##########################################################################################");
@@ -413,7 +413,9 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
          Logger.logMessage(LogLevel.TRACE,"------------------------------------------------------------------------------------------");
       }
       
-      // Controlli di congruenza ed eventuale rifinitura dei parametri
+      // ==================================================================================================================================
+      // Controlli di congruenza ed eventuale pulizia della configurazione
+      // ==================================================================================================================================      
       validateParameter(JWT_KEYS_URL);
       validateParameter(JWT_KEYS_MODULUS_XPATH);
       validateParameter(JWT_KEYS_EXPONENT_XPATH);         
@@ -446,36 +448,11 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
          Logger.logMessage(LogLevel.DEBUG,"Content Type .....: "+ Context.getString("http.content.type"));        
          Logger.logMessage(LogLevel.DEBUG,"------------------------------------------------------------------------------------------");
       }
-      
-      // ==================================================================================================================================
-      // Esegue verifica e parsing del token e rileva la modalità di autenticazione
-      // ==================================================================================================================================      
-      String StrToken = "";
-      try {
-         // Prepara token
-         StrToken = prepareToken(StrTokenType,ObjToken);
-               
-         // Verifica la ammissibilità dell'autenticazione rilevata rispetto al token selezionato e ai flag di disattivazione
-         if ((!StrTokenType.contains(Context.getAuthType()))||
-             (Context.getAuthType().equals(TokenTypes.JWT_AUTH_ID)&&Config.getString("JWT_AUTH").equals("DISABLE"))||
-             (Context.getAuthType().equals(TokenTypes.BASIC_AUTH_ID)&&Config.getString("BASIC_AUTH").equals("DISABLE"))) {
-            throw new Exception("Disabled auth type");
-         }
-         
-      } catch (Exception ObjException) {
-         String StrError = "Token preparation error";
-         Logger.logMessage(LogLevel.ERROR,StrError,ObjException);
-         throw new IdentityAssertionException(StrError);         
-      }
 
       // ==================================================================================================================================
-      // Gestisce l'autenticazione
+      // Gestisce l'asserzione di identità
       // ==================================================================================================================================      
-      switch (Context.getAuthType()) {
-       
-         case TokenTypes.JWT_AUTH_ID: manageJwtAuth(StrToken,ObjJwtProvider,ObjJwtCache); break;
-         case TokenTypes.BASIC_AUTH_ID: manageBasicAuth(StrToken,ObjAuthenticator); break;
-      }
+      assertIdentity(StrTokenType,ObjToken);
       
       // ==================================================================================================================================
       // Gestisce asserzione di validazione
@@ -559,6 +536,75 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
    // ##################################################################################################################################
    // Metodi privati di supporto
    // ##################################################################################################################################
+
+   // ==================================================================================================================================
+   // Gestitsce autenticazione
+   // ==================================================================================================================================      
+   private void assertIdentity(String StrTokenType,Object ObjToken) throws IdentityAssertionException {
+         
+      // Prepara logger e context
+      LogManager Logger = getLogger();
+      RuntimeConfig Config = getConfig();
+      RuntimeContext Context = getContext();
+   
+      String StrToken = "";
+      try {
+         
+         // Verifica la tipologia del token
+         if (!(ObjToken instanceof String)) {
+            String StrError = "Unsupported token class";
+            Logger.logMessage(LogLevel.ERROR,StrError,ObjToken.getClass().getSimpleName());
+            throw new Exception(StrError);
+         }
+
+         // Verifica la correttezza del tipo di token
+         if (!TokenTypes.ALL_TYPES.contains(StrTokenType)) {        
+            String StrError = "Unknown token type";
+            Logger.logMessage(LogLevel.ERROR,StrError,StrTokenType);
+            throw new Exception(StrError);
+         }   
+         
+         // Se necessario genera logging di debug
+         Logger.logMessage(LogLevel.DEBUG,"Selected Token ...: "+StrTokenType);
+         
+         // Verifica se il token in ingresso è un BASIC o un JWT
+         StrToken = (String)ObjToken;
+         
+         if (StrToken.startsWith("Basic ")) {
+            Context.putAuthType(TokenTypes.BASIC_AUTH_ID);         
+            StrToken = StrToken.substring("Basic ".length());         
+         } else {
+            Context.putAuthType(TokenTypes.JWT_AUTH_ID);
+            if (StrToken.startsWith("Bearer ")) {
+               StrToken = StrToken.substring("Bearer ".length());
+            }
+         }
+
+         // Genera logging      
+         Logger.logMessage(LogLevel.DEBUG,"Detected Auth ....: "+Context.getAuthType());
+               
+         // Verifica la ammissibilità dell'autenticazione rilevata rispetto al token selezionato e ai flag di disattivazione
+         if ((!StrTokenType.contains(Context.getAuthType()))||
+             (Context.getAuthType().equals(TokenTypes.JWT_AUTH_ID)&&Config.getString("JWT_AUTH").equals("DISABLE"))||
+             (Context.getAuthType().equals(TokenTypes.BASIC_AUTH_ID)&&Config.getString("BASIC_AUTH").equals("DISABLE"))) {
+            throw new Exception("Disabled auth type");
+         }
+         
+      } catch (Exception ObjException) {
+         String StrError = "Token preparation error";
+         Logger.logMessage(LogLevel.ERROR,StrError,ObjException);
+         throw new IdentityAssertionException(StrError);         
+      }
+     
+      // ==================================================================================================================================
+      // Gestisce l'autenticazione
+      // ==================================================================================================================================      
+      switch (Context.getAuthType()) {
+       
+         case TokenTypes.JWT_AUTH_ID: manageJwtAuth(StrToken,ObjJwtProvider,ObjJwtCache); break;
+         case TokenTypes.BASIC_AUTH_ID: manageBasicAuth(StrToken,ObjAuthenticator); break;
+      }     
+   }     
    
    // ==================================================================================================================================
    // Gestisce autenticazione JWT
@@ -576,7 +622,7 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
       Logger.logMessage(LogLevel.DEBUG,"==========================================================================================");
                         
       // ----------------------------------------------------------------------------------------------------------------------------------
-      // Inizializza token provider 
+      // Inizializza jwt provider 
       // ----------------------------------------------------------------------------------------------------------------------------------
       JWTToken ObjJwtToken = null;         
       try {
@@ -594,7 +640,7 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
       } 
         
       // ----------------------------------------------------------------------------------------------------------------------------------
-      // Inizializza token
+      // Inizializza jwt token
       // ----------------------------------------------------------------------------------------------------------------------------------
       String StrJwtKeyID = "";
       try {            
@@ -632,7 +678,7 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
       } 
 
       // ----------------------------------------------------------------------------------------------------------------------------------
-      // Verifica la firma del token
+      // Verifica la firma del token jwt
       // ----------------------------------------------------------------------------------------------------------------------------------
 
       // Genera logging
@@ -933,52 +979,6 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
       // Restituisce chiave
       return ObjKey;
    }
-
-   // ==================================================================================================================================
-   // Esegue parsing del token e rileva la modalità di autenticazione
-   // ==================================================================================================================================      
-   private static String prepareToken(String StrTokenType,Object ObjToken) throws Exception {
-         
-      // Prepara logger e context
-      LogManager Logger = getLogger();
-      RuntimeContext Context = getContext();
-   
-      // Verifica la tipologia del token
-      if (!(ObjToken instanceof String)) {
-         String StrError = "Unsupported token class";
-         Logger.logMessage(LogLevel.ERROR,StrError,ObjToken.getClass().getSimpleName());
-         throw new Exception(StrError);
-      }
-
-      // Verifica la correttezza del tipo di token
-      if (!TokenTypes.ALL_TYPES.contains(StrTokenType)) {        
-         String StrError = "Unknown token type";
-         Logger.logMessage(LogLevel.ERROR,StrError,StrTokenType);
-         throw new Exception(StrError);
-      }   
-      
-      // Se necessario genera logging di debug
-      Logger.logMessage(LogLevel.DEBUG,"Selected Token ...: "+StrTokenType);
-      
-      // Verifica se il token in ingresso è un BASIC o un JWT
-      String StrToken = (String)ObjToken;
-      
-      if (StrToken.startsWith("Basic ")) {
-         Context.putAuthType(TokenTypes.BASIC_AUTH_ID);         
-         StrToken = StrToken.substring("Basic ".length());         
-      } else {
-         Context.putAuthType(TokenTypes.JWT_AUTH_ID);
-         if (StrToken.startsWith("Bearer ")) {
-            StrToken = StrToken.substring("Bearer ".length());
-         }
-      }
-
-      // Genera logging      
-      Logger.logMessage(LogLevel.DEBUG,"Detected Auth ....: "+Context.getAuthType());
-      
-      // Restituisce payload del token
-      return StrToken;
-   }     
    
    // ==================================================================================================================================
    // Evaluate script
