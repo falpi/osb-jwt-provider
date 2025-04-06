@@ -181,14 +181,16 @@ Token              | Format
 ... <INFO>  ==========================================================================================
 ... <INFO>  CONTEXT
 ... <INFO>  ==========================================================================================
-... <INFO>  Realm Name ........... : myrealm
-... <INFO>  Domain Name .......... : DefaultDomain
-... <INFO>  Managed Name ......... : DefaultServer
+... <INFO>  Realm Name ...........: myrealm
+... <INFO>  Domain Name ..........: DefaultDomain
+... <INFO>  Managed Name .........: DefaultServer
+... <INFO>  Provider Name ........: AzureIdentityAsserter
+... <INFO>  Instance Name ........: CIA0
 ... <INFO>  ------------------------------------------------------------------------------------------
-... <INFO>  JWT Provider ......... : org.falpi.utils.JWTTokenNimbusShadedImpl
-... <INFO>  Kerberos Config ......: C:\Temp\krb5-2068097684051575684.conf
-... <INFO>  Scripting Engine ..... : Oracle Nashorn (1.8.0_391)
-... <INFO>  Scripting Language ... : ECMAScript (ECMA - 262 Edition 5.1)
+... <INFO>  JWT Provider .........: org.falpi.utils.jwt.JWTProviderNimbusShadedImpl
+... <INFO>  Kerberos Config ......: C:\Temp\krb5-4823829319811767945.conf
+... <INFO>  Scripting Engine .....: Oracle Nashorn (1.8.0_391)
+... <INFO>  Scripting Language ...: ECMAScript (ECMA - 262 Edition 5.1)
 ... <INFO>  ##########################################################################################
 ```
 
