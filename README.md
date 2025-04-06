@@ -311,14 +311,14 @@ Token              | Format
 ... <DEBUG> ${token.payload.*} => 
 ... <DEBUG> ------------------------------------------------------------------------------------------
 ... <DEBUG> aud ...................: "00000002-0000-0000-c000-000000000000"
-... <DEBUG> iss ...................: "https://sts.windows.net/eccd734e-7022-4709-aba5-a5dd77929e27/"
+... <DEBUG> iss ...................: "https://sts.windows.net/<tenant_id>/"
 ... <DEBUG> iat ...................: 1743975300
 ... <DEBUG> nbf ...................: 1743975300
 ... <DEBUG> exp ...................: 1743979200
 ... <DEBUG> aio ...................: "<omissis>"
 ... <DEBUG> appid .................: "<client_id>"
 ... <DEBUG> appidacr ..............: "1"
-... <DEBUG> idp ...................: "https://sts.windows.net/eccd734e-7022-4709-aba5-a5dd77929e27/"
+... <DEBUG> idp ...................: "https://sts.windows.net/<tenant_id>/"
 ... <DEBUG> idtyp .................: "app"
 ... <DEBUG> oid ...................: "<omissis>"
 ... <DEBUG> rh ....................: "<omissis>"
