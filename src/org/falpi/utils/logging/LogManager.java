@@ -6,6 +6,10 @@ import java.util.List;
 import java.util.Iterator;
 import java.text.SimpleDateFormat;
 
+import java.util.ArrayList;
+
+import java.util.stream.Collectors;
+
 import org.falpi.utils.JavaUtils;
 import org.falpi.utils.StringUtils;
 
@@ -103,7 +107,7 @@ public class LogManager {
          Object ObjValue = ObjEntry.getValue();
          
          if (ObjValue instanceof List) {
-            Iterator<String> ObjIterator = ((List<String>)ObjValue).iterator();
+            Iterator ObjIterator = ((List)ObjValue).iterator();
             while (ObjIterator.hasNext()) {
                Object ObjListValue = ObjIterator.next();
                String StrQuotes = ((BolQuoteStringValues)&&(ObjListValue instanceof String))?("\""):("");

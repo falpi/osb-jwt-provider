@@ -41,8 +41,8 @@ import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.ssl.SSLContextBuilder;
 
-import org.apache.commons.collections.map.MultiValueMap;
-
+import org.falpi.MultiMap;
+import org.falpi.SuperMap;
 import org.falpi.utils.logging.LogLevel;
 import org.falpi.utils.logging.LogManager;
 import org.falpi.utils.SecurityUtils.CustomKrb5LoginModule;
@@ -407,10 +407,10 @@ public class HttpUtils {
    // ==================================================================================================================================
    // Acquisisce headers in formato mappa
    // ==================================================================================================================================
-   public static MultiValueMap getHeaders(HttpServletRequest ObjRequest,List<String> ArrExclusions) throws Exception {
+   public static SuperMap getHeaders(HttpServletRequest ObjRequest,List<String> ArrExclusions) throws Exception {
       
       String StrHeaderName;
-      MultiValueMap ObjMap = new MultiValueMap();
+      SuperMap ObjMap = new SuperMap();
       Enumeration<String> ObjEnumerator = ObjRequest.getHeaderNames();
       
       while (ObjEnumerator.hasMoreElements()) {
