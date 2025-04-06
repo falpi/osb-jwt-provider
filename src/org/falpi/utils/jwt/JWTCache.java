@@ -32,8 +32,10 @@ public class JWTCache {
    // ==================================================================================================================================
    // Inserisce una chiave nella cache
    // ==================================================================================================================================
-   public void putKey(String StrKeyID,String StrModulus,String StrExponent) {
-      ObjCache.put(StrKeyID,new JWTCacheEntry(StrModulus,StrExponent));
+   public JWTCacheEntry putKey(String StrKeyID,String StrModulus,String StrExponent) {
+      JWTCacheEntry ObjKey = new JWTCacheEntry(StrModulus,StrExponent);
+      ObjCache.put(StrKeyID,ObjKey);
+      return ObjKey;
    }
 
    // ==================================================================================================================================

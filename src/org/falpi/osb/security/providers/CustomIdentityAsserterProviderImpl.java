@@ -887,8 +887,8 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
             throw new Exception("unable to extract key");
          } 
          
-         // Salva la chiave in cache
-         ObjJwtKeysCache.putKey(StrJwtKeyID,StrKeyModulus,StrKeyExponent);
+         // Salva la chiave in cache e la restituisce
+         ObjKey = ObjJwtKeysCache.putKey(StrJwtKeyID,StrKeyModulus,StrKeyExponent);
       }                        
       
       // Restituisce chiave
