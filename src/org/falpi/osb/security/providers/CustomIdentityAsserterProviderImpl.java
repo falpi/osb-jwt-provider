@@ -408,9 +408,9 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
       Logger.logMessage(LogLevel.DEBUG,"DEBUGGING_ASSERTION ..........: " + StrDebuggingAssertion.replaceAll("\n"," "));
       Logger.logMessage(LogLevel.DEBUG,"DEBUGGING_PROPERTIES .........: " + StringUtils.join(ArrDebuggingProperties,","));    
             
-      // Controlli di congruenza ed eventuale rifinitura dei parametri
       Logger.logMessage(LogLevel.TRACE,"------------------------------------------------------------------------------------------");
       
+      // Controlli di congruenza ed eventuale rifinitura dei parametri
       validateParameter(JWT_KEYS_URL);
       validateParameter(JWT_KEYS_MODULUS_XPATH);
       validateParameter(JWT_KEYS_EXPONENT_XPATH);         
@@ -508,9 +508,9 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
          Logger.logMessage(LogLevel.DEBUG,"JWT AUTH");
          Logger.logMessage(LogLevel.DEBUG,"==========================================================================================");
                            
-         // ==================================================================================================================================
+         // ----------------------------------------------------------------------------------------------------------------------------------
          // Inizializza token provider 
-         // ==================================================================================================================================
+         // ----------------------------------------------------------------------------------------------------------------------------------
          JWTToken ObjJwtToken = null;         
          try {
 
@@ -526,9 +526,9 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
             throw new IdentityAssertionException(StrError); 
          } 
            
-         // ==================================================================================================================================
+         // ----------------------------------------------------------------------------------------------------------------------------------
          // Inizializza token
-         // ==================================================================================================================================
+         // ----------------------------------------------------------------------------------------------------------------------------------
          String StrJwtKeyID = "";
          try {            
             
@@ -544,152 +544,29 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
             throw new IdentityAssertionException(StrError);        
          }
             
-         // ==================================================================================================================================
+         // ----------------------------------------------------------------------------------------------------------------------------------
          // Prepara chiave per la verifica della firma
-         // ==================================================================================================================================
-
-         // Dichiara variabili         
+         // ----------------------------------------------------------------------------------------------------------------------------------
          String StrKeyModulus = "";
-         String StrKeyExponent = "";
+         String StrKeyExponent = "";         
+         try {
 
-         // Verifica se la chiave è già in cache e non è scaduta         
-         JWTCacheEntry ObjKey = ObjJwtKeysCache.validKey(StrJwtKeyID,Config.getInteger(JWT_KEYS_CACHE_TTL));
-         
-         // Se la chiave è in cache e il suo timestamp non è scaduto esegue altrimenti procede
-         if (ObjKey!=null) {
-            
+            // Prepara la chiave       
+            JWTCacheEntry ObjKey = prepareKey(StrJwtKeyID,ObjJwtKeysCache);
+
             // Acuisisce parametri chiave dalla cache
             StrKeyModulus = ObjKey.modulus;
             StrKeyExponent = ObjKey.exponent;            
             
-         } else {
-            try {
+         } catch (Exception ObjException) {
+            String StrError = "Keys retrieving error";
+            Logger.logMessage(LogLevel.ERROR,StrError,ObjException);
+            throw new IdentityAssertionException(StrError);
+         } 
 
-               // ----------------------------------------------------------------------------------------------------------------------------------
-               // Gestisce acquisizione chiavi 
-               // ----------------------------------------------------------------------------------------------------------------------------------
-               
-               // Inizializza variabili
-               String StrJwtKeysHostUserName = "";
-               String StrJwtKeysHostPassword = "";
-               String StrJwtKeysProxyUserName = "";
-               String StrJwtKeysProxyPassword = "";
-               String StrJwtKeysProxyHost = "";
-               int IntJwtKeysProxyPort = 0;
-               
-               // Genera logging
-               Logger.logMessage(LogLevel.DEBUG,"------------------------------------------------------------------------------------------");
-               Logger.logMessage(LogLevel.DEBUG,"KEYS RETRIEVE");
-               Logger.logMessage(LogLevel.DEBUG,"------------------------------------------------------------------------------------------");
-
-               // Imposta livello di padding
-               Logger.setPadLength(31);
-               
-               // Prepara autenticazione server
-               if (!Config.getString(JWT_KEYS_HOST_AUTH_MODE).equals("ANONYMOUS")) {
-
-                  // Genera logging e acquisisce risorsa ESB proxy in formato XML
-                  Logger.logProperty(LogLevel.DEBUG,"Host Auth Account",Config.getString(JWT_KEYS_HOST_ACCOUNT_PATH));                  
-                  XmlObject ObjServiceAccount = OSBUtils.getResource("ServiceAccount", Config.getString(JWT_KEYS_HOST_ACCOUNT_PATH));
-
-                  // Acquisisce credenziali
-                  StrJwtKeysHostUserName = XMLUtils.getTextValue(ObjServiceAccount, "//*:username/text()");
-                  StrJwtKeysHostPassword = XMLUtils.getTextValue(ObjServiceAccount, "//*:password/text()");
-               }
-
-               // Prepara parametri proxy
-               if (!Config.getString(JWT_KEYS_PROXY_SERVER_MODE).equals("DIRECT")) {
-               
-                  // Genera logging e acquisisce risorsa ESB proxy in formato XML
-                  Logger.logProperty(LogLevel.DEBUG,"Proxy Server Resource",Config.getString(JWT_KEYS_PROXY_SERVER_PATH));                  
-                  XmlObject ObjProxyServer = OSBUtils.getResource("ProxyServer", Config.getString(JWT_KEYS_PROXY_SERVER_PATH));
-
-                  // Esegue parsing dei vari parametri del proxy
-                  StrJwtKeysProxyHost = XMLUtils.getTextValue(ObjProxyServer, "//*:server/@host");
-                  IntJwtKeysProxyPort = Integer.valueOf(XMLUtils.getTextValue(ObjProxyServer, "//*:server/@port"));
-                  
-                  // Prepara autenticazione proxy
-                  if (!Config.getString(JWT_KEYS_PROXY_SERVER_MODE).equals("ANONYMOUS")) {
-   
-                      // Acquisisce credenziali
-                      StrJwtKeysProxyUserName = XMLUtils.getTextValue(ObjProxyServer, "//*:username/text()");
-                      StrJwtKeysProxyPassword = XMLUtils.getTextValue(ObjProxyServer, "//*:password/text()");
-                  }
-               }
-               
-               // Acquisisce payload delle chiavi pubbliche in formato stringa
-               String StrJwtKeys = HttpUtils.fetch(HttpMethod.GET, Config.getString(JWT_KEYS_URL),  
-                                                   Config.getString(JWT_KEYS_FORMAT).equals("XML")?("text/xml"):("application/json"),
-                                                   Config.getString(JWT_KEYS_HOST_AUTH_MODE), StrJwtKeysHostUserName, StrJwtKeysHostPassword,
-                                                   Config.getString(JWT_KEYS_PROXY_SERVER_MODE), StrJwtKeysProxyUserName, StrJwtKeysProxyPassword,
-                                                   StrJwtKeysProxyHost,IntJwtKeysProxyPort, 
-                                                   Config.getString(JWT_KEYS_SSL_VERIFY).equals("ENABLE"), 
-                                                   Config.getInteger(JWT_KEYS_CONN_TIMEOUT), 
-                                                   Config.getInteger(JWT_KEYS_READ_TIMEOUT), Logger);
-               
-               // ----------------------------------------------------------------------------------------------------------------------------------
-               // Gestisce parsing e caching delle chiavi
-               // ----------------------------------------------------------------------------------------------------------------------------------
-
-               // Inizializza variabile
-               XmlObject ObjJwtKeys;
-                        
-                  // Gestisce parsing json o xml
-               if (Config.getString(JWT_KEYS_FORMAT).equals("XML")) {
-
-                  // Genera logging
-                  Logger.logProperty(LogLevel.TRACE,"Payload (XML)",StrJwtKeys);
-
-                  // Acquisisce chiavi in formato xml
-                  ObjJwtKeys = XmlObject.Factory.parse(StrJwtKeys);
-
-               } else {
-
-                  // Acquisisce payload in formato json
-                  JSONObject ObjJSON = new JSONObject(StrJwtKeys);
-
-                  // Genera logging
-                  Logger.logProperty(LogLevel.TRACE,"Payload (JSON)",ObjJSON.toString());
-
-                  // Converte da JSON a XML
-                  StrJwtKeys = "<root>"+XML.toString(ObjJSON)+"</root>";
-                                                   
-                  // Genera logging
-                  Logger.logProperty(LogLevel.TRACE,"Payload (XML)",StrJwtKeys);
-
-                  // Acquisisce chiavi dal formato xml
-                  ObjJwtKeys = XmlObject.Factory.parse(StrJwtKeys);
-               }
-
-               // Prepara espressioni xpath e logging
-               String StrJwtKeysModulusParsedXPath = StringUtils.replaceTemplates(Context,Config.getString(JWT_KEYS_MODULUS_XPATH));
-               Logger.logProperty(LogLevel.DEBUG,"Modulus XPath Parsed",StrJwtKeysModulusParsedXPath);
-
-               String StrJwtKeysExponentParsedXPath = StringUtils.replaceTemplates(Context,Config.getString(JWT_KEYS_EXPONENT_XPATH));
-               Logger.logProperty(LogLevel.DEBUG,"Exponent XPath Parsed",StrJwtKeysExponentParsedXPath);            
-
-               // Estrapola modulo ed esponente
-               StrKeyModulus = XMLUtils.getTextValue(ObjJwtKeys,StrJwtKeysModulusParsedXPath);
-               StrKeyExponent = XMLUtils.getTextValue(ObjJwtKeys,StrJwtKeysExponentParsedXPath);
-               
-               // Se non è stata trovata alcuna chiave genera eccezione
-               if (StrKeyModulus.equals("")||StrKeyExponent.equals("")) {
-                  throw new Exception("unable to extract key");
-               } 
-               
-            } catch (Exception ObjException) {
-               String StrError = "Keys retrieving error";
-               Logger.logMessage(LogLevel.ERROR,StrError,ObjException);
-               throw new IdentityAssertionException(StrError);
-            }   
-                           
-            // Salva la chiave in cache
-            ObjJwtKeysCache.putKey(StrJwtKeyID,StrKeyModulus,StrKeyExponent);
-         }
-
-         // ==================================================================================================================================
+         // ----------------------------------------------------------------------------------------------------------------------------------
          // Verifica la firma del token
-         // ==================================================================================================================================
+         // ----------------------------------------------------------------------------------------------------------------------------------
 
          // Genera logging
          Logger.logMessage(LogLevel.DEBUG,"------------------------------------------------------------------------------------------");
@@ -709,9 +586,9 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
             throw new IdentityAssertionException(StrError);
          }
             
-         // ==================================================================================================================================
+         // ----------------------------------------------------------------------------------------------------------------------------------
          // Determina l'identità
-         // ==================================================================================================================================
+         // ----------------------------------------------------------------------------------------------------------------------------------
 
          // Genera logging
          Logger.logMessage(LogLevel.DEBUG,"------------------------------------------------------------------------------------------");
@@ -739,9 +616,9 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
          // Genera logging
          Logger.logMessage(LogLevel.DEBUG,"Token Identity ....: " + Context.getIdentity());
             
-         // ==================================================================================================================================
+         // ----------------------------------------------------------------------------------------------------------------------------------
          // Gestisce l'eventuale identity mapping
-         // ==================================================================================================================================         
+         // ----------------------------------------------------------------------------------------------------------------------------------
          if (Config.getString(JWT_IDENTITY_MAPPING_MODE).equals("DISABLE")) {
 
             // Pone lo username pari all'identità 
@@ -890,6 +767,134 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
    // Metodi privati di supporto
    // ##################################################################################################################################
    
+   // ==================================================================================================================================
+   // Gestisce preparazione chiave di firma jwt
+   // ==================================================================================================================================      
+   private static JWTCacheEntry prepareKey(String StrJwtKeyID,JWTCache ObjJwtKeysCache) throws Exception {
+
+      // Prepara logger e context
+      LogManager Logger = getLogger();
+      RuntimeConfig Config = getConfig();
+      RuntimeContext Context = getContext();
+   
+      // Verifica se la chiave è già in cache e non è scaduta         
+      JWTCacheEntry ObjKey = ObjJwtKeysCache.validKey(StrJwtKeyID,Config.getInteger(JWT_KEYS_CACHE_TTL));
+      
+      // Se la chiave non è in cache  esegue
+      if (ObjKey==null) {
+         
+         // ----------------------------------------------------------------------------------------------------------------------------------
+         // Acquisisce le chiavi
+         // ----------------------------------------------------------------------------------------------------------------------------------
+         
+         // Inizializza variabili
+         String StrJwtKeysHostUserName = "";
+         String StrJwtKeysHostPassword = "";
+         String StrJwtKeysProxyUserName = "";
+         String StrJwtKeysProxyPassword = "";
+         String StrJwtKeysProxyHost = "";
+         int IntJwtKeysProxyPort = 0;
+         
+         // Genera logging
+         Logger.logMessage(LogLevel.DEBUG,"------------------------------------------------------------------------------------------");
+         Logger.logMessage(LogLevel.DEBUG,"KEYS RETRIEVE");
+         Logger.logMessage(LogLevel.DEBUG,"------------------------------------------------------------------------------------------");
+
+         // Imposta livello di padding
+         Logger.setPadLength(31);
+         
+         // Prepara autenticazione server
+         if (!Config.getString(JWT_KEYS_HOST_AUTH_MODE).equals("ANONYMOUS")) {
+
+            // Genera logging e acquisisce risorsa ESB proxy in formato XML
+            Logger.logProperty(LogLevel.DEBUG,"Host Auth Account",Config.getString(JWT_KEYS_HOST_ACCOUNT_PATH));                  
+            XmlObject ObjServiceAccount = OSBUtils.getResource("ServiceAccount", Config.getString(JWT_KEYS_HOST_ACCOUNT_PATH));
+
+            // Acquisisce credenziali
+            StrJwtKeysHostUserName = XMLUtils.getTextValue(ObjServiceAccount, "//*:username/text()");
+            StrJwtKeysHostPassword = XMLUtils.getTextValue(ObjServiceAccount, "//*:password/text()");
+         }
+
+         // Prepara parametri proxy
+         if (!Config.getString(JWT_KEYS_PROXY_SERVER_MODE).equals("DIRECT")) {
+         
+            // Genera logging e acquisisce risorsa ESB proxy in formato XML
+            Logger.logProperty(LogLevel.DEBUG,"Proxy Server Resource",Config.getString(JWT_KEYS_PROXY_SERVER_PATH));                  
+            XmlObject ObjProxyServer = OSBUtils.getResource("ProxyServer", Config.getString(JWT_KEYS_PROXY_SERVER_PATH));
+
+            // Esegue parsing dei vari parametri del proxy
+            StrJwtKeysProxyHost = XMLUtils.getTextValue(ObjProxyServer, "//*:server/@host");
+            IntJwtKeysProxyPort = Integer.valueOf(XMLUtils.getTextValue(ObjProxyServer, "//*:server/@port"));
+            
+            // Prepara autenticazione proxy
+            if (!Config.getString(JWT_KEYS_PROXY_SERVER_MODE).equals("ANONYMOUS")) {
+   
+                // Acquisisce credenziali
+                StrJwtKeysProxyUserName = XMLUtils.getTextValue(ObjProxyServer, "//*:username/text()");
+                StrJwtKeysProxyPassword = XMLUtils.getTextValue(ObjProxyServer, "//*:password/text()");
+            }
+         }
+         
+         // Acquisisce payload delle chiavi pubbliche in formato stringa
+         String StrJwtKeys = HttpUtils.fetch(HttpMethod.GET, Config.getString(JWT_KEYS_URL),  
+                                             Config.getString(JWT_KEYS_FORMAT).equals("XML")?("text/xml"):("application/json"),
+                                             Config.getString(JWT_KEYS_HOST_AUTH_MODE), StrJwtKeysHostUserName, StrJwtKeysHostPassword,
+                                             Config.getString(JWT_KEYS_PROXY_SERVER_MODE), StrJwtKeysProxyUserName, StrJwtKeysProxyPassword,
+                                             StrJwtKeysProxyHost,IntJwtKeysProxyPort, 
+                                             Config.getString(JWT_KEYS_SSL_VERIFY).equals("ENABLE"), 
+                                             Config.getInteger(JWT_KEYS_CONN_TIMEOUT), 
+                                             Config.getInteger(JWT_KEYS_READ_TIMEOUT), Logger);
+         
+         // ----------------------------------------------------------------------------------------------------------------------------------
+         // Gestisce parsing e caching delle chiavi
+         // ----------------------------------------------------------------------------------------------------------------------------------
+
+         // Inizializza variabile
+         XmlObject ObjJwtKeys;
+                  
+            // Gestisce parsing json
+         if (Config.getString(JWT_KEYS_FORMAT).equals("JSON")) {
+
+            // Acquisisce payload in formato json e genera logging
+            JSONObject ObjJSON = new JSONObject(StrJwtKeys);
+
+            // Genera logging
+            Logger.logProperty(LogLevel.TRACE,"Payload (JSON)",ObjJSON.toString());
+
+            // Converte da JSON a XML
+            StrJwtKeys = "<root>"+XML.toString(ObjJSON)+"</root>";                                          
+         }
+
+         // Genera logging
+         Logger.logProperty(LogLevel.TRACE,"Payload (XML)",StrJwtKeys);
+
+         // Acquisisce chiavi dal formato xml
+         ObjJwtKeys = XmlObject.Factory.parse(StrJwtKeys);
+
+         // Prepara espressioni xpath e logging
+         String StrJwtKeysModulusParsedXPath = StringUtils.replaceTemplates(Context,Config.getString(JWT_KEYS_MODULUS_XPATH));
+         Logger.logProperty(LogLevel.DEBUG,"Modulus XPath Parsed",StrJwtKeysModulusParsedXPath);
+
+         String StrJwtKeysExponentParsedXPath = StringUtils.replaceTemplates(Context,Config.getString(JWT_KEYS_EXPONENT_XPATH));
+         Logger.logProperty(LogLevel.DEBUG,"Exponent XPath Parsed",StrJwtKeysExponentParsedXPath);            
+
+         // Estrapola modulo ed esponente
+         String StrKeyModulus = XMLUtils.getTextValue(ObjJwtKeys,StrJwtKeysModulusParsedXPath);
+         String StrKeyExponent = XMLUtils.getTextValue(ObjJwtKeys,StrJwtKeysExponentParsedXPath);
+         
+         // Se non è stata trovata alcuna chiave genera eccezione
+         if (StrKeyModulus.equals("")||StrKeyExponent.equals("")) {
+            throw new Exception("unable to extract key");
+         } 
+         
+         // Salva la chiave in cache
+         ObjJwtKeysCache.putKey(StrJwtKeyID,StrKeyModulus,StrKeyExponent);
+      }                        
+      
+      // Restituisce chiave
+      return ObjKey;
+   }
+
    // ==================================================================================================================================
    // Esegue parsing del token e rileva la modalità di autenticazione
    // ==================================================================================================================================      
