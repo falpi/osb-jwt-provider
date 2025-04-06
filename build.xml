@@ -253,8 +253,8 @@
         <copy todir="${buildDir}/temp">
             <fileset dir="${sourceDir}">
                 <include name="**/*.*"/>
-                <exclude if="${shadedLibraries}" name="**/JWTTokenNimbusImpl.java"/>
-                <exclude unless="${shadedLibraries}" name="**/JWTTokenNimbusShadedImpl.java"/>
+                <exclude if="${shadedLibraries}" name="**/JWTProviderNimbusImpl.java"/>
+                <exclude unless="${shadedLibraries}" name="**/JWTProviderNimbusShadedImpl.java"/>
             </fileset>
         </copy>        
         <java fork="true" jvm="${javaHomeDir}/bin/java" dir="${basedir}" classname="weblogic.management.commo.WebLogicMBeanMaker">

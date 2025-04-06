@@ -24,14 +24,11 @@ import weblogic.security.spi.PrincipalValidator;
 import weblogic.security.spi.SecurityServices;
 import weblogic.management.security.ProviderMBean;
 
-import org.apache.commons.io.IOUtils;
-import org.apache.xmlbeans.XmlObject;
-
 import com.bea.xbean.util.Base64;
 import com.bea.wli.sb.services.ServiceInfo;
 import com.bea.wli.sb.transports.TransportEndPoint;
 
-import java.util.logging.Logger;
+import org.apache.xmlbeans.XmlObject;
 
 import org.json.XML;
 import org.json.JSONObject;
@@ -43,6 +40,7 @@ import org.falpi.utils.HttpUtils.*;
 import org.falpi.utils.StringUtils.*;
 import org.falpi.utils.jwt.*;
 import org.falpi.utils.jwt.JWTCache.*;
+import org.falpi.utils.jwt.JWTProvider;
 import org.falpi.utils.logging.*;
 
 public final class CustomIdentityAsserterProviderImpl implements AuthenticationProviderV2, IdentityAsserterV2 {
@@ -157,7 +155,7 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
    
    // Gestione del provider jwt
    private JWTCache ObjJwtCache;
-   private JWTToken ObjJwtProvider;
+   private JWTProvider ObjJwtProvider;
            
    // Altre variabili di supporto
    private ScriptEngine ObjScriptEngine;   
@@ -221,7 +219,8 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
          // Se il target è weblogic 12.1.3 (java=7) la libreria originale nimbus può essere integrata perchè non è presente a sistema
          // Se il target è weblogic 12.2.1 (7<java<17) poichè integra nimbus di una versione incompatibile occorre integrare una versione shaded 
          // Se il target è weblogic 14.1.2 (java>=17) poichè integra nimbus di una versione compatibile la si può usare diretamente
-         ObjJwtProvider = JWTToken.create((JavaUtils.getJavaVersion()>7)&&(JavaUtils.getJavaVersion()<17)?("NimbusShaded"):("Nimbus"));
+         ObjJwtProvider =
+            JWTProvider.create((JavaUtils.getJavaVersion()>7)&&(JavaUtils.getJavaVersion()<17)?("NimbusShaded"):("Nimbus"));
          
          // Inizializza cache delle chiavi jwt
          ObjJwtCache = new JWTCache();
@@ -609,7 +608,7 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
    // ==================================================================================================================================
    // Gestisce autenticazione JWT
    // ==================================================================================================================================      
-   private static void manageJwtAuth(String StrToken,JWTToken ObjJwtProvider,JWTCache ObjJwtCache) throws IdentityAssertionException {
+   private static void manageJwtAuth(String StrToken,JWTProvider ObjJwtProvider,JWTCache ObjJwtCache) throws IdentityAssertionException {
 
       // Prepara logger e context
       LogManager Logger = getLogger();
@@ -624,7 +623,7 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
       // ----------------------------------------------------------------------------------------------------------------------------------
       // Inizializza jwt provider 
       // ----------------------------------------------------------------------------------------------------------------------------------
-      JWTToken ObjJwtToken = null;         
+      JWTProvider ObjJwtToken = null;         
       try {
 
          // Crea nuova istanza del token
@@ -1198,14 +1197,14 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
       Context.put("token.header.*",new TemplateFunction() {
          public String apply(String StrVariableName,SuperMap ObjContext) throws Exception {
             LogManager Logger = getLogger();
-            JWTToken ObjJwtToken = (JWTToken) ObjContext.get("token"); 
+            JWTProvider ObjJwtToken = (JWTProvider) ObjContext.get("token"); 
             return ((ObjJwtToken!=null)&&(ObjJwtToken.isReady()))?(Logger.formatProperties(LogLevel.DEBUG,ObjJwtToken.getHeader(),StringUtils.repeat(90,"-"),true)):("");
          }
       });                                                         
       Context.put("token.payload.*",new TemplateFunction() {
          public String apply(String StrVariableName,SuperMap ObjContext) throws Exception {
             LogManager Logger = getLogger();
-            JWTToken ObjJwtToken = (JWTToken) ObjContext.get("token"); 
+            JWTProvider ObjJwtToken = (JWTProvider) ObjContext.get("token"); 
             return ((ObjJwtToken!=null)&&(ObjJwtToken.isReady()))?(Logger.formatProperties(LogLevel.DEBUG,ObjJwtToken.getPayload(),StringUtils.repeat(90,"-"),true)):("");
          }
       }); 
@@ -1221,13 +1220,13 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
       }); 
       Context.putRegex("^token\\.header\\.[^\\.]*$",new TemplateFunction() {
          public String apply(String StrVariableName,SuperMap ObjContext) throws Exception {
-            JWTToken ObjJwtToken = (JWTToken) ObjContext.get("token"); 
+            JWTProvider ObjJwtToken = (JWTProvider) ObjContext.get("token"); 
             return ((ObjJwtToken!=null)&&(ObjJwtToken.isReady()))?((String) ObjJwtToken.getHeader().get(StrVariableName.split("\\.")[2])):("");
          }
       });       
       Context.putRegex("^token\\.payload\\.[^\\.]*$",new TemplateFunction() {
          public String apply(String StrVariableName,SuperMap ObjContext) throws Exception {
-            JWTToken ObjJwtToken = (JWTToken) ObjContext.get("token"); 
+            JWTProvider ObjJwtToken = (JWTProvider) ObjContext.get("token"); 
             return (ObjJwtToken!=null)?((String) ObjJwtToken.getPayload().get(StrVariableName.split("\\.")[2])):("");
          }
       });

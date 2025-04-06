@@ -9,7 +9,7 @@ import java.util.logging.Logger;
 import org.falpi.utils.JavaUtils;
 import org.falpi.utils.logging.LogLevel;
 
-public abstract class JWTToken<T> {
+public abstract class JWTProvider<T> {
    
    // ==================================================================================================================================
    // Variabili 
@@ -26,12 +26,12 @@ public abstract class JWTToken<T> {
    // ==================================================================================================================================
 
    // Crea nuova istanza del token provider specificato
-   public static JWTToken create(String StrProvider) throws Exception {      
-      return (JWTToken) Class.forName(JWTToken.class.getCanonicalName()+StrProvider+"Impl").newInstance();
+   public synchronized static JWTProvider create(String StrProvider) throws Exception {      
+      return (JWTProvider) Class.forName(JWTProvider.class.getCanonicalName()+StrProvider+"Impl").newInstance();
    }
    
    // Crea nuova istanza del token provider a partire dalla classe dell'istanza
-   public synchronized JWTToken createInstance() throws Exception {      
+   public synchronized JWTProvider createInstance() throws Exception {      
       return this.getClass().newInstance();
    }
 

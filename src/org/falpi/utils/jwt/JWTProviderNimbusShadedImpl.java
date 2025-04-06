@@ -8,25 +8,25 @@ import java.util.Map;
 import java.util.Arrays;
 import java.util.HashSet;
 
-import com.nimbusds.jwt.SignedJWT;
-import com.nimbusds.jwt.JWTClaimsSet;
-import com.nimbusds.jwt.JWTClaimNames;
-import com.nimbusds.jwt.proc.ConfigurableJWTProcessor;
-import com.nimbusds.jwt.proc.DefaultJWTClaimsVerifier;
-import com.nimbusds.jwt.proc.DefaultJWTProcessor;
-import com.nimbusds.jwt.proc.JWTClaimsSetVerifier;
-import com.nimbusds.jose.jwk.JWKSet;
-import com.nimbusds.jose.jwk.RSAKey;
-import com.nimbusds.jose.jwk.KeyUse;
-import com.nimbusds.jose.jwk.source.ImmutableJWKSet;
-import com.nimbusds.jose.jwk.source.JWKSource;
-import com.nimbusds.jose.proc.JWSKeySelector;
-import com.nimbusds.jose.proc.JWSVerificationKeySelector;
-import com.nimbusds.jose.proc.SecurityContext;
-import com.nimbusds.jose.util.Base64URL;
-import com.nimbusds.jose.JWSObject;
+import org.nimbusds.jwt.SignedJWT;
+import org.nimbusds.jwt.JWTClaimsSet;
+import org.nimbusds.jwt.JWTClaimNames;
+import org.nimbusds.jwt.proc.ConfigurableJWTProcessor;
+import org.nimbusds.jwt.proc.DefaultJWTClaimsVerifier;
+import org.nimbusds.jwt.proc.DefaultJWTProcessor;
+import org.nimbusds.jwt.proc.JWTClaimsSetVerifier;
+import org.nimbusds.jose.jwk.JWKSet;
+import org.nimbusds.jose.jwk.RSAKey;
+import org.nimbusds.jose.jwk.KeyUse;
+import org.nimbusds.jose.jwk.source.ImmutableJWKSet;
+import org.nimbusds.jose.jwk.source.JWKSource;
+import org.nimbusds.jose.proc.JWSKeySelector;
+import org.nimbusds.jose.proc.JWSVerificationKeySelector;
+import org.nimbusds.jose.proc.SecurityContext;
+import org.nimbusds.jose.util.Base64URL;
+import org.nimbusds.jose.JWSObject;
 
-public class JWTTokenNimbusImpl extends JWTToken<SignedJWT> {
+public class JWTProviderNimbusShadedImpl extends JWTProvider<SignedJWT> {
 
    @Override
    public void parse(String StrToken) throws Exception {
