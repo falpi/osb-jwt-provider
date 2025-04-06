@@ -212,11 +212,11 @@ Token              | Format
 ... <DEBUG> JWT_KEYS_FORMAT ..............: JSON
 ... <DEBUG> JWT_KEYS_MODULUS_XPATH .......: //keys[kid='${token.header.kid}']/n
 ... <DEBUG> JWT_KEYS_EXPONENT_XPATH ......: //keys[kid='${token.header.kid}']/e
-... <DEBUG> JWT_KEYS_CACHE_TTL ...........: 0
+... <DEBUG> JWT_KEYS_CACHE_TTL ...........: 3600
 ... <DEBUG> JWT_KEYS_CONN_TIMEOUT ........: 5
 ... <DEBUG> JWT_KEYS_READ_TIMEOUT ........: 5
 ... <DEBUG> JWT_KEYS_SSL_VERIFY ..........: DISABLE
-... <DEBUG> JWT_KEYS_HOST_AUTH_MODE ......: ANONYMOYS
+... <DEBUG> JWT_KEYS_HOST_AUTH_MODE ......: ANONYMOUS
 ... <DEBUG> JWT_KEYS_HOST_ACCOUNT_PATH ...: 
 ... <DEBUG> JWT_KEYS_PROXY_SERVER_MODE ...: ANONYMOUS
 ... <DEBUG> JWT_KEYS_PROXY_SERVER_PATH ...: System/Proxy Servers/PROXY_Default
@@ -225,11 +225,9 @@ Token              | Format
 ... <DEBUG> JWT_IDENTITY_ASSERTION .......: '${token.payload.appid}'
 ... <DEBUG> VALIDATION_ASSERTION .........: 
 ... <DEBUG> CUSTOM_REQUEST_HEADERS .......: 
-... <DEBUG> CUSTOM_RESPONSE_HEADERS ......: requests-counter=${thread.counter}
-... <DEBUG> VALIDATION_ASSERTION .........: 
+... <DEBUG> CUSTOM_RESPONSE_HEADERS ......: custom-tracking=${instance}:${wls.managed}:${counter}
 ... <DEBUG> DEBUGGING_ASSERTION ..........: 
 ... <DEBUG> DEBUGGING_PROPERTIES .........: ${http.header.*},${token.header.*},${token.payload.*}
-... <DEBUG> KERBEROS_CONFIGURATION .......: 
 ... <TRACE> ------------------------------------------------------------------------------------------
 ... <TRACE> Checking Parameter JWT_KEYS_URL: class 'String' 
 ... <TRACE> Checking Parameter JWT_KEYS_MODULUS_XPATH: class 'String' 
@@ -237,21 +235,20 @@ Token              | Format
 ... <TRACE> Checking Parameter JWT_KEYS_CACHE_TTL: class 'Integer' 
 ... <TRACE> Checking Parameter JWT_KEYS_CONN_TIMEOUT: class 'Integer' 
 ... <TRACE> Checking Parameter JWT_KEYS_READ_TIMEOUT: class 'Integer' 
-... <TRACE> Checking Parameter JWT_KEYS_HOST_ACCOUNT_PATH: class 'String' 
-... <TRACE> Checking Parameter JWT_KEYS_PROXY_SERVER_PATH: class 'String' 
-... <TRACE> Checking Parameter JWT_IDENTITY_MAPPING_PATH: class 'String' 
-... <TRACE> Checking Parameter JWT_IDENTITY_ASSERTION: class 'String' 
+... <TRACE> Checking Parameter JWT_KEYS_PROXY_SERVER_MODE: class 'String' 
+... <TRACE> Checking Parameter JWT_IDENTITY_MAPPING_MODE: class 'String' 
+... <TRACE> Checking Parameter JWT_IDENTITY_ASSERTION: class 'String[]' 
 ... <DEBUG> ==========================================================================================
 ... <DEBUG> CONTEXT
 ... <DEBUG> ==========================================================================================
 ... <DEBUG> Managed Name .....: DefaultServer
 ... <DEBUG> Project Name .....: TEST
-... <DEBUG> Service Name .....: Test
+... <DEBUG> Service Name .....: PS_TEST_Test_1.0
 ... <DEBUG> ------------------------------------------------------------------------------------------
-... <DEBUG> Server Host ......: <server host>
+... <DEBUG> Server Host ......: sisnet-svil.local
 ... <DEBUG> Server Addr ......: 127.0.0.1
 ... <DEBUG> ------------------------------------------------------------------------------------------
-... <DEBUG> Client Host ......: <client host>
+... <DEBUG> Client Host ......: sisnet-svil.local
 ... <DEBUG> Client Addr ......: 127.0.0.1
 ... <DEBUG> ------------------------------------------------------------------------------------------
 ... <DEBUG> Request URL ......: http://127.0.0.1:7101/TEST/Test
@@ -262,23 +259,21 @@ Token              | Format
 ... <DEBUG> ==========================================================================================
 ... <DEBUG> JWT AUTH
 ... <DEBUG> ==========================================================================================
-... <DEBUG> ------------------------------------------------------------------------------------------
+... DEBUG> ------------------------------------------------------------------------------------------
 ... <DEBUG> KEYS RETRIEVE
 ... <DEBUG> ------------------------------------------------------------------------------------------
-... <DEBUG> Host Auth Account .............: TEST/Mapper
-... <DEBUG> Host Auth UserName ............: <client_id>
 ... <DEBUG> Proxy Server Resource .........: System/Proxy Servers/PROXY_Default
-... <DEBUG> Proxy Server Host .............: <prody ip>
+... <DEBUG> Proxy Server Host .............: 127.0.0.1
 ... <DEBUG> Proxy Server Port .............: 3128
 ... <TRACE> Payload (JSON) ................: {"keys":[{"kty":"RSA","cloud_instance_name":...
 ... <TRACE> Payload (XML) .................: <root><keys><kty>RSA</kty><cloud_instance_name>...
-... <DEBUG> Modulus XPath Parsed ..........: //keys[kid='JDNa_4i4r7FgigL3sHIlI3xV-IU']/n
-... <DEBUG> Exponent XPath Parsed .........: //keys[kid='JDNa_4i4r7FgigL3sHIlI3xV-IU']/e
+... <DEBUG> Modulus XPath Parsed ..........: //keys[kid='CNv0OI3RwqlHFEVnaoMAshCH2XE']/n
+... <DEBUG> Exponent XPath Parsed .........: //keys[kid='CNv0OI3RwqlHFEVnaoMAshCH2XE']/e
 ... <DEBUG> ------------------------------------------------------------------------------------------
 ... <DEBUG> TOKEN VALIDATION
 ... <DEBUG> ------------------------------------------------------------------------------------------
-... <DEBUG> Key ID .........: JDNa_4i4r7FgigL3sHIlI3xV-IU
-... <TRACE> Key Modulus ....: iQ745_U-vjkxPblaw6phBpe08fC42mpcrS4pcr15HiyZQyQV-BFcEVyLwPdsz3ulMRN...
+... <DEBUG> Key ID .........: CNv0OI3RwqlHFEVnaoMAshCH2XE
+... <TRACE> Key Modulus ....: hz6fUSCSAuiyQz6L1nQj4za8kItevJzxhVbecMigTIl9pXZSHZa3gzMgtapnb1....
 ... <TRACE> Key Exponent ...: AQAB
 ... <DEBUG> Validation .....: true
 ... <DEBUG> ------------------------------------------------------------------------------------------
@@ -288,6 +283,10 @@ Token              | Format
 ... <DEBUG> Mapping Account ...: TEST/Mapper
 ... <DEBUG> Realm UserName ....: falpi
 ... <DEBUG> ==========================================================================================
+... <DEBUG> CUSTOM HEADERS
+... <DEBUG> ==========================================================================================
+... <DEBUG> Response: custom-tracking=CIA0:DefaultServer:0000003
+... <DEBUG> ==========================================================================================
 ... <DEBUG> DEBUGGING PROPERTIES
 ... <DEBUG> ==========================================================================================
 ... <DEBUG> ${http.header.*} => 
@@ -295,45 +294,44 @@ Token              | Format
 ... <DEBUG> Content-Type ......: application/xml
 ... <DEBUG> User-Agent ........: PostmanRuntime/7.30.0
 ... <DEBUG> Accept ............: */*
-... <DEBUG> Postman-Token .....: 9ce0989c-2d16-45fb-a326-c659e6742379
 ... <DEBUG> Host ..............: 127.0.0.1:7101
 ... <DEBUG> Accept-Encoding ...: gzip, deflate, br
 ... <DEBUG> Connection ........: keep-alive
-... <DEBUG> Content-Length ....: 176
+... <DEBUG> Content-Length ....: 177
 ... <DEBUG> ------------------------------------------------------------------------------------------
 ... <DEBUG> ${token.header.*} => 
 ... <DEBUG> ------------------------------------------------------------------------------------------
-... <DEBUG> x5t ...: "JDNa_4i4r7FgigL3sHIlI3xV-IU"
-... <DEBUG> kid ...: "JDNa_4i4r7FgigL3sHIlI3xV-IU"
+... <DEBUG> x5t ...: "CNv0OI3RwqlHFEVnaoMAshCH2XE"
+... <DEBUG> kid ...: "CNv0OI3RwqlHFEVnaoMAshCH2XE"
 ... <DEBUG> typ ...: "JWT"
 ... <DEBUG> alg ...: "RS256"
 ... <DEBUG> ------------------------------------------------------------------------------------------
 ... <DEBUG> ${token.payload.*} => 
 ... <DEBUG> ------------------------------------------------------------------------------------------
 ... <DEBUG> aud ...................: "00000002-0000-0000-c000-000000000000"
-... <DEBUG> iss ...................: "https://sts.windows.net/<tenant_id>/"
-... <DEBUG> iat ...................: 1743163899
-... <DEBUG> nbf ...................: 1743163899
-... <DEBUG> exp ...................: 1743167799
+... <DEBUG> iss ...................: "https://sts.windows.net/eccd734e-7022-4709-aba5-a5dd77929e27/"
+... <DEBUG> iat ...................: 1743975300
+... <DEBUG> nbf ...................: 1743975300
+... <DEBUG> exp ...................: 1743979200
 ... <DEBUG> aio ...................: "<omissis>"
 ... <DEBUG> appid .................: "<client_id>"
 ... <DEBUG> appidacr ..............: "1"
-... <DEBUG> idp ...................: "https://sts.windows.net/<tenant_id>/"
+... <DEBUG> idp ...................: "https://sts.windows.net/eccd734e-7022-4709-aba5-a5dd77929e27/"
 ... <DEBUG> idtyp .................: "app"
 ... <DEBUG> oid ...................: "<omissis>"
 ... <DEBUG> rh ....................: "<omissis>"
 ... <DEBUG> sub ...................: "<omissis>"
 ... <DEBUG> tenant_region_scope ...: "EU"
-... <DEBUG> tid ...................: "<tenant_id>"
+... <DEBUG> tid ...................: "<omissis>"
 ... <DEBUG> uti ...................: "<omissis>"
 ... <DEBUG> ver ...................: "1.0"
 ... <DEBUG> xms_acd ...............: 1728384169
 ... <DEBUG> xms_ftd ...............: "<omissis>"
-... <DEBUG> xms_idrel .............: "7 2"
+... <DEBUG> xms_idrel .............: "7 18"
 ... <DEBUG> xms_tdbr ..............: "EU"
 ... <DEBUG> ------------------------------------------------------------------------------------------
 ... <DEBUG> ##########################################################################################
-... <INFO>  Inbound (JWT) => Proxy: Test, User: falpi (<client_id>), Client: <client host> (127.0.0.1)
+... <INFO>  Inbound (JWT) => Proxy: PS_TEST_Test_1.0, User: falpi (<client_id>), Client:  <hostname> (127.0.0.1)
 ```
 ## Threading Mode
 <p align="justify">The provider code base was designed and tested to be thread-safe because Identity Asserters in WebLogic can be called in parallel and this is their normal behavior. If multiple requests arrive at the same time the server allocates a different thread for each assertion. Load tests were done with the excellent SoapUI tool reaching up to 1000 threads for parallel requests and the provider code was found to be solid and without memory leaks.</br>
