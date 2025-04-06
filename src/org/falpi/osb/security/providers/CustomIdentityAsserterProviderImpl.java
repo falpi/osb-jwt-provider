@@ -538,7 +538,7 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
    // ##################################################################################################################################
 
    // ==================================================================================================================================
-   // Gestitsce autenticazione
+   // Gestitsce l'asserzione
    // ==================================================================================================================================      
    private void assertIdentity(String StrTokenType,Object ObjToken) throws IdentityAssertionException {
          

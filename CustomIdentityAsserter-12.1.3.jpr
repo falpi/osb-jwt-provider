@@ -69,6 +69,7 @@
    <hash n="oracle.ide.model.ResourcePaths">
       <hash n="resourcesContentSet">
          <list n="pattern-filters">
+            <string v="-build/"/>
             <string v="-src/"/>
             <string v="+**"/>
          </list>

@@ -312,8 +312,7 @@
        
        <delete dir="${deployDir}" failonerror="false" />
        <mkdir dir="${deployDir}" />
-       <copy file="${buildDir}/${providerName}.jar" tofile="${deployDir}/${outputFileName}.jar"/>
-
+       
        <pathconvert property="packageLibraries" refid="package-libraries" pathsep=",">       
           <map from="${basedir}/lib/" to=""/>
        </pathconvert>
@@ -321,7 +320,8 @@
        <!-- :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::: -->
        <!-- Build merged jar file                                                                                -->
        <!-- :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::: -->
-       <jar if:true="${mergeLibraries}" destfile="${deployDir}/${outputFileName}.jar" update="true">
+       <jar if:true="${mergeLibraries}" destfile="${deployDir}/${outputFileName}.jar">
+          <zipfileset excludes="org/**/*.java" src="${buildDir}/${providerName}.jar"/>
           <restrict>
              <name name="**/*.class"/>
              <archives>
@@ -330,15 +330,16 @@
                  </zips>
              </archives>
           </restrict>
-       </jar>    
+       </jar>
        
        <!-- :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::: -->
        <!-- Build separated jar files for MBean and the libraries                                                -->
        <!-- :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::: -->
-       <jar unless:true="${mergeLibraries}" destfile="${deployDir}/${outputFileName}.jar" update="true">
-           <manifest >
-              <attribute name="Class-Path" value="${outputFileName}.lib"/>
-           </manifest>
+       <jar unless:true="${mergeLibraries}" destfile="${deployDir}/${outputFileName}.jar">
+          <zipfileset excludes="org/**/*.java" src="${buildDir}/${providerName}.jar"/>
+          <manifest >
+             <attribute name="Class-Path" value="${outputFileName}.lib"/>
+          </manifest>
        </jar> 
        <jar unless:true="${mergeLibraries}" destfile="${deployDir}/${outputFileName}.lib">
           <restrict>

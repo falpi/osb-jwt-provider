@@ -41,7 +41,7 @@ import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.ssl.SSLContextBuilder;
 
-import com.bea.core.repackaged.springframework.util.LinkedMultiValueMap;
+import org.apache.commons.collections.map.MultiValueMap;
 
 import org.falpi.utils.logging.LogLevel;
 import org.falpi.utils.logging.LogManager;
@@ -407,10 +407,10 @@ public class HttpUtils {
    // ==================================================================================================================================
    // Acquisisce headers in formato mappa
    // ==================================================================================================================================
-   public static LinkedMultiValueMap getHeaders(HttpServletRequest ObjRequest,List<String> ArrExclusions) throws Exception {
+   public static MultiValueMap getHeaders(HttpServletRequest ObjRequest,List<String> ArrExclusions) throws Exception {
       
       String StrHeaderName;
-      LinkedMultiValueMap<String,String> ObjMap = new LinkedMultiValueMap<String,String>();
+      MultiValueMap ObjMap = new MultiValueMap();
       Enumeration<String> ObjEnumerator = ObjRequest.getHeaderNames();
       
       while (ObjEnumerator.hasMoreElements()) {
