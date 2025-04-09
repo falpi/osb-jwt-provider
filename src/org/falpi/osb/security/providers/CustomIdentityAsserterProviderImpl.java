@@ -1138,13 +1138,13 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
       
       // Contesto generale
       Context.put("token",null); 
-      Context.put("thread",Thread.currentThread().getId());   
+      Context.put("thread",String.valueOf(Thread.currentThread().getId()));   
       Context.put("provider",StrProviderName);   
       Context.put("instance",StrInstanceName); 
       
       Context.put("request.counter",Thread.currentThread().getName());   
       Context.put("request.datetime",new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS").format(new Date(System.currentTimeMillis())));          
-      Context.put("request.timestamp",System.currentTimeMillis());            
+      Context.put("request.timestamp",String.valueOf(System.currentTimeMillis()));            
 
       // Contesto weblogic     
       Context.put("wls.realm",StrRealmName);   
@@ -1152,7 +1152,7 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
       Context.put("wls.managed",StrManagedName);   
 
       // Contesto java
-      Context.put("java.version",JavaUtils.getJavaVersion()); 
+      Context.put("java.version",String.valueOf(JavaUtils.getJavaVersion())); 
       Context.put("java.scripting",ObjScriptEngine); 
       
       // Contesto osb
@@ -1189,7 +1189,7 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
       });              
       Context.put("current.timesamp",new TemplateFunction() {
          public String apply(String StrVariableName,SuperMap ObjContext) throws Exception {
-            return Context.put("timestamp",System.currentTimeMillis()).toString();
+            return String.valueOf(System.currentTimeMillis());
 
          }
       });             
