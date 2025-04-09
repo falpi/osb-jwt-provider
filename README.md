@@ -1,4 +1,4 @@
-![immagine](https://github.com/user-attachments/assets/91c8d838-9420-4648-9a6f-e25f499795c8)<p align="center"><img src="https://github.com/user-attachments/assets/acfcac92-b4c7-46a6-a85a-c597c6f02ac0" /></p>
+<p align="center"><img src="https://github.com/user-attachments/assets/acfcac92-b4c7-46a6-a85a-c597c6f02ac0" /></p>
 <div id="user-content-toc" align="center"><ul><summary><h1 align="center">WebLogic Custom Security Provider<br/>for OAUTH2/JWT authentication<br/>on Oracle Service Bus</h1></summary></ul></div>
 
 ## Overview
@@ -78,9 +78,20 @@ Below is a screenshot of the available parameters populated with sample values s
 
 Variable                      | Replaced by                                                    
 ----------------------------- | ------------------------------------------------------------------------------------
+`${thread}`                   | Current thread id
+`${provider}`                 | The user-assigned provider instance name
+`${instance}`                 | Unique identifier of the instance. It is always "CIAx" where x is a counter of instances created for this provider.
+`${authtype}`                 | Authentication detected (BASIC or JWT)
 `${identity}`                 | Asserted JWT token identity.
-`${username}`                 | Asserted UserName. In the case of Basic Auth it coincides with the authenticated user while in the case of JWT Auth, if mapping is not required it coincides with the token identity otherwise it is the user mapped by the OSB mapping service account. Must exist in the WebLogic realm. <br/>
-`${osb.server}`               | The name of the WebLogic Managed Server that took charge of the request. 
+`${username}`                 | Asserted UserName. In the case of Basic Auth it coincides with the authenticated user while in the case of JWT Auth, if mapping is not required it coincides with the ${identity} otherwise it is the user mapped by the OSB mapping service account. Must exist in the WebLogic realm. <br/>
+`${request.counter}`          | Request counter for this provider instance on current managed server
+`${request.datetime}`         | Request timestamp in the format yyyy-MM-dd HH:mm:ss.SSS
+`${request.timestamp}`        | Request milliseconds since unix epoch
+`${current.datetime}`         | Current timestamp in the format yyyy-MM-dd HH:mm:ss.SSS
+`${current.timestamp}`        | Current milliseconds since unix epoch
+`${wls.realm}`                | WebLogic Realm Name
+`${wls.domain}`               | WebLogic Domain Name
+`${wls.managed}`              | WebLogic Manager Server Name
 `${osb.project}`              | The name of the Osb Project that the endpoint that received the request is part of.
 `${osb.service.name}`         | The name of the Osb Proxy Service that took charge of the request.
 `${osb.service.path}`         | The full path the Osb Proxy Service that took charge of the request.
@@ -101,6 +112,7 @@ Variable                      | Replaced by
 `${token.header.*}`           | Enumerate all attributes of JWT token header. If token is not initialized return blank.
 `${token.payload.<attr>}`     | The value of the payload \<attr\> element in the JWT token. If token is not initialized return blank.
 `${token.payload.*}`          | Enumerate all attributes of JWT token payload. If token is not initialized return blank.
+`${java.version}`             | Java major version
 
 ## Identity mapping strategies
 <p align="justify">It is possible to implement different strategies to establish the identities of the JWT token and eventually map this identity to the users of the weblogic realm. Let's see some possible scenarios below.</p>
