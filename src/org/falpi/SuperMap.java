@@ -36,7 +36,7 @@ public class SuperMap<T> extends LinkedHashMap<String,T> {
 
    public String getString(String StrKey) {
       Object ObjKey = get(StrKey);
-      return (ObjKey instanceof Integer)?(Integer.toString((Integer)ObjKey)):(ObjKey.toString());
+      return (ObjKey instanceof Integer)?(Integer.toString((Integer)ObjKey)):((String)ObjKey);
    }
 
    public String[] getStringArray(String StrKey) {
