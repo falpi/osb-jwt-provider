@@ -1187,10 +1187,9 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
             return new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS").format(new Date(System.currentTimeMillis())); 
          }
       });              
-      Context.put("current.timesamp",new TemplateFunction() {
+      Context.put("current.timestamp",new TemplateFunction() {
          public String apply(String StrVariableName,SuperMap ObjContext) throws Exception {
             return String.valueOf(System.currentTimeMillis());
-
          }
       });             
       Context.put("http.content.body",new TemplateFunction() {
