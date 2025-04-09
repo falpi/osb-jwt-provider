@@ -38,7 +38,7 @@ Parameter                     | Description
 ----------------------------- | --------------------------------------------------------------- 
 `LOGGING_LEVEL`               | Minimum level of log messages printed.
 `LOGGING_LINES`               | Maximum number of stacktrace lines logged.
-`LOGGING_INFO`                | tbd
+`LOGGING_INFO`                | Allows you to specify the format of the logging line generated with the INFO level at the end of each assertion
 `THREADING_MODE`              | Multithreading strategy.
 `BASIC_AUTH`                  | Allows to control Basic authentication if it is among those actives.
 `JWT_AUTH`                    | Allows to control JWT authentication if it is among those actives.
@@ -58,8 +58,8 @@ Parameter                     | Description
 `JWT_IDENTITY_MAPPING_PATH`   | OSB resource path (\*) of the "Service Account" used for mapping user identity to realm username.
 `JWT_IDENTITY_ASSERTION`      | Must contain a javascript text that returns the identity of the jwt token according to the specifications of the IDP used. It must return a String object.
 `VALIDATION_ASSERTION`        | May contain a javascript text that must validate or reject the authentication request according to arbitrary criteria defined by the user. If present, it must return a Boolean object.
-`CUSTOM_REQUEST_HEADERS`      | tbd
-`CUSTOM_RESPONSE_HEADERS`     | tbd
+`CUSTOM_REQUEST_HEADERS`      | Allows you to inject one or more custom http request headers that will pass through the OSB context. Each line must follow the format <header>=<value>.
+`CUSTOM_RESPONSE_HEADERS`     | Allows you to inject one or more custom http response headers that will return to client. Each line must follow the format <header>=<value>.
 `DEBUGGING_ASSERTION`         | May contain a javascript text that is used to filter log messages with TRACE or DEBUG level according to arbitrary criteria defined by the user. This can be useful to reduce log messages and analyze specific requests. If present, it must return a Boolean object.
 `DEBUGGING_PROPERTIES`        | Allows you to send one or more string expressions to the log file. They are printed as log messages with DEBUG level. Any template variables are resolved allowing you to analyze the runtime context. 
 `KERBEROS_CONFIGURATION`      | tbd
@@ -71,16 +71,27 @@ Please note that resources of type "Proxy Server" can only be created in the fix
 For more information on OSB resources follow this [link](https://docs.oracle.com/cd/E23943_01/admin.1111/e15867/project_explorer.htm#OSBAG822)<br/>
 
 Below is a screenshot of the available parameters populated with sample values suitable for Azure Entra ID.<br/>
-<p align="center"><img src="https://github.com/user-attachments/assets/99f8a729-785d-41e7-8dd1-7a6f4094c707" /></p>
+<p align="center"><img src="https://github.com/user-attachments/assets/45e2ccfa-8d8b-4fe3-94e9-19d5ade77b7e" /></p>
 
 ## Template Variables
 <p align="justify">All string configuration parameters support the use of substitution variables to create configurations that can dynamically adapt to the runtime state. The following is a list of supported variables.</p>
 
 Variable                      | Replaced by                                                    
 ----------------------------- | ------------------------------------------------------------------------------------
+`${thread}`                   | Current thread id
+`${provider}`                 | The user-assigned provider instance name
+`${instance}`                 | Unique identifier of the instance. It is always "CIAx" where x is a counter of instances created for this provider.
+`${authtype}`                 | Authentication detected (BASIC or JWT)
 `${identity}`                 | Asserted JWT token identity.
-`${username}`                 | Asserted UserName. In the case of Basic Auth it coincides with the authenticated user while in the case of JWT Auth, if mapping is not required it coincides with the token identity otherwise it is the user mapped by the OSB mapping service account. Must exist in the WebLogic realm. <br/>
-`${osb.server}`               | The name of the WebLogic Managed Server that took charge of the request. 
+`${username}`                 | Asserted UserName. In the case of Basic Auth it coincides with the authenticated user while in the case of JWT Auth, if mapping is not required it coincides with the ${identity} otherwise it is the user mapped by the OSB mapping service account. Must exist in the WebLogic realm. <br/>
+`${request.counter}`          | Request counter for this provider instance on current managed server
+`${request.datetime}`         | Request timestamp in the format yyyy-MM-dd HH:mm:ss.SSS
+`${request.timestamp}`        | Request milliseconds since unix epoch
+`${current.datetime}`         | Current timestamp in the format yyyy-MM-dd HH:mm:ss.SSS
+`${current.timestamp}`        | Current milliseconds since unix epoch
+`${wls.realm}`                | WebLogic Realm Name
+`${wls.domain}`               | WebLogic Domain Name
+`${wls.managed}`              | WebLogic Manager Server Name
 `${osb.project}`              | The name of the Osb Project that the endpoint that received the request is part of.
 `${osb.service.name}`         | The name of the Osb Proxy Service that took charge of the request.
 `${osb.service.path}`         | The full path the Osb Proxy Service that took charge of the request.
@@ -101,6 +112,7 @@ Variable                      | Replaced by
 `${token.header.*}`           | Enumerate all attributes of JWT token header. If token is not initialized return blank.
 `${token.payload.<attr>}`     | The value of the payload \<attr\> element in the JWT token. If token is not initialized return blank.
 `${token.payload.*}`          | Enumerate all attributes of JWT token payload. If token is not initialized return blank.
+`${java.version}`             | Java major version
 
 ## Identity mapping strategies
 <p align="justify">It is possible to implement different strategies to establish the identities of the JWT token and eventually map this identity to the users of the weblogic realm. Let's see some possible scenarios below.</p>
@@ -311,14 +323,14 @@ Token              | Format
 ... <DEBUG> ${token.payload.*} => 
 ... <DEBUG> ------------------------------------------------------------------------------------------
 ... <DEBUG> aud ...................: "00000002-0000-0000-c000-000000000000"
-... <DEBUG> iss ...................: "https://sts.windows.net/eccd734e-7022-4709-aba5-a5dd77929e27/"
+... <DEBUG> iss ...................: "https://sts.windows.net/<tenant_id>/"
 ... <DEBUG> iat ...................: 1743975300
 ... <DEBUG> nbf ...................: 1743975300
 ... <DEBUG> exp ...................: 1743979200
 ... <DEBUG> aio ...................: "<omissis>"
 ... <DEBUG> appid .................: "<client_id>"
 ... <DEBUG> appidacr ..............: "1"
-... <DEBUG> idp ...................: "https://sts.windows.net/eccd734e-7022-4709-aba5-a5dd77929e27/"
+... <DEBUG> idp ...................: "https://sts.windows.net/<tenant_id>/"
 ... <DEBUG> idtyp .................: "app"
 ... <DEBUG> oid ...................: "<omissis>"
 ... <DEBUG> rh ....................: "<omissis>"
