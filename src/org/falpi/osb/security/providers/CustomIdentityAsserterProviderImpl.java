@@ -1139,11 +1139,12 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
       // Contesto generale
       Context.put("token",null); 
       Context.put("thread",Thread.currentThread().getId());   
-      Context.put("counter",Thread.currentThread().getName());   
       Context.put("provider",StrProviderName);   
-      Context.put("instance",StrInstanceName);   
-      Context.put("datetime",new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS").format(new Date(System.currentTimeMillis())));          
-      Context.put("timestamp",System.currentTimeMillis());            
+      Context.put("instance",StrInstanceName); 
+      
+      Context.put("request.counter",Thread.currentThread().getName());   
+      Context.put("request.datetime",new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS").format(new Date(System.currentTimeMillis())));          
+      Context.put("request.timestamp",System.currentTimeMillis());            
 
       // Contesto weblogic     
       Context.put("wls.realm",StrRealmName);   
@@ -1181,6 +1182,17 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
       // ----------------------------------------------------------------------------------------------------------------------------------
       // Prepara variabili di contesto dinamiche semplici
       // ----------------------------------------------------------------------------------------------------------------------------------
+      Context.put("current.datetime",new TemplateFunction() {
+         public String apply(String StrVariableName,SuperMap ObjContext) throws Exception {
+            return new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS").format(new Date(System.currentTimeMillis())); 
+         }
+      });              
+      Context.put("current.timesamp",new TemplateFunction() {
+         public String apply(String StrVariableName,SuperMap ObjContext) throws Exception {
+            return Context.put("timestamp",System.currentTimeMillis()).toString();
+
+         }
+      });             
       Context.put("http.content.body",new TemplateFunction() {
          public String apply(String StrVariableName,SuperMap ObjContext) throws Exception {
             HttpServletRequest ObjRequest = (HttpServletRequest) ObjContext.get("http.request");

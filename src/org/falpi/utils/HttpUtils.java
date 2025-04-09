@@ -41,7 +41,6 @@ import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.ssl.SSLContextBuilder;
 
-import org.falpi.MultiMap;
 import org.falpi.SuperMap;
 import org.falpi.utils.logging.LogLevel;
 import org.falpi.utils.logging.LogManager;
