@@ -58,8 +58,8 @@ Parameter                     | Description
 `JWT_IDENTITY_MAPPING_PATH`   | OSB resource path (\*) of the "Service Account" used for mapping user identity to realm username.
 `JWT_IDENTITY_ASSERTION`      | Must contain a javascript text that returns the identity of the jwt token according to the specifications of the IDP used. It must return a String object.
 `VALIDATION_ASSERTION`        | May contain a javascript text that must validate or reject the authentication request according to arbitrary criteria defined by the user. If present, it must return a Boolean object.
-`CUSTOM_REQUEST_HEADERS`      | Allows you to inject one or more custom http request headers that will pass through the OSB context. Each line must follow the format <header>=<value>.
-`CUSTOM_RESPONSE_HEADERS`     | Allows you to inject one or more custom http response headers that will return to client. Each line must follow the format <header>=<value>.
+`CUSTOM_REQUEST_HEADERS`      | Allows you to inject one or more custom http request headers that will pass through the OSB context. Each line must follow the format \<header\>=\<value\>.
+`CUSTOM_RESPONSE_HEADERS`     | Allows you to inject one or more custom http response headers that will return to client. Each line must follow the format \<header\>=\<value\>.
 `DEBUGGING_ASSERTION`         | May contain a javascript text that is used to filter log messages with TRACE or DEBUG level according to arbitrary criteria defined by the user. This can be useful to reduce log messages and analyze specific requests. If present, it must return a Boolean object.
 `DEBUGGING_PROPERTIES`        | Allows you to send one or more string expressions to the log file. They are printed as log messages with DEBUG level. Any template variables are resolved allowing you to analyze the runtime context. 
 `KERBEROS_CONFIGURATION`      | tbd
