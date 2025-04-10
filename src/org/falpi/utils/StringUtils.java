@@ -15,8 +15,6 @@ import java.util.Properties;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import java.util.stream.Collectors;
-
 import org.apache.commons.io.IOUtils;
 
 import org.falpi.SuperMap;
@@ -65,7 +63,13 @@ public class StringUtils {
    } 
 
    public static String join(ArrayList<String> ArrStrings, String StrSeparator) {            
-       return ArrStrings.stream().map(Object::toString).collect(Collectors.joining(StrSeparator));
+      String StrOutput = "";
+      Iterator ObjIterator = ArrStrings.iterator();
+      while (ObjIterator.hasNext()) {
+         StrOutput+= ((!StrOutput.equals(""))?(StrSeparator):(""))+ObjIterator.next();
+      }
+      return StrOutput;
+       
    }
    
    // ==================================================================================================================================
