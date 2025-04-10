@@ -35,7 +35,7 @@ public class StringUtils {
       
       StringBuilder StrProperties = new StringBuilder();
       for (String StrKey : ObjProperties.stringPropertyNames()) {
-         StrProperties.append(StrKey).append("=").append(ObjProperties.getProperty(StrKey)).append(StrSeparator);
+         StrProperties.append(StrKey).append("=").append(ObjProperties.getProperty(StrKey).trim()).append(StrSeparator);
       }
       
       // Remove the last comma
@@ -57,16 +57,16 @@ public class StringUtils {
    public static String join(Enumeration<String> ObjStrings, String StrSeparator) {            
       String StrOutput = "";
       while (ObjStrings.hasMoreElements()) {
-         StrOutput+= ((!StrOutput.equals(""))?(StrSeparator):(""))+ObjStrings.nextElement();
+         StrOutput+= ((!StrOutput.equals(""))?(StrSeparator):(""))+ObjStrings.nextElement().trim();
       }
       return StrOutput;
    } 
 
    public static String join(ArrayList<String> ArrStrings, String StrSeparator) {            
       String StrOutput = "";
-      Iterator ObjIterator = ArrStrings.iterator();
+      Iterator<String> ObjIterator = ArrStrings.iterator();
       while (ObjIterator.hasNext()) {
-         StrOutput+= ((!StrOutput.equals(""))?(StrSeparator):(""))+ObjIterator.next();
+         StrOutput+= ((!StrOutput.equals(""))?(StrSeparator):(""))+ObjIterator.next().trim();
       }
       return StrOutput;
        
