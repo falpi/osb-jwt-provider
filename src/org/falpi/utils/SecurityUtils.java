@@ -5,7 +5,6 @@ import java.io.FileWriter;
 
 import java.util.Map;
 import java.util.HashMap;
-import java.util.Base64;
 
 import javax.security.auth.Subject;
 
@@ -13,16 +12,18 @@ import org.apache.commons.io.IOUtils;
 
 import com.sun.security.auth.module.Krb5LoginModule;
 
+import com.bea.xbean.util.Base64;
+
 public class SecurityUtils {
    
    // ==================================================================================================================================
    // Codifica/Decodifica Base64
    // ==================================================================================================================================
    public static String encodeBase64(String StrClearText) {
-       return new String(Base64.getEncoder().encode(StrClearText.getBytes()));
+       return new String(Base64.encode(StrClearText.getBytes()));
    }   
    public static String decodeBase64(String StrEncodedText) {
-       return new String(Base64.getDecoder().decode(StrEncodedText.getBytes()));
+       return new String(Base64.decode(StrEncodedText.getBytes()));
    }
    
    // ==================================================================================================================================
