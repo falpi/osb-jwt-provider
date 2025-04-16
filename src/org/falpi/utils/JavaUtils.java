@@ -6,11 +6,26 @@ import java.io.StringWriter;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 
+import java.text.SimpleDateFormat;
+
+import java.util.Date;
+
 import javax.script.ScriptEngine;
 import javax.script.ScriptEngineFactory;
 import javax.script.ScriptEngineManager;
 
 public class JavaUtils {
+
+   // ==================================================================================================================================
+   // Gestione del tempo
+   // ==================================================================================================================================
+   public static String getDateTime() {
+       return new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS").format(new Date());
+   }   
+ 
+   public static Long getTimestamp() {
+       return Long.valueOf(System.currentTimeMillis());
+   }
    
    // ==================================================================================================================================
    // Inizializza script engine

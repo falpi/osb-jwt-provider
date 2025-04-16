@@ -31,9 +31,10 @@ import weblogic.security.spi.PrincipalValidator;
 import weblogic.security.spi.SecurityServices;
 import weblogic.management.security.ProviderMBean;
 
-import com.bea.xbean.util.Base64;
 import com.bea.wli.sb.services.ServiceInfo;
 import com.bea.wli.sb.transports.TransportEndPoint;
+
+import java.util.Iterator;
 
 import org.apache.xmlbeans.XmlObject;
 
@@ -753,7 +754,7 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
             Logger.logMessage(LogLevel.DEBUG,"Mapping Account ...: "+StrJwtIdentityMappingParsedPath);
             
             // Prova a mappare l'identità allo username mediante un service account OSB di mapping
-            Context.putUserName(OSBUtils.getMappedUser(StrJwtIdentityMappingParsedPath,Context.getIdentity()));
+            Context.putUserName(OSBUtils.getMappedLocalUser(StrJwtIdentityMappingParsedPath,Context.getIdentity()));
 
             // Se il mapping è fallito genera eccezione
             if (Context.getUserName().equals("")) {
@@ -786,9 +787,9 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
       Logger.logMessage(LogLevel.DEBUG,"==========================================================================================");  
                         
       try {          
-                     
+         
          // Dedodifica il token basic
-         String[] ArrCredential = new String(Base64.decode(StrToken.getBytes())).split(":",2);            
+         String[] ArrCredential = SecurityUtils.decodeBase64(StrToken).split(":",2);            
          Logger.logMessage(LogLevel.DEBUG,"UserName: "+ArrCredential[0]);   
          
          // Prova ad autenticare le credenziali sul realm weblogic
@@ -1150,8 +1151,8 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
       Context.put("instance",StrInstanceName); 
       
       Context.put("request.counter",Thread.currentThread().getName());   
-      Context.put("request.datetime",new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS").format(new Date(System.currentTimeMillis())));          
-      Context.put("request.timestamp",String.valueOf(System.currentTimeMillis()));            
+      Context.put("request.datetime",JavaUtils.getDateTime());          
+      Context.put("request.timestamp",String.valueOf(JavaUtils.getTimestamp()));            
 
       // Contesto weblogic     
       Context.put("wls.realm",StrRealmName);   
