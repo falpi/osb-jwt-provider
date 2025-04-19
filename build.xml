@@ -2,8 +2,8 @@
 ##################################################################################################################################
 VERSIONING
 ##################################################################################################################################
-$Revision: 1692 $
-$Date: 2025-04-10 18:46:13 +0200 (Thu, 10 Apr 2025) $
+$Revision: 1740 $
+$Date: 2025-04-18 23:19:03 +0200 (Fri, 18 Apr 2025) $
 ##################################################################################################################################
 -->
 <project name="Build" default="all" basedir="." xmlns:if="ant:if" xmlns:unless="ant:unless">
@@ -25,7 +25,7 @@ $Date: 2025-04-10 18:46:13 +0200 (Thu, 10 Apr 2025) $
     <!-- #################################################################################################### -->    
         
     <!-- ant-contrib -->
-    <taskdef classpath="${libDir}/ant-contrib-0.6.jar" resource="net/sf/antcontrib/antcontrib.properties"/>     
+    <taskdef classpath="${libDir}/ant-contrib-1.0b3.jar" resource="net/sf/antcontrib/antlib.xml"/>     
     
     <!-- xmltask -->
     <taskdef name="xmltask" classpath="${libDir}/ant-xmltask-1.16.jar" classname="com.oopsconsultancy.xmltask.ant.XmlTask"/>     
@@ -81,15 +81,13 @@ $Date: 2025-04-10 18:46:13 +0200 (Thu, 10 Apr 2025) $
         <!-- ==================================================================================================== -->
         <!-- Common properties  -->
         <!-- ==================================================================================================== -->
-    
-        <!-- controllo del packaging delle librerie esterne -->
-        <property name="mergeLibraries" value="true"/>
-   
+
         <!-- controllo dell'embedding dei sorgenti -->
         <property name="embedSources" value="true"/>
-        <property if:true="${embedSources}" name="excludePattern" value=""/>
-        <property unless:true="${embedSources}" name="excludePattern" value="org/**/*.java"/>
-            
+    
+        <!-- controllo del packaging delle librerie esterne -->
+        <property name="mergeLibraries" value="false"/>
+               
         <!-- ==================================================================================================== -->
         <!-- Target specific properties   -->
         <!-- ==================================================================================================== -->
@@ -98,89 +96,47 @@ $Date: 2025-04-10 18:46:13 +0200 (Thu, 10 Apr 2025) $
         
         <switch value="${targetConfig}">
           <case value="12.1.3">
-            <property name="shadedLibraries" value="false"/>
             <property name="weblogicVersion" value="12.1.3"/>
             <property name="javaHomeDir" value="C:/Programmi/Java/jdk1.7"/>
             <property name="weblogicDir" value="C:/Oracle/Middleware/12.1.3"/>   
-            <property name="targetLibraries" value="target-libraries-12.1.3"/>
             <property name="templateArchive" value="com.bea.core.beangen_3.0.0.0.jar"/>
-            <property name="builtinProviders" value="cssWlSecurityProviders.jar"/>
           </case>
           <case value="12.2.1">
-            <property name="shadedLibraries" value="true"/>
             <property name="weblogicVersion" value="12.2.1"/>
             <property name="javaHomeDir" value="C:/Programmi/Java/jdk1.8"/>
             <property name="weblogicDir" value="C:/Oracle/Middleware/12.2.1"/>    
-            <property name="targetLibraries" value="target-libraries-12.2.1"/>
             <property name="templateArchive" value="com.bea.core.beangen.jar"/>
-            <property name="builtinProviders" value="wls-security-providers.jar"/>
           </case>        
           <case value="14.1.2">
-            <property name="shadedLibraries" value="false"/>
             <property name="weblogicVersion" value="14.1.2"/>
             <property name="javaHomeDir" value="C:/Programmi/Java/jdk17"/>
             <property name="weblogicDir" value="C:/Oracle/Middleware/14.1.2"/>    
-            <property name="targetLibraries" value="target-libraries-14.1.2"/>
             <property name="templateArchive" value="com.bea.core.beangen.jar"/>
-            <property name="builtinProviders" value="wls-security-providers.jar"/>
           </case>        
           <default>
             <fail message="Unsupported target: ${targetConfig}"/>
           </default>
         </switch>    
-                   
-        <!-- ==================================================================================================== -->
-        <!-- Paths for package dependencies  -->
-        <!-- ==================================================================================================== -->
-                        
-        <!-- common libraries shared by all targets -->
-        <path id="common-libraries">       
-            <pathelement location="${libDir}/json-20230618.jar"/>
-            <pathelement location="${libDir}/httpcore-4.4.13.jar"/>
-            <pathelement location="${libDir}/httpclient-4.5.13.jar"/>
-            <pathelement location="${libDir}/commons-codec-1.11.jar"/>
-        </path>         
-        
-        <!-- dependencies for target 12.1.3 (jdk7) -->
-        <path id="target-libraries-12.1.3">         
-           <pathelement location="${libDir}/nimbus-jose-jwt-9.48.jar"/>
-        </path>
-
-        <!-- dependencies for target 12.2.1 (jdk8) -->
-        <path id="target-libraries-12.2.1">         
-            <pathelement location="${libDir}/tink-1.15.0.jar"/>
-            <pathelement location="${libDir}/gson-2.11.0.jar"/>
-            <pathelement location="${libDir}/nimbus-jose-jwt-9.48-shaded.jar"/>
-        </path>            
-             
-        <!-- dependencies for target 14.1.2 (jdk17+) -->
-        <path id="target-libraries-14.1.2">         
-            <pathelement location="${libDir}/rhino-1.7.15.jar"/>
-            <pathelement location="${libDir}/rhino-engine-1.7.15.jar"/>
-        </path>
-        
+                                                   
         <!-- ==================================================================================================== -->
         <!-- Paths for classpath dependencies   -->
         <!-- ==================================================================================================== -->
             
         <!-- core libraries shared by all targets -->
         <path id="core-libraries">         
-            <pathelement location="${buildDir}"/>            
             <pathelement location="${javaHomeDir}/lib/tools.jar"/>
             <pathelement location="${javaHomeDir}/jre/lib/rt.jar"/>
         </path>
 
         <!-- target specific package libraries -->
          <path id="package-libraries" >
-            <path refid="common-libraries"/>         
-            <path refid="${targetLibraries}"/>
+           <fileset dir="${libDir}" includes="*-fmw_${weblogicVersion}.jar" />
          </path>
          
         <!-- weblogic libraries shared by all targets -->
         <path id="weblogic-libraries">         
             <pathelement location="${weblogicDir}/osb/lib/servicebus.jar"/>
             <pathelement location="${weblogicDir}/wlserver/server/lib/weblogic.jar"/>
-            <pathelement location="${weblogicDir}/wlserver/server/lib/mbeantypes/${builtinProviders}"/>
         </path>
             
         <!-- classpath -->
@@ -199,7 +155,6 @@ $Date: 2025-04-10 18:46:13 +0200 (Thu, 10 Apr 2025) $
     
         <!-- provider name -->
         <property name="providerName" value="CustomIdentityAsserter" />
-        <!-- <property name="providerVersion" value="1.0"/> -->
     
         <!-- provider version -->
         <copy todir="${basedir}" file="${sourceDir}/${packageDir}/commo.dtd"/>
@@ -234,7 +189,6 @@ $Date: 2025-04-10 18:46:13 +0200 (Thu, 10 Apr 2025) $
    
     <target name="clean" depends="target.auto,prepare">
         <delete dir="${buildDir}" failonerror="false" />
-        <delete dir="${deployDir}" failonerror="false" />
         <echo message="Clean finish"></echo>
     </target>
     
@@ -267,34 +221,32 @@ $Date: 2025-04-10 18:46:13 +0200 (Thu, 10 Apr 2025) $
     <target name="build.MDF" depends="prepare">
         <mkdir dir="${buildDir}"/>
         <delete dir="${buildDir}/temp" failonerror="false"/>        
-        <copy todir="${buildDir}/temp">
-            <fileset dir="${sourceDir}">
-                <include name="**/*.*"/>
-                <exclude if="${shadedLibraries}" name="**/JWTProviderNimbusImpl.java"/>
-                <exclude unless="${shadedLibraries}" name="**/JWTProviderNimbusShadedImpl.java"/>
-            </fileset>
+        <copy  todir="${buildDir}/temp" >
+           <fileset dir="${sourceDir}">
+              <include name="**/*.*"/>
+           </fileset>
         </copy>        
         <java fork="true" jvm="${javaHomeDir}/bin/java" dir="${basedir}" classname="weblogic.management.commo.WebLogicMBeanMaker">
-            <arg line="-MDF ${buildDir}/temp/${packageDir}/${providerName}.xml"/>
-            <arg value="-createStubs"/>
-            <arg line="-files ${buildDir}/temp"/>
-            <classpath refid="myclasspath"/>
+           <arg line="-MDF ${buildDir}/temp/${packageDir}/${providerName}.xml"/>
+           <arg value="-createStubs"/>
+           <arg line="-files ${buildDir}/temp"/>
+           <classpath refid="myclasspath"/>
         </java>
         <move file="${buildDir}/temp/${providerName}Impl.java" todir="${buildDir}/temp/${packageDir}"/>
         <echo message="Created Supporting Classes"></echo>
     </target>
     
     <!-- ==================================================================================================== -->
-    <!-- Build the Provider MBean -->
+    <!-- Build the Provider MBean Jar File -->
     <!-- ==================================================================================================== -->
     <target name="build.MJF" depends="prepare">
-        <java fork="true" jvm="${javaHomeDir}/bin/java" dir="${buildDir}" classname="weblogic.management.commo.WebLogicMBeanMaker">
-            <arg line="-MJF ${providerName}.jar"/>
-            <arg line="-includeSource"/>
-            <arg line="-files temp"/>
-            <classpath refid="myclasspath"/>
-        </java>
-        <echo message="Created Mbean Jar"></echo>
+       <java fork="true" jvm="${javaHomeDir}/bin/java" dir="${buildDir}" classname="weblogic.management.commo.WebLogicMBeanMaker">
+          <arg line="-MJF ${providerName}.jar"/>
+          <arg line="-includeSource"/>
+          <arg line="-files temp"/>
+          <classpath refid="myclasspath"/>
+       </java>
+       <echo message="Created Mbean Jar"></echo>
     </target>
 
     <!-- ==================================================================================================== -->
@@ -306,14 +258,11 @@ $Date: 2025-04-10 18:46:13 +0200 (Thu, 10 Apr 2025) $
     <target name="rebuild.1412" depends="target.1412,rebuild"/>
 
     <target name="rebuild" depends="target.auto,prepare">
-        <javac fork="true" executable="${javaHomeDir}/bin/javac" srcdir="${buildDir}/temp" destdir="${buildDir}/temp" includes="**/*.java">
-            <classpath>
-               <path refid="myclasspath" />
-               <pathelement path="${buildDir}/temp"/>
-            </classpath>
+       <javac fork="true" executable="${javaHomeDir}/bin/javac" srcdir="${buildDir}/temp" destdir="${buildDir}/temp">
+          <classpath refid="myclasspath"/>
        </javac>       
-        <jar destfile="${buildDir}/${providerName}.jar" basedir="${buildDir}/temp"/>
-        <echo message="Rebuilt Mbean Jar"></echo>
+       <jar destfile="${buildDir}/${providerName}.jar" basedir="${buildDir}/temp"/>
+       <echo message="Rebuilt Mbean Jar"></echo>
     </target> 
     
     <!-- ==================================================================================================== -->
@@ -325,60 +274,51 @@ $Date: 2025-04-10 18:46:13 +0200 (Thu, 10 Apr 2025) $
 
     <target name="deploy" depends="target.auto,prepare">
     
-       <echo message="merged libraries=${mergeLibraries}"/>
-       
-       <delete dir="${deployDir}" failonerror="false" />
+       <!-- mostra parametri di controllo del deploy -->
+       <echo message="Embed sources .....: ${embedSources}"/>
+       <echo message="Merge libraries ...: ${mergeLibraries}"/>
+
+       <!-- se non esiste crea directory di deploy -->       
        <mkdir dir="${deployDir}" />
        
+       <!-- prepara filtro di inclusione dall'elenco dei path delle librerie -->
        <pathconvert property="packageLibraries" refid="package-libraries" pathsep=",">       
           <map from="${basedir}/lib/" to=""/>
        </pathconvert>
+       
+       <!-- prepara filtro di esclusione per controllo dell'embedding dei sorgenti -->        
+       <property if:true="${embedSources}" name="excludePattern" value=""/>
+       <property unless:true="${embedSources}" name="excludePattern" value="**/*.java"/>
+
+       <!-- :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::: -->
+       <!-- Build separated jar file for MBean only                                             -->
+       <!-- :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::: -->
+       <jar unless:true="${mergeLibraries}" destfile="${deployDir}/${outputFileName}.jar">
+          <zipfileset excludes="${excludePattern}" src="${buildDir}/${providerName}.jar"/>
+       </jar> 
 
        <!-- :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::: -->
        <!-- Build merged jar file                                                                                -->
        <!-- :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::: -->
        <jar if:true="${mergeLibraries}" destfile="${deployDir}/${outputFileName}.jar">
           <zipfileset excludes="${excludePattern}" src="${buildDir}/${providerName}.jar"/>
-          <restrict>
-             <name name="**/*.class"/>
-             <archives>
-                 <zips>
-                     <fileset dir="${libDir}" includes="${packageLibraries}"/>
-                 </zips>
-             </archives>
-          </restrict>
+          <archives>
+             <zips>
+                <fileset dir="${libDir}" includes="${packageLibraries}"/>
+             </zips>
+          </archives>
        </jar>
-       
-       <!-- :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::: -->
-       <!-- Build separated jar files for MBean and the libraries                                                -->
-       <!-- :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::: -->
-       <jar unless:true="${mergeLibraries}" destfile="${deployDir}/${outputFileName}.jar">
-          <zipfileset excludes="org/**/*.java" src="${buildDir}/${providerName}.jar"/>
-          <manifest >
-             <attribute name="Class-Path" value="${outputFileName}.lib"/>
-          </manifest>
-       </jar> 
-       <jar unless:true="${mergeLibraries}" destfile="${deployDir}/${outputFileName}.lib">
-          <restrict>
-             <name name="**/*.class"/>
-             <archives>
-                 <zips>
-                     <fileset dir="${libDir}" includes="${packageLibraries}"/>
-                 </zips>
-             </archives>
-          </restrict>
-       </jar>     
-       
+              
        <!-- :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::: -->
        <!-- remove deployed files and redeploy the new ones -->
        <!-- :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::: -->
        <delete>
-           <fileset dir="${weblogicDir}/wlserver/server/lib/mbeantypes" includes="${outputFilePrefix}*.*"/>
-       </delete>
-       <copy todir="${weblogicDir}/wlserver/server/lib/mbeantypes" >
-           <fileset dir="${deployDir}" includes="${outputFilePrefix}*.*"/>
-       </copy>
-       <echo message="Deployes Mbean Jar"></echo>
+          <fileset dir="${weblogicDir}/wlserver/server/lib/mbeantypes" includes="${outputFilePrefix}*.*"/>
+       </delete>       
+       <copy todir="${weblogicDir}/wlserver/server/lib/mbeantypes" file="${deployDir}/${outputFileName}.jar"/>
+       <!-- :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::: -->
+       
+       <echo message="Deployed Mbean Jar"></echo>
        
     </target>       
     

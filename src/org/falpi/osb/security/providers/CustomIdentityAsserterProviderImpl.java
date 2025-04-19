@@ -1,8 +1,8 @@
 // ##################################################################################################################################
 // VERSIONING
 // ##################################################################################################################################
-// $Revision: 1712 $
-// $Date: 2025-04-16 19:02:55 +0200 (Wed, 16 Apr 2025) $
+// $Revision: 1743 $
+// $Date: 2025-04-18 23:59:25 +0200 (Fri, 18 Apr 2025) $
 // ##################################################################################################################################
 
 package org.falpi.osb.security.providers;
@@ -33,8 +33,6 @@ import weblogic.management.security.ProviderMBean;
 
 import com.bea.wli.sb.services.ServiceInfo;
 import com.bea.wli.sb.transports.TransportEndPoint;
-
-import java.util.Iterator;
 
 import org.apache.xmlbeans.XmlObject;
 
@@ -202,12 +200,17 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
 
       // ==================================================================================================================================
       // Prepara contesto weblogic
-      // ==================================================================================================================================
-            
-      StrRealmName = ObjProviderMBean.getRealm().getName();
-      StrDomainName = WLSUtils.getDomainName();
-      StrManagedName = WLSUtils.getManagedName();      
-      ObjAuthenticator = WLSUtils.getAuthenticator(ObjMBean,StrRealmName,StrDomainName);     
+      // ==================================================================================================================================            
+      try {        
+         StrRealmName = ObjProviderMBean.getRealm().getName();
+         StrDomainName = WLSUtils.getDomainName();
+         StrManagedName = WLSUtils.getManagedName();      
+         ObjAuthenticator = WLSUtils.getAuthenticator(ObjMBean,StrRealmName,StrDomainName);        
+      } catch (Exception ObjException) {
+         String StrError = "WebLogic context error";
+         Logger.logMessage(LogLevel.ERROR,StrError,ObjException);
+         System.exit(0);
+      }
 
       // ==================================================================================================================================
       // Inizializza script engine
@@ -778,7 +781,6 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
 
       // Prepara logger e context
       LogManager Logger = getLogger();
-      RuntimeConfig Config = getConfig();
       RuntimeContext Context = getContext();
          
       // Genera logging
@@ -814,7 +816,6 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
 
       // Prepara logger e context
       LogManager Logger = getLogger();
-      RuntimeConfig Config = getConfig();
       RuntimeContext Context = getContext();
 
       // Genera logging
@@ -928,14 +929,15 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
          }
          
          // Acquisisce payload delle chiavi pubbliche in formato stringa
-         String StrJwtKeys = HttpUtils.fetch(HttpMethod.GET, Config.getString(JWT_KEYS_URL),  
-                                             Config.getString(JWT_KEYS_FORMAT).equals("XML")?("text/xml"):("application/json"),
-                                             Config.getString(JWT_KEYS_HOST_AUTH_MODE), StrJwtKeysHostUserName, StrJwtKeysHostPassword,
-                                             Config.getString(JWT_KEYS_PROXY_SERVER_MODE), StrJwtKeysProxyUserName, StrJwtKeysProxyPassword,
-                                             StrJwtKeysProxyHost,IntJwtKeysProxyPort, 
-                                             Config.getString(JWT_KEYS_SSL_VERIFY).equals("ENABLE"), 
-                                             Config.getInteger(JWT_KEYS_CONN_TIMEOUT), 
-                                             Config.getInteger(JWT_KEYS_READ_TIMEOUT), Logger);
+         String StrJwtKeys = new String(HttpUtils.fetch(HttpMethod.GET,
+                                                        Config.getString(JWT_KEYS_URL),null,"",
+                                                        Config.getString(JWT_KEYS_FORMAT).equals("XML")?("text/xml"):("application/json"),
+                                                        Config.getString(JWT_KEYS_HOST_AUTH_MODE), StrJwtKeysHostUserName, StrJwtKeysHostPassword,
+                                                        Config.getString(JWT_KEYS_PROXY_SERVER_MODE), StrJwtKeysProxyUserName, StrJwtKeysProxyPassword,
+                                                        StrJwtKeysProxyHost,IntJwtKeysProxyPort, 
+                                                        Config.getString(JWT_KEYS_SSL_VERIFY).equals("ENABLE"), 
+                                                        Config.getInteger(JWT_KEYS_CONN_TIMEOUT), 
+                                                        Config.getInteger(JWT_KEYS_READ_TIMEOUT), Logger));
          
          // ----------------------------------------------------------------------------------------------------------------------------------
          // Gestisce parsing e caching delle chiavi

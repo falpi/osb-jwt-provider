@@ -69,6 +69,8 @@
    <hash n="oracle.ide.model.ResourcePaths">
       <hash n="resourcesContentSet">
          <list n="pattern-filters">
+            <string v="-.gitignore"/>
+            <string v="-.git/"/>
             <string v="-build/"/>
             <string v="-src/"/>
             <string v="+**"/>
@@ -121,23 +123,7 @@
    <hash n="oracle.jdevimpl.config.JProjectLibraries">
       <list n="exportedReferences">
          <hash>
-            <value n="id" v="Nimbus-jose-jwt-9.48.jar"/>
-            <value n="isJDK" v="false"/>
-         </hash>
-         <hash>
-            <value n="id" v="Commons-codec-1.11.jar"/>
-            <value n="isJDK" v="false"/>
-         </hash>
-         <hash>
-            <value n="id" v="Httpclient-4.5.13.jar"/>
-            <value n="isJDK" v="false"/>
-         </hash>
-         <hash>
-            <value n="id" v="Httpcore-4.4.13.jar"/>
-            <value n="isJDK" v="false"/>
-         </hash>
-         <hash>
-            <value n="id" v="Json-20230618.jar"/>
+            <value n="id" v="Osb-commons-1.0.0.20250419-fmw_12.1.3.jar"/>
             <value n="isJDK" v="false"/>
          </hash>
       </list>
@@ -163,67 +149,18 @@
             </hash>
             <hash>
                <list n="classPath">
-                  <url path="../../../../../Oracle/Middleware/12.1.3/wlserver/server/lib/mbeantypes/cssWlSecurityProviders.jar" jar-entry=""/>
+                  <url path="lib/osb-commons-1.0.0.20250419-fmw_12.1.3.jar" jar-entry=""/>
                </list>
                <value n="deployedByDefault" v="true"/>
-               <value n="description" v="CssWlSecurityProviders.jar"/>
-               <value n="id" v="CssWlSecurityProviders.jar"/>
-               <value n="locked" v="true"/>
-            </hash>
-            <hash>
-               <list n="classPath">
-                  <url path="lib/json-20230618.jar" jar-entry=""/>
-               </list>
-               <value n="deployedByDefault" v="true"/>
-               <value n="description" v="Json-20230618.jar"/>
-               <value n="id" v="Json-20230618.jar"/>
-               <value n="locked" v="true"/>
-            </hash>
-            <hash>
-               <list n="classPath">
-                  <url path="lib/commons-codec-1.11.jar" jar-entry=""/>
-               </list>
-               <value n="deployedByDefault" v="true"/>
-               <value n="description" v="Commons-codec-1.11.jar"/>
-               <value n="id" v="Commons-codec-1.11.jar"/>
-               <value n="locked" v="true"/>
-            </hash>
-            <hash>
-               <list n="classPath">
-                  <url path="lib/httpclient-4.5.13.jar" jar-entry=""/>
-               </list>
-               <value n="deployedByDefault" v="true"/>
-               <value n="description" v="Httpclient-4.5.13.jar"/>
-               <value n="id" v="Httpclient-4.5.13.jar"/>
-               <value n="locked" v="true"/>
-            </hash>
-            <hash>
-               <list n="classPath">
-                  <url path="lib/httpcore-4.4.13.jar" jar-entry=""/>
-               </list>
-               <value n="deployedByDefault" v="true"/>
-               <value n="description" v="Httpcore-4.4.13.jar"/>
-               <value n="id" v="Httpcore-4.4.13.jar"/>
-               <value n="locked" v="true"/>
-            </hash>
-            <hash>
-               <list n="classPath">
-                  <url path="lib/nimbus-jose-jwt-9.48.jar" jar-entry=""/>
-               </list>
-               <value n="deployedByDefault" v="true"/>
-               <value n="description" v="Nimbus-jose-jwt-9.48.jar"/>
-               <value n="id" v="Nimbus-jose-jwt-9.48.jar"/>
+               <value n="description" v="Osb-commons-1.0.0.20250419-fmw_12.1.3.jar"/>
+               <value n="id" v="Osb-commons-1.0.0.20250419-fmw_12.1.3.jar"/>
                <value n="locked" v="true"/>
             </hash>
          </list>
       </hash>
       <list n="libraryReferences">
          <hash>
-            <value n="id" v="Servlet Runtime"/>
-            <value n="isJDK" v="false"/>
-         </hash>
-         <hash>
-            <value n="id" v="CssWlSecurityProviders.jar"/>
+            <value n="id" v="Weblogic.jar"/>
             <value n="isJDK" v="false"/>
          </hash>
          <hash>
@@ -231,27 +168,7 @@
             <value n="isJDK" v="false"/>
          </hash>
          <hash>
-            <value n="id" v="Weblogic.jar"/>
-            <value n="isJDK" v="false"/>
-         </hash>
-         <hash>
-            <value n="id" v="Nimbus-jose-jwt-9.48.jar"/>
-            <value n="isJDK" v="false"/>
-         </hash>
-         <hash>
-            <value n="id" v="Commons-codec-1.11.jar"/>
-            <value n="isJDK" v="false"/>
-         </hash>
-         <hash>
-            <value n="id" v="Httpclient-4.5.13.jar"/>
-            <value n="isJDK" v="false"/>
-         </hash>
-         <hash>
-            <value n="id" v="Httpcore-4.4.13.jar"/>
-            <value n="isJDK" v="false"/>
-         </hash>
-         <hash>
-            <value n="id" v="Json-20230618.jar"/>
+            <value n="id" v="Osb-commons-1.0.0.20250419-fmw_12.1.3.jar"/>
             <value n="isJDK" v="false"/>
          </hash>
       </list>
