@@ -115,8 +115,8 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
    // ==================================================================================================================================
    // Gestore della configurazione e  contesto di runtime
    // ==================================================================================================================================
-   private static class RuntimeConfig extends SuperMap<Object> {}
-   private static class RuntimeContext extends SuperMap<Object> {       
+   private static class RuntimeConfig extends SuperMap {}
+   private static class RuntimeContext extends SuperMap {       
       // Meotodi shortcut per variabili più utilizzate
       public String getAuthType() { return getString("authtype"); }
       public String getUserName() { return getString("username"); }
@@ -227,11 +227,11 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
       // Inizializza provider jwt 
       // ==================================================================================================================================
       try {
-         // Se il target è weblogic 12.1.3 (java=7) la libreria originale nimbus può essere integrata perchè non è presente a sistema
-         // Se il target è weblogic 12.2.1 (7<java<17) poichè integra nimbus di una versione incompatibile occorre integrare una versione shaded 
+         // Seleziona l'implementazione jwt in base alla versione java del target (supportati solo weblogic 12.2.1 e 14.1.2)
+         // Se il target è weblogic 12.2.1 (java<17) poichè integra nimbus di una versione incompatibile occorre integrare una versione shaded 
          // Se il target è weblogic 14.1.2 (java>=17) poichè integra nimbus di una versione compatibile la si può usare diretamente
          ObjJwtProvider =
-            JWTProvider.create((JavaUtils.getJavaVersion()>7)&&(JavaUtils.getJavaVersion()<17)?("NimbusShaded"):("Nimbus"));
+            JWTProvider.create((JavaUtils.getJavaVersion()<17)?("NimbusShaded"):("Nimbus"));
          
          // Inizializza cache delle chiavi jwt
          ObjJwtCache = new JWTCache();
@@ -675,7 +675,7 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
       try {
 
          // Prepara la chiave       
-         JWTCacheEntry ObjKey = prepareKey(StrJwtKeyID,ObjJwtCache);
+         JWTKeysCacheEntry ObjKey = prepareKey(StrJwtKeyID,ObjJwtCache);
 
          // Acuisisce parametri chiave dalla cache
          StrKeyModulus = ObjKey.modulus;
@@ -832,7 +832,7 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
                
                if (StrHeaderValue!="") {
                   Logger.logMessage(LogLevel.DEBUG,"Request: "+StrHeaderName+"="+StrHeaderValue);
-                  WLSUtils.addHeader(ObjRequest,StrHeaderName,StrHeaderValue);
+                  WLSUtils.addRequestHeader(ObjRequest,StrHeaderName,StrHeaderValue);
                }
             } catch (Exception ObjException) {
                String StrError = "Custom request header error '"+StrHeaderName+"'";
@@ -863,7 +863,7 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
    // ==================================================================================================================================
    // Gestisce preparazione chiave di firma jwt
    // ==================================================================================================================================      
-   private static JWTCacheEntry prepareKey(String StrJwtKeyID,JWTCache ObjJwtKeysCache) throws Exception {
+   private static JWTKeysCacheEntry prepareKey(String StrJwtKeyID,JWTCache ObjJwtKeysCache) throws Exception {
 
       // Prepara logger e context
       LogManager Logger = getLogger();
@@ -871,7 +871,7 @@ public final class CustomIdentityAsserterProviderImpl implements AuthenticationP
       RuntimeContext Context = getContext();
    
       // Verifica se la chiave è già in cache e non è scaduta         
-      JWTCacheEntry ObjKey = ObjJwtKeysCache.validKey(StrJwtKeyID,Config.getInteger(JWT_KEYS_CACHE_TTL));
+      JWTKeysCacheEntry ObjKey = ObjJwtKeysCache.validKey(StrJwtKeyID,Config.getInteger(JWT_KEYS_CACHE_TTL));
       
       // Se la chiave non è in cache  esegue
       if (ObjKey==null) {

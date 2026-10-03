@@ -139,7 +139,7 @@
    <hash n="oracle.jdevimpl.config.JProjectLibraries">
       <list n="exportedReferences">
          <hash>
-            <value n="id" v="Osb-commons-1.0.0.20250419-fmw_14.1.2.jar"/>
+            <value n="id" v="Osb-commons-1.1.0.20261003-fmw_14.1.2.jar"/>
             <value n="isJDK" v="false"/>
          </hash>
       </list>
@@ -165,11 +165,11 @@
             </hash>
             <hash>
                <list n="classPath">
-                  <url path="lib/osb-commons-1.0.0.20250419-fmw_14.1.2.jar" jar-entry=""/>
+                  <url path="lib/osb-commons-1.1.0.20261003-fmw_14.1.2.jar" jar-entry=""/>
                </list>
                <value n="deployedByDefault" v="true"/>
-               <value n="description" v="Osb-commons-1.0.0.20250419-fmw_14.1.2.jar"/>
-               <value n="id" v="Osb-commons-1.0.0.20250419-fmw_14.1.2.jar"/>
+               <value n="description" v="Osb-commons-1.1.0.20261003-fmw_14.1.2.jar"/>
+               <value n="id" v="Osb-commons-1.1.0.20261003-fmw_14.1.2.jar"/>
                <value n="locked" v="true"/>
             </hash>
          </list>
@@ -184,7 +184,7 @@
             <value n="isJDK" v="false"/>
          </hash>
          <hash>
-            <value n="id" v="Osb-commons-1.0.0.20250419-fmw_14.1.2.jar"/>
+            <value n="id" v="Osb-commons-1.1.0.20261003-fmw_14.1.2.jar"/>
             <value n="isJDK" v="false"/>
          </hash>
       </list>

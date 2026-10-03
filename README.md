@@ -6,10 +6,35 @@
 Furthermore, the use of OWSM policies may not be a proper solution for those who are used to managing authentication and authorization through the simple management of users and groups of the integrated authentication provider of WebLogic. As if that wasn't enough, OAUTH2 introduces the need to adopt identities defined by very long and opaque strings (client_id), that are difficult to re-associate to a given consumer without appropriate mechanisms of credential mappings and in this OWSM is of no help.<br/><br/>
 Fortunately, since the old versions of WebLogic there is the possibility to extend the product to support custom authentication schemes. The library proposed in this project is based in particular on a Custom Identity Assertion Provider that brings to the OSB an implementation of OAUTH2 authentication based on signed JWT tokens, currently only for inbound OSB security. This custom provider overcomes the rigidities of OWSM by offering more flexibility and control and optionally supports identity mapping to translate client_ids to WebLogic realm users.<br/><br/>
 In addition to the JWT-based authentication scheme, the provider also offers support for the legacy Basic Auth to simplify the progressive adoption of JWT authentication by different consumers on the same Proxy Service, without the need to create different Proxies for each authentication scheme.<br/><br/>
-It has currently been tested on all most recent Oracle Service Bus 12.1.3, 12.2.1.4 and 14.1.2 with Azure Entra ID as the IDP.</p>
+It has currently been tested on Oracle Service Bus 12.2.1.4 and 14.1.2 with Azure Entra ID as the IDP. Starting with release 1.2 WebLogic/OSB 12.1.3 is no longer supported: installations still on 12.1.3 can keep using release 1.1.0.</p>
+
+## Release 1.2
+<p align="justify">Release 1.2 is a maintenance release whose purpose is to make the transition to the new project <a href="https://github.com/falpi/osb-jwt-providers">osb-jwt-providers</a> as smooth as possible. The new project extends this provider with an outbound provider for Business Services and replaces the MBean based configuration with declarative policies; release 1.2 lets the two packages run side by side in the same domain, so that Proxy Services can be migrated one at a time.</p>
+
+- **WebLogic/OSB 12.1.3 is no longer supported.** The supported targets are 12.2.1.4 (JDK 8) and 14.1.2 (JDK 17); installations still on 12.1.3 can keep using release 1.1.0 with osb-commons 1.0.0.
+- **Based on osb-commons 1.1.0**, the same version used by osb-jwt-providers, so that the two packages can share a single osb-commons jar.
+- **Same configuration.** The provider name and the MBean attributes are unchanged: upgrading from 1.1.0 does not require any change in the realm.
+- **Behaviour changes inherited from osb-commons 1.1.0**, to be checked before upgrading:
+  - template variables: every <code>${...}</code> is now resolved, while release 1.1.0 (osb-commons 1.0.0) recognised only lowercase letters, dots and <code>*</code> and left the rest in the text as it was. Variables with uppercase letters, <code>_</code> or <code>-</code> (e.g. <code>${http.header.Content-Type}</code>, <code>${token.payload.tenant_region_scope}</code>) are now replaced, while names containing digits (e.g. <code>${token.header.x5t}</code>) or unknown variables now raise an error. Review the attributes that contain templates (<code>LOGGING_INFO</code>, custom headers, assertions, debugging properties, XPath expressions, resource paths);
+  - errors while downloading the public keys now include the body of the HTTP response, and the HTTP client is always released after each request.
+
+#### Upgrading from 1.1.0
+
+1. Stop the servers and, in <code>mbeantypes</code>, replace <code>osb-jwt-provider-1.1.0*.jar</code> with the 1.2.0 jar and <code>osb-commons-1.0.0*.jar</code> with the osb-commons 1.1.0 jar of the same target (<code>osb-commons-1.1.0-&lt;date&gt;-fmw_&lt;target&gt;.jar</code>). The build copies only the provider jar, osb-commons is installed by hand.
+2. Keep exactly one osb-commons jar in the folder. WebLogic loads all the jars of <code>mbeantypes</code> in a single class loader whose search order depends on the file names, not on the jar a class comes from: two copies of the same classes (for example osb-commons 1.0.0 and 1.1.0, or a separate osb-commons jar plus a package built with <code>mergeLibraries=true</code>) are resolved unpredictably and can make the realm fail at boot with errors such as <code>NoSuchFieldError</code> or <code>NoSuchMethodError</code>.
+3. Restart the servers: the realm configuration does not change.
+
+#### Coexistence with osb-jwt-providers
+
+1. Keep in <code>mbeantypes</code> the jar of this release, the jar of osb-jwt-providers and a single osb-commons 1.1.0 jar, all without merged libraries (<code>mergeLibraries=false</code> in both builds).
+2. Give the two identity asserters different active token types, for example <code>CIA.JWT+BASIC</code> to this provider and <code>CIA.JWT+BASIC#1</code> to the new inbound provider.
+3. Migrate the Proxy Services one at a time by changing their token type; restoring the previous token type rolls a proxy back, without restarts or realm changes.
+4. When the last Proxy Service has moved, remove this provider from the realm and its jar from <code>mbeantypes</code>.
+
+<p align="justify">See also the section <a href="https://github.com/falpi/osb-jwt-providers#migrating-from-osb-jwt-provider">Migrating from osb-jwt-provider</a> of the osb-jwt-providers documentation.</p>
 
 ## Installation
-<p align="justify">For in-depth information on Custom Providers, please refer to the product documentation (see references). In short, first you need to stop WebLogic and copy the provider packages into the folder:</p>
+<p align="justify">For in-depth information on Custom Providers, please refer to the product documentation (see references). In short, first you need to stop WebLogic and copy the provider package, together with the osb-commons jar of the same target (only one copy, see <a href="#release-12">Release 1.2</a>), into the folder:</p>
 
 ```<WEBLOGIC_HOME>/wlserver/server/lib/mbeantypes```
 
@@ -141,16 +166,10 @@ For example, you can configure the `VALIDATION_ASSERTION` parameter with a simpl
 <p align="center"><img src="https://github.com/user-attachments/assets/45f6af65-3cb5-4cc3-8062-a3f8a13d7b0a" /></p>
 
 ## Build instructions
-<p align="justify">The sources can be compiled with any Java IDE with Ant support but you need to prepare the necessary dependencies for WebLogic and Oracle Service Bus libraries. You only need to modify "javaHomeDir" and "weblogicDir" in "Build.xml" file to suit your environment. The file supports multiple terget already prepared for WebLogic 12.1.3, 12.2.1 and 14.1.2 on a Windows operating system. Here is an excerpt of the section that needs to be customized.</p>
+<p align="justify">The sources can be compiled with any Java IDE with Ant support but you need to prepare the necessary dependencies for WebLogic and Oracle Service Bus libraries. You only need to modify "javaHomeDir" and "weblogicDir" in "Build.xml" file to suit your environment. The file supports the targets WebLogic 12.2.1 and 14.1.2 on a Windows operating system. Here is an excerpt of the section that needs to be customized.</p>
 
 ```xml
     <switch value="${targetConfig}">
-      <case value="12.1.3">
-        ...
-        <property name="javaHomeDir" value="C:/Programmi/Java/jdk1.7"/>
-        <property name="weblogicDir" value="C:/Oracle/Middleware/12.1.3"/>   
-        ...
-      </case>
       <case value="12.2.1">
         ...
         <property name="javaHomeDir" value="C:/Programmi/Java/jdk1.8"/>
@@ -175,11 +194,11 @@ Other important configuration options are as follows:
 ```
 <p align="justify">The first one checks if you want to include the sources in the deploy package. The second one checks if you want to produce a "fat" (or "merged") jar archive that includes the dependencies.<br/>
     
-At the moment all dependencies have been separated from the project and concentrated in the osb-commons library (see credits). You can decide whether to keep it separate instead of merged if you want to share it with any OSB extensions you want to develop (for example for extending pipelines with Java Callouts).</p>
+At the moment all dependencies have been separated from the project and concentrated in the osb-commons library (see credits). You can decide whether to keep it separate instead of merged if you want to share it with any OSB extensions you want to develop (for example for extending pipelines with Java Callouts). Keeping it separate (the default) is required to share a single osb-commons jar with osb-jwt-providers during the transition.</p>
 
-<p align="justify">The repository contains three projects already prepared for JDeveloper 12.1.3, 12.2.1.4 and 14.1.2 installation on Windows operating system. You could install JDeveloper with respective versions of Oracle SOA Suite Quick Start for Developers (see references). Ant compilation can be triggered from JDeveloper by right-clicking on the "Build.xml" file and selecting the "all" target or from the command line by running the "Build-xxx.cmd" Windows batch. Note that cross-compilation is fully supported, meaning that you can compile the provider for a different version target than JDeveloper, provided that at least the dependency libraries are accessible and configured correctly in the Ant build targets.</p>
+<p align="justify">The repository contains two projects already prepared for JDeveloper 12.2.1.4 and 14.1.2 installation on Windows operating system. You could install JDeveloper with respective versions of Oracle SOA Suite Quick Start for Developers (see references). Ant compilation can be triggered from JDeveloper by right-clicking on the "Build.xml" file and selecting the "all" target or from the command line by running the "Build-xxx.cmd" Windows batch. Note that cross-compilation is fully supported, meaning that you can compile the provider for a different version target than JDeveloper, provided that at least the dependency libraries are accessible and configured correctly in the Ant build targets.</p>
 
-At the end of the compilation the jar archive is automatically copied into the ```<WEBLOGIC_HOME>/wlserver/server/lib/mbeantypes``` folder from which WebLogic loads the security providers at startup, so you can directly launch the WebLogic environment integrated into JDeveloper to test the provider's operation after build.</p>
+At the end of the compilation the jar archive is automatically copied into the ```<WEBLOGIC_HOME>/wlserver/server/lib/mbeantypes``` folder from which WebLogic loads the security providers at startup, so you can directly launch the WebLogic environment integrated into JDeveloper to test the provider's operation after build. The user running the build needs write permission on that folder: if the WebLogic installation grants it only to administrators, the deploy fails with <code>java.nio.file.AccessDeniedException</code>. In that case grant the permission once, from a prompt opened as administrator, for example <code>icacls "&lt;WEBLOGIC_HOME&gt;\wlserver\server\lib\mbeantypes" /grant "&lt;user&gt;:(OI)(CI)M"</code>.</p>
 
 ## Log Management
 The log messages generated by the provider follow the following format: ```<timestamp> <module> <sequence> <level> <message>```.<br/>
@@ -379,7 +398,6 @@ This could be useful for example for analyzing debug logs of a specific service 
 - **OSB Commons** (https://github.com/falpi/osb-commons)<br/>
 
 ## References
-- Installing Oracle SOA Suite Quick Start for Developers 12.1.3:<br/> https://docs.oracle.com/middleware/1213/soasuite/index.html
 - WebLogic 12.1.3 Identity Assertion Providers:<br/> https://docs.oracle.com/middleware/1213/wls/DEVSP/ia.htm
 - WebLogic 12.1.3 Security Providers Developer Guide:<br/> https://docs.oracle.com/middleware/1213/wls/DEVSP/DEVSP.pdf
 - Generate an MBean Type Using the WebLogic MBeanMaker:<br/> https://docs.oracle.com/middleware/1213/wls/DEVSP/generate_mbeantype.htm
